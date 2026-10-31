@@ -37,7 +37,7 @@ Item {
         id: wall
         anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
-        source: Settings.appearance.wallpaper && Settings.appearance.wallpaper !== "quantum:live" ? "file://" + Settings.appearance.wallpaper : "file://" + Serp.wallpaper
+        source: Wallpaper.still(Settings.appearance.wallpaper) || "file://" + Serp.wallpaper
         sourceSize: Qt.size(1280, 720)
         asynchronous: true
         visible: false

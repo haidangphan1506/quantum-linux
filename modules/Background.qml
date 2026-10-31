@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import QtMultimedia
 import Quickshell
 import Quickshell.Wayland
 import qs.services
@@ -16,7 +17,9 @@ Variants {
         required property ShellScreen modelData
         // «quantum:live» = fondo vivo (el átomo de Quantum animado); si no, una imagen
         readonly property bool live: Settings.appearance.wallpaper === "quantum:live"
-        readonly property string source: !live && Settings.appearance.wallpaper ? "file://" + Settings.appearance.wallpaper : ""
+        // video: debajo va su póster (sirve para la animación al cambiar) y encima el video
+        readonly property bool video: !live && Wallpaper.isVideo(Settings.appearance.wallpaper)
+        readonly property string source: !live ? Wallpaper.still(Settings.appearance.wallpaper) : ""
         // radio del círculo que revela el fondo nuevo
         property real radius: 0
         readonly property real maxRadius: Math.hypot(width, height) / 2 + 40
@@ -95,6 +98,7 @@ Variants {
             }
         }
         MultiEffect {
+            z: 2
             anchors.fill: parent
             visible: win.revealing && !win.live
             source: over
@@ -105,6 +109,7 @@ Variants {
         }
         // anillo de luz con los colores de Quantum en el borde del círculo
         Rectangle {
+            z: 2
             visible: win.revealing && !win.live && win.radius < win.maxRadius - 1
             x: win.width / 2 - win.radius
             y: win.height / 2 - win.radius
@@ -114,6 +119,27 @@ Variants {
             color: "transparent"
             border.width: 3
             border.color: Theme.alpha(Theme.brandCyan, 0.7 * (1 - win.radius / win.maxRadius))
+        }
+
+        // Fondo de video: en bucle, sin sonido; se pausa igual que el fondo vivo
+        LazyLoader {
+            active: win.video
+            Video {
+                id: vid
+                parent: win.contentItem
+                anchors.fill: parent
+                z: 1
+                source: "file://" + Settings.appearance.wallpaper
+                fillMode: VideoOutput.PreserveAspectCrop
+                loops: MediaPlayer.Infinite
+                muted: true
+                readonly property bool run: !Shell.gameMode && !(Wm.active?.fullscreen ?? false)
+                onRunChanged: run ? play() : pause()
+                Component.onCompleted: if (run) play()
+                // aparece cuando ya hay imagen (antes se ve el póster)
+                opacity: playbackState !== MediaPlayer.StoppedState && hasVideo ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: 400 } }
+            }
         }
 
         // Fondo vivo: se pausa con juegos, ventanas a pantalla completa o maximizadas,

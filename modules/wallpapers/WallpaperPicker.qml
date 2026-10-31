@@ -42,9 +42,9 @@ PanelWindow {
     Process {
         id: lister
         command: ["sh", "-c", "for d in \"$1\" /usr/share/backgrounds/quantum \"$HOME/Imágenes/Fondos\" \"$HOME/Pictures/Wallpapers\"; do " +
-                  "[ -d \"$d\" ] && find \"$d\" -maxdepth 1 -type f \\( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \\); done | sort -u", "sh", win.sysDir]
+                  "[ -d \"$d\" ] && find \"$d\" -maxdepth 1 -type f \\( " + Wallpaper.findExpr + " \\); done | sort -u", "sh", win.sysDir]
         stdout: StdioCollector {
-            onStreamFinished: win.walls = text.trim().split("\n").filter(s => s.length)
+            onStreamFinished: { win.walls = text.trim().split("\n").filter(s => s.length); Wallpaper.prepare(win.walls); }
         }
     }
 
@@ -196,7 +196,20 @@ PanelWindow {
                                 sourceSize: Qt.size(480, 280)
                                 fillMode: Image.PreserveAspectCrop
                                 asynchronous: true
-                                onStatusChanged: if (status === Image.Error) source = "file://" + tile.modelData
+                                // los videos no se pueden mostrar como imagen: esperan a que se cree la miniatura
+                                onStatusChanged: if (status === Image.Error && !Wallpaper.isVideo(tile.modelData)) source = "file://" + tile.modelData
+                                Connections {
+                                    target: Wallpaper
+                                    function onThumbsReady(): void { th.source = ""; th.source = win.thumb(tile.modelData); }
+                                }
+                            }
+                            // insignia de video
+                            Rectangle {
+                                visible: Wallpaper.isVideo(tile.modelData)
+                                anchors.left: parent.left; anchors.bottom: parent.bottom; anchors.margins: 8
+                                width: 26; height: 26; radius: 13
+                                color: Qt.rgba(0, 0, 0, 0.55)
+                                Icon { anchors.centerIn: parent; text: "play_arrow"; size: 18; fill: 1; color: "white" }
                             }
                             Rectangle {
                                 visible: tile.on

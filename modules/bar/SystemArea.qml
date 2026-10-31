@@ -59,6 +59,11 @@ RowLayout {
             onClicked: Updates.rebootAsk = true
         }
     }
+    Loader {
+        active: Settings.layout.topBar.showSysMon
+        visible: active
+        sourceComponent: SysMonitor { barWindow: root.window }
+    }
     Status {}
     Clock { compact: root.compact }
     IconButton {

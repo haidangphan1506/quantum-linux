@@ -36,6 +36,20 @@ PanelWindow {
         search.forceActiveFocus();
         if (clipMode)
             Clipboard.refresh();
+        ctxApp = null;
+        Qt.callLater(() => grid.positionViewAtBeginning());
+    }
+
+    // «Más usadas» arriba cuando no se busca nada
+    readonly property bool showFrequent: !clipMode && search.text.trim() === ""
+    readonly property var frequentApps: open && showFrequent ? Apps.frequent(Math.max(1, grid.columns)) : []
+
+    // Menú contextual (clic derecho en una app): fijar/quitar de la barra, ocultar del menú
+    property var ctxApp: null
+    property point ctxPos: Qt.point(0, 0)
+    function openCtx(app: var, item: Item, mx: real, my: real): void {
+        win.ctxPos = item.mapToItem(card, mx, my);
+        win.ctxApp = app;
     }
 
     readonly property var results: clipMode
@@ -131,7 +145,7 @@ PanelWindow {
                         selectionColor: Theme.primary
                         selectedTextColor: Theme.primaryFg
                         clip: true
-                        onTextChanged: grid.currentIndex = 0
+                        onTextChanged: { grid.currentIndex = 0; Qt.callLater(() => grid.positionViewAtBeginning()); }
 
                         Txt {
                             anchors.verticalCenter: parent.verticalCenter
@@ -169,6 +183,61 @@ PanelWindow {
                 }
             }
 
+            // Más usadas (fijo arriba, fuera de la lista)
+            Item {
+                Layout.fillWidth: true
+                implicitHeight: freqCol.implicitHeight
+                visible: win.frequentApps.length > 0
+                ColumnLayout {
+                    id: freqCol
+                    width: parent.width
+                    spacing: 6
+                    Txt { text: I18n.t("Más usadas"); font.weight: Font.DemiBold; color: Theme.fgMuted; Layout.leftMargin: 6 }
+                    Row {
+                        Layout.fillWidth: true
+                        Repeater {
+                            model: win.frequentApps
+                            MouseArea {
+                                id: fq
+                                required property var modelData
+                                width: grid.cellWidth
+                                height: 104
+                                hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: e => {
+                                    if (e.button === Qt.RightButton) { win.openCtx(fq.modelData, fq, e.x, e.y); return; }
+                                    Apps.launch(fq.modelData);
+                                    Shell.launcherOpen = false;
+                                }
+                                Rectangle {
+                                    anchors.fill: parent
+                                    anchors.margins: 3
+                                    radius: Theme.radius
+                                    color: fq.containsMouse ? Theme.alpha(Theme.fg, 0.07) : "transparent"
+                                }
+                                ColumnLayout {
+                                    anchors.centerIn: parent
+                                    width: parent.width - 16
+                                    spacing: 6
+                                    AppIcon { Layout.alignment: Qt.AlignHCenter; size: 46; name: fq.modelData.icon }
+                                    Txt {
+                                        Layout.fillWidth: true
+                                        horizontalAlignment: Text.AlignHCenter
+                                        text: fq.modelData.name
+                                        font.pixelSize: Theme.textSmall + 1
+                                        maximumLineCount: 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.alpha(Theme.fg, 0.08) }
+                    Txt { text: I18n.t("Todas las apps"); font.weight: Font.DemiBold; color: Theme.fgMuted; Layout.leftMargin: 6 }
+                }
+            }
+
+
             // Resultados
             GridView {
                 id: grid
@@ -202,12 +271,29 @@ PanelWindow {
                     height: grid.cellHeight
 
                     MouseArea {
+                        id: cellArea
                         anchors.fill: parent
                         anchors.margins: 3
                         hoverEnabled: true
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
                         cursorShape: Qt.PointingHandCursor
                         onEntered: grid.currentIndex = cell.index
-                        onClicked: win.activate(cell.index)
+                        onClicked: e => {
+                            if (e.button === Qt.RightButton && !win.clipMode) win.openCtx(cell.modelData, cellArea, e.x, e.y);
+                            else win.activate(cell.index);
+                        }
+                    }
+
+                    // fijada en la barra
+                    Icon {
+                        visible: !win.clipMode && Apps.isPinned(cell.modelData.id ?? "")
+                        anchors.top: parent.top
+                        anchors.right: parent.right
+                        anchors.margins: 12
+                        text: "keep"
+                        size: 15
+                        fill: 1
+                        color: Theme.primary
                     }
 
                     // Modo apps: ícono grande y nombre
@@ -296,11 +382,63 @@ PanelWindow {
                     }
                     IconButton {
                         icon: "settings"
-                        onClicked: { Shell.launcherOpen = false; Quickshell.execDetached(["quantum-center", "--page", "ajustes"]); }
+                        onClicked: { Shell.launcherOpen = false; Shell.personalize(); }
                     }
                     IconButton {
                         icon: "power_settings_new"
                         onClicked: { Shell.launcherOpen = false; Shell.toggleSession(); }
+                    }
+                }
+            }
+        }
+
+        // Menú contextual de una app
+        MouseArea {
+            anchors.fill: parent
+            visible: !!win.ctxApp
+            onClicked: win.ctxApp = null
+        }
+        Rectangle {
+            id: ctxMenu
+            visible: !!win.ctxApp
+            z: 10
+            // junto al cursor, sin salirse de la tarjeta
+            x: Math.max(8, Math.min(win.ctxPos.x, card.width - width - 8))
+            y: Math.max(8, Math.min(win.ctxPos.y, card.height - height - 8))
+            width: 240
+            height: ctxCol.implicitHeight + 12
+            radius: 10
+            color: Theme.alpha(Theme.surfaceHigh, 0.98)
+            border.width: 1
+            border.color: Theme.alpha(Theme.fg, 0.12)
+            readonly property bool pinned: !!win.ctxApp && Apps.isPinned(win.ctxApp.id)
+            ColumnLayout {
+                id: ctxCol
+                anchors.fill: parent
+                anchors.margins: 6
+                spacing: 0
+                Repeater {
+                    model: win.ctxApp ? [
+                        { icon: "open_in_new", text: I18n.t("Abrir"), run: () => { Apps.launch(win.ctxApp); Shell.launcherOpen = false; } },
+                        { icon: ctxMenu.pinned ? "keep_off" : "keep", text: ctxMenu.pinned ? I18n.t("Quitar de la barra") : I18n.t("Fijar en la barra"), run: () => Wm.togglePin(win.ctxApp.id) },
+                        { icon: "visibility_off", text: I18n.t("Ocultar del menú"), run: () => Apps.setVisible(win.ctxApp, false) }
+                    ] : []
+                    MouseArea {
+                        id: opt
+                        required property var modelData
+                        Layout.fillWidth: true
+                        implicitHeight: 34
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: { opt.modelData.run(); win.ctxApp = null; }
+                        Rectangle { anchors.fill: parent; radius: 6; color: opt.containsMouse ? Theme.alpha(Theme.primary, 0.18) : "transparent" }
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            spacing: 10
+                            Icon { text: opt.modelData.icon; size: 18 }
+                            Txt { text: opt.modelData.text; Layout.fillWidth: true }
+                        }
                     }
                 }
             }

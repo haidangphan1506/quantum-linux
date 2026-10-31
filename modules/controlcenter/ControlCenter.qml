@@ -42,7 +42,8 @@ PanelWindow {
     // El centro de control tiene dos páginas: los ajustes rápidos y la lista
     // de redes Wi-Fi (Shell.wifiPage).
     readonly property bool wifiPage: Shell.wifiPage
-    readonly property real contentHeight: wifiPage ? wifiPageLayout.implicitHeight : layout.implicitHeight
+    readonly property bool btPage: Shell.btPage
+    readonly property real contentHeight: wifiPage ? wifiPageLayout.implicitHeight : btPage ? btPageLayout.implicitHeight : layout.implicitHeight
 
     Card {
         id: panel
@@ -58,6 +59,8 @@ PanelWindow {
         Keys.onEscapePressed: {
             if (win.wifiPage)
                 Shell.wifiPage = false;
+            else if (win.btPage)
+                Shell.btPage = false;
             else
                 Shell.controlCenterOpen = false;
         }
@@ -78,7 +81,7 @@ PanelWindow {
             ColumnLayout {
                 id: layout
                 width: flick.width
-                visible: !win.wifiPage
+                visible: !win.wifiPage && !win.btPage
                 spacing: 14
 
                 // Encabezado: saludo y accesos
@@ -107,12 +110,14 @@ PanelWindow {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 0
-                        Txt { text: I18n.t("Hola, ") + win.user; font.weight: Font.DemiBold; font.pixelSize: Theme.textLarge }
-                        Txt { text: "Quantum Linux"; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
+                        // fillWidth: sin esto el layout usa el ancho del texto como mínimo y,
+                        // con textos largos (p. ej. en vietnamita), empuja todo el panel fuera del borde.
+                        Txt { Layout.fillWidth: true; text: I18n.t("Hola, ") + win.user; font.weight: Font.DemiBold; font.pixelSize: Theme.textLarge }
+                        Txt { Layout.fillWidth: true; text: "Quantum Linux"; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
                     }
                     IconButton {
                         icon: "settings"
-                        onClicked: { Shell.closeAll(); Quickshell.execDetached(["quantum-center", "--page", "ajustes"]); }
+                        onClicked: { Shell.closeAll(); Shell.personalize(); }
                     }
                     IconButton { icon: "wallpaper"; onClicked: Shell.toggleWallpapers() }
                     IconButton { icon: "lock"; onClicked: Shell.lock() }
@@ -160,7 +165,9 @@ PanelWindow {
                         subtitle: Bt.label
                         on: Bt.enabled
                         onToggled: Bt.toggle()
-                        onMore: { Shell.closeAll(); Quickshell.execDetached(["blueman-manager"]); }
+                        // botón visible para ver/emparejar dispositivos (el clic derecho también sirve)
+                        moreVisible: true
+                        onMore: Shell.openBluetooth()
                     }
                     ToggleTile {
                         Layout.fillWidth: true
@@ -174,9 +181,13 @@ PanelWindow {
                         Layout.fillWidth: true
                         icon: "dark_mode"
                         title: I18n.t("Modo oscuro")
-                        subtitle: Theme.dark ? I18n.t("Activado") : I18n.t("Desactivado")
-                        on: Settings.appearance.mode === "dark"
-                        onToggled: Settings.set("appearance", "mode", Settings.appearance.mode === "dark" ? "light" : "dark")
+                        subtitle: Settings.appearance.mode === "auto" ? I18n.t("Automático") + " · " + (Theme.dark ? I18n.t("Activado") : I18n.t("Desactivado"))
+                                : Theme.dark ? I18n.t("Activado") : I18n.t("Desactivado")
+                        on: Theme.dark
+                        onToggled: Settings.set("appearance", "mode", Theme.dark ? "light" : "dark")
+                        // clic derecho / flecha: elegir Oscuro, Claro o Automático
+                        moreVisible: true
+                        onMore: Shell.personalizePage("colors")
                     }
                     ToggleTile {
                         Layout.fillWidth: true
@@ -351,6 +362,16 @@ PanelWindow {
                 spacing: 14
 
                 WifiView {}
+            }
+
+            // Página de dispositivos Bluetooth
+            ColumnLayout {
+                id: btPageLayout
+                width: flick.width
+                visible: win.btPage
+                spacing: 14
+
+                BtView {}
             }
         }
     }

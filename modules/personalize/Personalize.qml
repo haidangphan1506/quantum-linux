@@ -35,6 +35,7 @@ Scope {
                 { id: "sounds", t: I18n.t("Sonidos"), h: I18n.t("Los sonidos del sistema y su volumen."), i: "music_note", c: soundsPage },
                 { id: "display", t: I18n.t("Pantalla"), h: I18n.t("Luz nocturna, brillo, contraste, gamma y saturación."), i: "desktop_windows", c: displayPage },
                 { id: "input", t: I18n.t("Mouse y touchpad"), h: I18n.t("Velocidad, aceleración, desplazamiento y clics."), i: "mouse", c: inputPage },
+                { id: "bluetooth", t: "Bluetooth", h: I18n.t("Empareja auriculares, teclados y otros dispositivos."), i: "bluetooth", c: bluetoothPage },
             ]
             property string current: pages.some(p => p.id === Settings.ui.page) ? Settings.ui.page : "styles"
             readonly property var page: pages.find(p => p.id === current)
@@ -52,6 +53,7 @@ Scope {
             Component { id: soundsPage; SoundsPage {} }
             Component { id: displayPage; DisplayPage {} }
             Component { id: inputPage; InputPage {} }
+            Component { id: bluetoothPage; BluetoothPage {} }
 
             Shortcut { sequence: "Escape"; onActivated: Shell.personalizeOpen = false }
 

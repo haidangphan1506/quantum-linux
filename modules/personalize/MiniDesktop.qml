@@ -55,7 +55,7 @@ Rectangle {
         anchors.fill: parent
         readonly property bool real: root.wallpaper !== "" && root.wallpaper !== "quantum:live"
         visible: real
-        source: real ? "file://" + root.wallpaper : ""
+        source: real ? Wallpaper.still(root.wallpaper) : ""
         sourceSize: Qt.size(480, 270)
         fillMode: Image.PreserveAspectCrop
         asynchronous: true

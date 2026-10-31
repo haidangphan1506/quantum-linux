@@ -26,13 +26,14 @@ Singleton {
     property alias mouse: adapter.mouse
     property alias touchpad: adapter.touchpad
     property alias apps: adapter.apps
+    property alias screensaver: adapter.screensaver
 
     // Valores de fábrica de todo lo visual (= estilo «Quantum»). Los estilos se
     // aplican encima de esto, así un estilo siempre se ve igual.
     readonly property var defaults: ({
         appearance: { mode: "dark", dynamicColors: false, accent: "#6A5CFF", panelOpacity: 0.86, blur: true, textScale: 1.0,
                       glass: { bar: true, dock: true, panels: true, windows: false }, windowOpacity: 0.9 },
-        layout: { style: "split", topBar: { floating: true, showApp: true } },
+        layout: { style: "split", topBar: { floating: true, showApp: true, showSysMon: true } },
         dock: { floating: true, align: "center", size: "medium", autohide: false, showSearch: true, showStart: true, showTray: true, showUpdates: true },
         clock: { format24h: true, showDate: true, showSeconds: false },
         lock: { left: ["weather", "fetch", "media"], right: ["stats", "notifs"], showNotifContent: false, city: "" },
@@ -167,6 +168,19 @@ Singleton {
         file.writeAdapter();
     }
 
+    // Uso de apps (no cambia el estilo ni vuelve a aplicar el tema)
+    function setUsage(usage: var): void {
+        adapter.apps.usage = usage;
+        file.writeAdapter();
+    }
+
+    Timer {
+        interval: 60000
+        repeat: true
+        running: root.appearance.mode === "auto"
+        onTriggered: themeProc.running = true
+    }
+
     Timer {
         id: applyTimer
         interval: 250
@@ -214,7 +228,9 @@ Singleton {
             id: adapter
 
             property JsonObject appearance: JsonObject {
-                property string mode: "dark"
+                property string mode: "dark"             // dark | light | auto (por horario)
+                property string lightFrom: "07:00"       // modo auto: claro desde…
+                property string lightTo: "18:00"         // …hasta
                 property bool dynamicColors: false
                 property string accent: "#6A5CFF"
                 property string wallpaper: "quantum:live"
@@ -281,6 +297,8 @@ Singleton {
             property JsonObject apps: JsonObject {
                 property var hidden: []
                 property var shown: []
+                // veces que se abrió cada app: { "<id>": { n: veces, t: última vez (ms) } } → «Más usadas»
+                property var usage: ({})
             }
             property JsonObject notifications: JsonObject {
                 property bool dnd: false
@@ -302,6 +320,7 @@ Singleton {
                 property JsonObject topBar: JsonObject {
                     property bool floating: true
                     property bool showApp: true
+                    property bool showSysMon: true   // temperatura, CPU y RAM en la barra
                 }
             }
             property JsonObject clock: JsonObject {
@@ -315,6 +334,11 @@ Singleton {
                 property var right: ["stats", "notifs"]
                 property bool showNotifContent: false
                 property string city: ""
+            }
+            // Màn hình chờ: mưa ký tự kiểu Matrix sau «timeout» giây không dùng máy
+            property JsonObject screensaver: JsonObject {
+                property bool enabled: true
+                property int timeout: 600
             }
             // Asistente con IA local (Ollama): modelo elegido ("" = el primero instalado)
             property JsonObject ai: JsonObject {

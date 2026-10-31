@@ -73,7 +73,7 @@ Item {
         Image {
             anchors.fill: parent
             visible: Settings.appearance.wallpaper !== "quantum:live"
-            source: visible && Settings.appearance.wallpaper ? "file://" + Settings.appearance.wallpaper : ""
+            source: visible ? Wallpaper.still(Settings.appearance.wallpaper) : ""
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             sourceSize: Qt.size(root.width / 2, root.height / 2)

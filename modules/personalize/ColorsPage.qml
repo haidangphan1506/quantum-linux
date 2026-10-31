@@ -20,9 +20,9 @@ ColumnLayout {
     Process {
         id: lister
         command: ["sh", "-c", "for d in /usr/share/backgrounds/quantum \"$HOME/Imágenes/Fondos\" \"$HOME/Pictures/Wallpapers\" \"$(dirname \"$1\")\"; do " +
-                  "[ -d \"$d\" ] && find \"$d\" -maxdepth 1 -type f \\( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \\); done | sort -u",
+                  "[ -d \"$d\" ] && find \"$d\" -maxdepth 1 -type f \\( " + Wallpaper.findExpr + " \\); done | sort -u",
                   "sh", Settings.appearance.wallpaper]
-        stdout: StdioCollector { onStreamFinished: page.walls = text.trim().split("\n").filter(s => s.length) }
+        stdout: StdioCollector { onStreamFinished: { page.walls = text.trim().split("\n").filter(s => s.length); Wallpaper.prepare(page.walls); } }
     }
 
     function thumb(path: string): string {
@@ -44,7 +44,8 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 14
             Repeater {
-                model: [{ m: "dark", t: I18n.t("Oscuro"), h: I18n.t("Descansa la vista de noche") }, { m: "light", t: I18n.t("Claro"), h: I18n.t("Ideal con mucha luz") }]
+                model: [{ m: "dark", t: I18n.t("Oscuro"), h: I18n.t("Descansa la vista de noche") }, { m: "light", t: I18n.t("Claro"), h: I18n.t("Ideal con mucha luz") },
+                        { m: "auto", t: I18n.t("Automático"), h: I18n.t("Claro de día, oscuro de noche") }]
                 ChoiceCard {
                     id: mc
                     required property var modelData
@@ -55,10 +56,56 @@ ColumnLayout {
                     onClicked: Settings.set("appearance", "mode", modelData.m)
                     MiniDesktop {
                         anchors.fill: parent
-                        v: { const s = Settings.visualState(); s.appearance.mode = mc.modelData.m; return s; }
+                        v: { const s = Settings.visualState(); s.appearance.mode = mc.modelData.m === "auto" ? "dark" : mc.modelData.m; return s; }
+                    }
+                    // Automático: mitad clara encima (diagonal no: corte vertical)
+                    Item {
+                        visible: mc.modelData.m === "auto"
+                        anchors.fill: parent
+                        anchors.leftMargin: parent.width / 2
+                        clip: true
+                        MiniDesktop {
+                            x: -parent.parent.width / 2
+                            width: parent.parent.width
+                            height: parent.height
+                            v: { const s = Settings.visualState(); s.appearance.mode = "light"; return s; }
+                        }
                     }
                 }
             }
+        }
+
+        // Horario del modo automático
+        OptionRow {
+            visible: Settings.appearance.mode === "auto"
+            title: I18n.t("Claro desde")
+            help: I18n.t("Ahora: ") + (Theme.dark ? I18n.t("Oscuro") : I18n.t("Claro"))
+            icon: "wb_sunny"
+            Segmented {
+                options: ["06:00", "07:00", "08:00"].map(t => ({ v: t, t: t }))
+                value: Settings.appearance.lightFrom
+                onPicked: v => Settings.set("appearance", "lightFrom", v)
+            }
+        }
+        OptionRow {
+            visible: Settings.appearance.mode === "auto"
+            title: I18n.t("Oscuro desde")
+            icon: "dark_mode"
+            Segmented {
+                options: ["17:00", "18:00", "19:00", "20:00"].map(t => ({ v: t, t: t }))
+                value: Settings.appearance.lightTo
+                onPicked: v => Settings.set("appearance", "lightTo", v)
+            }
+        }
+
+        // Qué sigue el modo
+        Txt {
+            Layout.fillWidth: true
+            Layout.topMargin: 4
+            text: I18n.t("Se aplica al escritorio, las ventanas (barras de título), apps GTK y Qt, la terminal kitty, Archivos (Thunar) y a Brave, Chromium y Claude cuando siguen el tema del sistema.")
+            color: Theme.fgMuted
+            font.pixelSize: Theme.textSmall
+            wrapMode: Text.WordWrap
         }
     }
 
@@ -230,13 +277,27 @@ ColumnLayout {
                     scale: wArea.containsMouse ? 1.03 : 1
                     Behavior on scale { NumberAnimation { duration: Theme.animFast; easing.type: Easing.OutCubic } }
                     Image {
+                        id: thImg
                         anchors.fill: parent
                         anchors.margins: tile.on ? 3 : 0
                         source: page.thumb(tile.modelData)
                         sourceSize: Qt.size(400, 225)
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
-                        onStatusChanged: if (status === Image.Error) source = "file://" + tile.modelData
+                        // los videos no se pueden mostrar como imagen: esperan a que se cree la miniatura
+                        onStatusChanged: if (status === Image.Error && !Wallpaper.isVideo(tile.modelData)) source = "file://" + tile.modelData
+                        Connections {
+                            target: Wallpaper
+                            function onThumbsReady(): void { thImg.source = ""; thImg.source = page.thumb(tile.modelData); }
+                        }
+                    }
+                    // insignia de video
+                    Rectangle {
+                        visible: Wallpaper.isVideo(tile.modelData)
+                        anchors.left: parent.left; anchors.bottom: parent.bottom; anchors.margins: 8
+                        width: 26; height: 26; radius: 13
+                        color: Qt.rgba(0, 0, 0, 0.55)
+                        Icon { anchors.centerIn: parent; text: "play_arrow"; size: 18; fill: 1; color: "white" }
                     }
                     Rectangle {
                         visible: tile.on

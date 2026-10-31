@@ -229,6 +229,11 @@ ColumnLayout {
             help: I18n.t("El nombre y el ícono de la ventana que estás usando, a la izquierda.")
             Toggle { checked: Settings.layout.topBar.showApp; onToggled: c => Settings.setPath("layout.topBar.showApp", c) }
         }
+        OptionRow {
+            title: I18n.t("Monitor del sistema")
+            help: I18n.t("Temperatura, CPU y RAM en tiempo real. Haz clic para ver el detalle.")
+            Toggle { checked: Settings.layout.topBar.showSysMon; onToggled: c => Settings.setPath("layout.topBar.showSysMon", c) }
+        }
     }
 
     Group {

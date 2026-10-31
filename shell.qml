@@ -1,5 +1,6 @@
 //@ pragma UseQApplication
-// Los íconos los elige quantum-shell-start (QS_ICON_THEME) según Personalizar; sin eso, qt6ct.
+// Íconos: QS_ICON_THEME (quantum-shell-start) si existe; si no, el pragma IconTheme (WhiteSur-dark, igual que GTK).
+//@ pragma IconTheme WhiteSur-dark
 //@ pragma DefaultEnv QSG_RENDER_LOOP=threaded
 
 import QtQuick
@@ -20,6 +21,11 @@ import "modules/welcome"
 import "modules/lock"
 import "modules/serpantium"
 import "modules/updates"
+import "modules/screensaver"
+import "modules/overview"
+import "modules/switcher"
+import "modules/launchpad"
+import "modules/about"
 
 // Quantum Shell: el escritorio de Quantum Linux.
 // Primero aparece la pantalla de carga (liviana) y el resto se carga de fondo, sin
@@ -60,10 +66,15 @@ ShellRoot {
             Dashboard {}
             WallpaperPicker {}
             Personalize {}
+            About {}
             Assistant {}
             SessionMenu {}
             Welcome {}
             RebootPrompt {}
+            Screensaver {}
+            Overview {}
+            Switcher {}
+            Launchpad {}
         }
     }
 }

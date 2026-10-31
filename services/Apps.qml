@@ -96,6 +96,7 @@ Singleton {
                 }
                 root.packages = out;
                 root.packagesLoaded = true;
+                root.cleanPinned();
             }
         }
     }
@@ -137,6 +138,64 @@ Singleton {
         return out;
     }
 
+    // ---------- instaladas / más usadas / fijadas ----------
+
+    // ¿Existe esta app en el sistema? (.desktop encontrado por el escaneo o por Quickshell)
+    function installed(id: string): bool {
+        if (!id) return false;
+        return (id in root.packages) || !!DesktopEntries.byId(id);
+    }
+
+    function entry(id: string): var {
+        return DesktopEntries.byId(id) ?? null;
+    }
+
+    // Apps conocidas que se proponen si aún no hay historial de uso (solo las instaladas)
+    readonly property var suggested: ["brave-browser", "firefox", "chromium", "google-chrome", "org.gnome.Nautilus", "thunar",
+        "org.kde.dolphin", "kitty", "foot", "Alacritty", "com.mitchellh.ghostty", "code", "code-oss", "codium", "nvim",
+        "org.gnome.TextEditor", "spotify", "discord", "steam", "obsidian", "org.pulseaudio.pavucontrol"]
+
+    // Más usadas: por número de aperturas (con un poco de peso a lo reciente); se completa con sugeridas
+    function frequent(count: int): var {
+        const usage = Settings.apps.usage ?? {};
+        const now = Date.now();
+        const score = id => {
+            const u = usage[id];
+            if (!u) return 0;
+            const days = (now - (u.t ?? 0)) / 86400000;
+            return (u.n ?? 0) + Math.max(0, 5 - days);
+        };
+        const out = [];
+        const seen = {};
+        const push = id => {
+            if (seen[id] || out.length >= count) return;
+            const e = root.entry(id);
+            if (!e || !root.isVisible(e)) return;
+            seen[id] = true;
+            out.push(e);
+        };
+        Object.keys(usage).sort((a, b) => score(b) - score(a)).forEach(push);
+        root.suggested.forEach(push);
+        return out;
+    }
+
+    function isPinned(id: string): bool {
+        return (Settings.dock.pinned ?? []).indexOf(id) >= 0;
+    }
+
+    // Quita de la barra las apps fijadas que no están instaladas y, si quedan pocas,
+    // fija las instaladas más usadas. Se hace cuando el escaneo de .desktop terminó.
+    function cleanPinned(): void {
+        if (!root.packagesLoaded || DesktopEntries.applications.values.length === 0) return;
+        const before = (Settings.dock.pinned ?? []).slice();
+        let pins = before.filter(id => root.installed(id));
+        if (pins.length < 3)
+            for (const e of root.frequent(4))
+                if (pins.length < 4 && pins.indexOf(e.id) < 0) pins.push(e.id);
+        if (pins.join(",") !== before.join(","))
+            Settings.setPinned(pins);
+    }
+
     function launch(app: DesktopEntry): void {
         if (!app)
             return;
@@ -145,6 +204,11 @@ Singleton {
         if (key && root.lastLaunch[key] && (now - root.lastLaunch[key]) < root.launchCooldown)
             return;
         root.lastLaunch[key] = now;
+        if (app.id) {
+            const usage = Object.assign({}, Settings.apps.usage ?? {});
+            usage[app.id] = { n: (usage[app.id]?.n ?? 0) + 1, t: now };
+            Settings.setUsage(usage);
+        }
         if (app.runInTerminal) {
             if (app.command && app.command.length > 0)
                 Quickshell.execDetached(["kitty", "-e", ...app.command]);

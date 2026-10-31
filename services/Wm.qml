@@ -41,11 +41,11 @@ Singleton {
         };
         for (let i = 0; i < pinned.length; i++) {
             const pid = pinned[i];
-            const e = DesktopEntries.byId(pid) ?? DesktopEntries.heuristicLookup(pid);
-            if (e)
+            // solo apps que existen en el sistema (las desinstaladas no se muestran;
+            // Apps.cleanPinned() las quita de la lista)
+            const e = DesktopEntries.byId(pid);
+            if (e && !byId[e.id])
                 add(e.id, e, true);
-            else
-                add(pid, null, true);
         }
         for (let i = 0; i < root.windows.length; i++) {
             const w = root.windows[i];
@@ -117,10 +117,24 @@ Singleton {
     function minimize(win: Toplevel): void { win.minimized = true; }
     function restore(win: Toplevel): void { win.minimized = false; }
 
+    // Activar sin mover el cursor y subiendo la ventana encima de las demás: el «activate» de
+    // wlr-foreign-toplevel de Hyprland siempre lleva el cursor a la ventana, así que se usa
+    // cael_activate() de hyprlands/minimize.lua. Sin dirección de Hyprland, el activate normal.
+    function hyprAddress(win: Toplevel): string {
+        const t = Hyprland.toplevels.values.find(h => h.wayland === win);
+        const a = t?.address ?? "";
+        return a === "" ? "" : (a.startsWith("0x") ? a : "0x" + a);
+    }
+    function activate(win: Toplevel): void {
+        const a = root.hyprAddress(win);
+        if (a) Quickshell.execDetached(["hyprctl", "eval", `cael_activate('${a}')`]);
+        else win.activate();
+    }
+
     // Enfocar una ventana; si está minimizada, primero vuelve del dock (como en macOS).
     function focus(win: Toplevel): void {
         if (root.isMinimized(win)) root.restore(win);
-        else win.activate();
+        else root.activate(win);
     }
 
     // Clic en el dock: si ya está activa se minimiza, si está minimizada vuelve, si no, se enfoca.
@@ -130,7 +144,7 @@ Singleton {
         else if (win.activated)
             root.minimize(win);
         else
-            win.activate();
+            root.activate(win);
     }
 
     function logout(): void {

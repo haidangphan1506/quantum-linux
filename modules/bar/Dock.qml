@@ -117,18 +117,26 @@ Variants {
             radius: dock.floating ? Math.round(20 * Theme.dockScale) * Theme.radius / 16 : 0
             color: Theme.alpha(Theme.surface, Math.min(0.97, Theme.glassOpacity("dock") + 0.04))
             border.width: dock.floating ? 1 : 0
-            opacity: dock.shown ? 1 : 0
-            transform: Translate {
-                y: dock.shown && dock.revealed ? 0 : dock.barH + dock.gap + 6
-                Behavior on y { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
+            // Ẩn/hiện khi hover: một giá trị 0..1 điều khiển trượt + mờ + co.
+            // Hiện: bật lên nhẹ (OutBack khi nổi) — Ẩn: nhanh hơn, tăng tốc dần (InCubic).
+            property real reveal: dock.shown && dock.revealed ? 1 : 0
+            Behavior on reveal {
+                NumberAnimation {
+                    duration: dock.revealed ? Theme.animSlow : Theme.anim
+                    easing.type: dock.revealed ? (dock.floating ? Easing.OutBack : Easing.OutCubic) : Easing.InCubic
+                    easing.overshoot: 1.1
+                }
             }
-            Behavior on opacity { NumberAnimation { duration: Theme.anim } }
+            opacity: (dock.shown ? 1 : 0) * Math.max(0, Math.min(1, 0.15 + reveal * 1.2))
+            scale: dock.floating ? 0.94 + 0.06 * reveal : 1
+            transformOrigin: Item.Bottom
+            transform: Translate { y: (1 - card.reveal) * (dock.barH + dock.gap + 6) }
             Behavior on width { enabled: !dock.full; NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
 
             HoverHandler {
                 onHoveredChanged: {
                     if (hovered) { revealTimer.stop(); dock.hovering = true; }
-                    else { revealTimer.interval = 700; revealTimer.restart(); }
+                    else { revealTimer.interval = 250; revealTimer.restart(); }
                 }
             }
 

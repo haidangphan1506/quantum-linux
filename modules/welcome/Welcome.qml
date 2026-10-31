@@ -108,7 +108,7 @@ PanelWindow {
         anchors.fill: parent
         opacity: 0.55 * Math.min(1, win.progress * 1.4)
         fillMode: Image.PreserveAspectCrop
-        source: Settings.appearance.wallpaper && Settings.appearance.wallpaper !== "quantum:live" ? "file://" + Settings.appearance.wallpaper : ""
+        source: Wallpaper.still(Settings.appearance.wallpaper)
         sourceSize: Qt.size(960, 540)
         asynchronous: true
         layer.enabled: true

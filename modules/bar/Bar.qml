@@ -22,7 +22,8 @@ Variants {
         visible: Settings.layout.style !== "single"
         WlrLayershell.namespace: "quantum-bar"
         anchors { top: true; left: true; right: true }
-        implicitHeight: floating ? 54 : 46
+        // pegada = barra de menús estilo macOS (MacBar.qml), fina
+        implicitHeight: floating ? 54 : 30
         exclusiveZone: implicitHeight
         color: "transparent"
 
@@ -30,8 +31,15 @@ Variants {
         Rectangle {
             anchors.fill: parent
             visible: !bar.floating
-            color: Theme.alpha(Theme.surface, Theme.glassOpacity("bar"))
-            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.alpha(Theme.fg, 0.08) }
+            // translúcida: Hyprland desenfoca lo de detrás (layer_rule blur en decorators.lua)
+            color: Theme.alpha(Theme.surface, 0.55)
+        }
+
+        MacBar {
+            anchors.fill: parent
+            visible: !bar.floating
+            window: bar
+            compact: bar.width < 1300
         }
 
         component Section: Card {
@@ -52,23 +60,27 @@ Variants {
         Section {
             id: activeApp
             readonly property var win: Wm.active && !Wm.isMinimized(Wm.active) ? Wm.active : null
-            visible: Settings.layout.topBar.showApp
+            visible: bar.floating && Settings.layout.topBar.showApp
             anchors.left: parent.left
             anchors.leftMargin: bar.floating ? 10 : 6
             anchors.verticalCenter: parent.verticalCenter
             anchors.verticalCenterOffset: bar.floating ? 3 : 0
+            // Franja completa = estilo barra de menús de macOS: el logo siempre en la esquina
+            // (como la manzana) y a su lado el nombre de la app activa en negrita, sin icono.
             Item {
-                implicitWidth: 26
-                implicitHeight: 26
+                implicitWidth: bar.floating ? 26 : 20
+                implicitHeight: implicitWidth
+                Layout.leftMargin: bar.floating ? 0 : 8
+                Layout.rightMargin: bar.floating ? 0 : 8
                 Image {
                     anchors.fill: parent
-                    visible: !activeApp.win
+                    visible: !activeApp.win || !bar.floating
                     source: Quickshell.shellDir + "/assets/quantum-mark.svg"
                     sourceSize: Qt.size(52, 52)
                 }
                 AppIcon {
                     anchors.fill: parent
-                    visible: !!activeApp.win
+                    visible: !!activeApp.win && bar.floating
                     size: 22
                     name: activeApp.win ? Wm.iconFor(activeApp.win.appId) : ""
                 }
@@ -85,6 +97,7 @@ Variants {
 
         // Derecha: bandeja, estado, hora, notificaciones y apagado
         Section {
+            visible: bar.floating
             anchors.right: parent.right
             anchors.rightMargin: bar.floating ? 10 : 6
             anchors.verticalCenter: parent.verticalCenter
