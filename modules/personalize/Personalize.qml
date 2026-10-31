@@ -26,6 +26,7 @@ Scope {
 
             readonly property var pages: [
                 { id: "language", t: I18n.t("Idioma"), h: I18n.t("El idioma de la barra, los menús, los paneles y esta ventana."), i: "translate", c: languagePage },
+                { id: "apps", t: I18n.t("Aplicaciones"), h: I18n.t("Muestra u oculta apps del menú y mira de qué paquete vienen."), i: "apps", c: appsPage },
                 { id: "styles", t: I18n.t("Estilos"), h: I18n.t("Cambia todo el escritorio con un clic."), i: "auto_awesome", c: stylesPage },
                 { id: "colors", t: I18n.t("Colores y fondo"), h: I18n.t("Modo claro u oscuro, color de acento y fondo de pantalla."), i: "palette", c: colorsPage },
                 { id: "bar", t: I18n.t("Barra y dock"), h: I18n.t("Dónde van tus apps, la hora y el estado del sistema."), i: "dock_to_bottom", c: barPage },
@@ -42,6 +43,7 @@ Scope {
             Component.onCompleted: Settings.snapshot()
 
             Component { id: languagePage; LanguagePage {} }
+            Component { id: appsPage; AppsPage {} }
             Component { id: stylesPage; StylesPage {} }
             Component { id: colorsPage; ColorsPage {} }
             Component { id: barPage; BarPage {} }

@@ -25,6 +25,7 @@ Singleton {
     property alias display: adapter.display
     property alias mouse: adapter.mouse
     property alias touchpad: adapter.touchpad
+    property alias apps: adapter.apps
 
     // Valores de fábrica de todo lo visual (= estilo «Quantum»). Los estilos se
     // aplican encima de esto, así un estilo siempre se ve igual.
@@ -106,7 +107,7 @@ Singleton {
         if (adapter[section] === undefined)
             return;
         adapter[section][key] = value;
-        if (key !== "wallpaper" && key !== "iconTheme" && !["display", "mouse", "touchpad", "sounds"].includes(section))   // no son parte de los estilos
+        if (key !== "wallpaper" && key !== "iconTheme" && !["display", "mouse", "touchpad", "sounds", "apps"].includes(section))   // no son parte de los estilos
             adapter.ui.style = "custom";
         changed = true;
         file.writeAdapter();
@@ -274,6 +275,12 @@ Singleton {
                 property bool disableWhileTyping: true
                 property real scrollSpeed: 1.0
                 property string clickMethod: "clickfinger"   // clickfinger (dos dedos) | button-areas (esquina)
+            }
+            // Menu de apps: ids ocultos a mano y ids mostrados aunque el .desktop diga NoDisplay=true.
+            // No toca los archivos .desktop del sistema.
+            property JsonObject apps: JsonObject {
+                property var hidden: []
+                property var shown: []
             }
             property JsonObject notifications: JsonObject {
                 property bool dnd: false
