@@ -1,0 +1,10 @@
+{
+  "name": "Moderno",
+  "description": "Parecido a Windows 11: una barra abajo, apps al centro",
+  "settings": {
+    "appearance": { "accent": "#3B82F6", "panelOpacity": 0.9 },
+    "layout": { "style": "single" },
+    "dock": { "floating": false, "align": "center" },
+    "windows": { "corners": "soft" }
+  }
+}

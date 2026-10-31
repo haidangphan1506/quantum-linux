@@ -1,0 +1,113 @@
+pragma Singleton
+
+import QtQuick
+import Quickshell
+import Quickshell.Io
+
+// Avisa cuando hay actualizaciones. Usa checkupdates (copia aparte de la base de
+// pacman: no toca el sistema ni pide contraseña) y revisa cada 3 horas.
+Singleton {
+    id: root
+
+    property int count: 0
+    property int quantumCount: 0        // de ellas, cuántas son de Quantum
+    property var list: []               // [{ name, from, to, quantum }]
+    property bool checking: false
+    property int notifiedFor: 0
+
+    // ---- reinicio pendiente: el hook de pacman quantum-reboot.hook anota en /run qué se
+    // actualizó (con quantum-update, la Tienda, yay o pacman). /run se borra al reiniciar.
+    readonly property string rebootFile: Quickshell.env("QUANTUM_REBOOT_FILE") || "/run/quantum/reboot-required"
+    property var rebootPackages: []
+    readonly property bool rebootNeeded: rebootPackages.length > 0
+    property bool rebootAsk: false          // se muestra el aviso
+    property double snoozedUntil: 0
+    signal rebootPrompt()
+
+    function checkReboot(): void { if (!rebootProc.running) rebootProc.running = true; }
+    function snoozeReboot(): void { rebootAsk = false; snoozedUntil = Date.now() + 2 * 3600 * 1000; }
+    function reboot(): void { Quickshell.execDetached(["systemctl", "reboot"]); }
+
+    // Nombres que entiende cualquiera, para el aviso
+    function friendly(): string {
+        const names = { "linux-zen": "el kernel", "linux": "el kernel", "mesa": "los drivers de video", "nvidia-open-dkms": "el driver de NVIDIA",
+                        "quantum-shell": "el escritorio", "wayfire": "el gestor de ventanas", "systemd": "el sistema base",
+                        "glibc": "el sistema base", "firefox": "Firefox", "steam": "Steam" };
+        const out = [];
+        for (const p of rebootPackages) {
+            const n = names[p] ?? (p.startsWith("quantum-") ? "las apps de Quantum" : null);
+            if (n && !out.includes(n)) out.push(n);
+            if (out.length >= 3) break;
+        }
+        return out.length ? out.join(", ") : "";
+    }
+    Timer { interval: 15000; running: true; repeat: true; triggeredOnStart: true; onTriggered: root.checkReboot() }
+    Timer {     // «Más tarde»: vuelve a preguntar a las 2 horas
+        interval: 60000; running: root.rebootNeeded && !root.rebootAsk; repeat: true
+        onTriggered: if (Date.now() >= root.snoozedUntil) root.rebootAsk = true
+    }
+    Process {
+        id: rebootProc
+        command: ["cat", root.rebootFile]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const pk = text.split("\n").map(l => l.trim()).filter(l => l !== "");
+                const had = root.rebootPackages.length;
+                root.rebootPackages = pk;
+                if (pk.length > had && Date.now() >= root.snoozedUntil) root.rebootAsk = true;
+            }
+        }
+    }
+
+    function check(): void {
+        if (!proc.running) {
+            checking = true;
+            proc.running = true;
+        }
+    }
+
+    // Abre una terminal que actualiza todo (con instantánea previa gracias a snap-pac)
+    function update(): void {
+        Quickshell.execDetached(["quantum-update"]);
+    }
+
+    // primera revisión 2 min después de iniciar sesión, luego cada 3 horas
+    Timer { interval: 120000; running: true; onTriggered: root.check() }
+    Timer { interval: 3 * 3600 * 1000; running: true; repeat: true; onTriggered: root.check() }
+
+    // quantum-update avisa al terminar: qs -c quantum ipc call updates check
+    IpcHandler {
+        target: "updates"
+        function check(): void { root.check(); root.checkReboot(); }
+        function rebootPrompt(): void { root.rebootAsk = true; }
+    }
+
+    Process {
+        id: proc
+        command: ["sh", "-c", "checkupdates 2>/dev/null; pacman -Sl quantum 2>/dev/null | awk '{print \"#\" $2}'"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const quantum = {};
+                const items = [];
+                for (const line of text.split("\n")) {
+                    if (line.startsWith("#")) { quantum[line.slice(1)] = true; continue; }
+                    const m = line.match(/^(\S+) (\S+) -> (\S+)/);
+                    if (m) items.push({ name: m[1], from: m[2], to: m[3] });
+                }
+                for (const it of items) it.quantum = !!quantum[it.name];
+                items.sort((a, b) => (b.quantum - a.quantum) || a.name.localeCompare(b.name));
+                root.list = items;
+                root.count = items.length;
+                root.quantumCount = items.filter(i => i.quantum).length;
+                root.checking = false;
+                if (root.count > 0 && root.count !== root.notifiedFor) {
+                    root.notifiedFor = root.count;
+                    const extra = root.quantumCount > 0 ? ", con " + root.quantumCount + " mejoras de Quantum" : "";
+                    Quickshell.execDetached(["notify-send", "-a", "Quantum Linux", "-i", "system-software-update",
+                                             "Hay " + root.count + " actualizaciones" + extra,
+                                             "Toca el ícono de actualizaciones en la barra para instalarlas."]);
+                }
+            }
+        }
+    }
+}

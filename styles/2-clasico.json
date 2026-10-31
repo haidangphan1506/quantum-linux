@@ -1,0 +1,10 @@
+{
+  "name": "Clásico",
+  "description": "Parecido a Windows 10: una barra abajo, apps a la izquierda",
+  "settings": {
+    "appearance": { "accent": "#2F7BFF", "panelOpacity": 0.95 },
+    "layout": { "style": "single" },
+    "dock": { "floating": false, "align": "left" },
+    "windows": { "corners": "sharp", "animations": "fast" }
+  }
+}

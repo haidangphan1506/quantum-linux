@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="q" x1="0.1" y1="0.05" x2="0.9" y2="0.95">
+      <stop offset="0" stop-color="#4FD8FF"/>
+      <stop offset="0.5" stop-color="#6A5CFF"/>
+      <stop offset="1" stop-color="#B14DFF"/>
+    </linearGradient>
+    <radialGradient id="core" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.35" stop-color="#8FE6FF"/>
+      <stop offset="1" stop-color="#6A5CFF"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="128" cy="128" rx="104" ry="38" fill="none" stroke="url(#q)" stroke-width="10" transform="rotate(90 128 128)" />
+  <ellipse cx="128" cy="128" rx="104" ry="38" fill="none" stroke="url(#q)" stroke-width="10" transform="rotate(-30 128 128)" />
+  <ellipse cx="128" cy="128" rx="104" ry="38" fill="none" stroke="url(#q)" stroke-width="10" transform="rotate(30 128 128)" />
+  <polygon points="128.0,102.0 150.6,115.0 128.0,128.0 105.4,115.0" fill="url(#q)" fill-opacity="1" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="105.4,115.0 128.0,128.0 128.0,154.0 105.4,141.0" fill="url(#q)" fill-opacity="0.75" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="128.0,128.0 150.6,115.0 150.6,141.0 128.0,154.0" fill="url(#q)" fill-opacity="0.55" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="159.1" cy="187.7" r="11" fill="#FFFFFF"/>
+  <circle cx="159.1" cy="187.7" r="5.5" fill="url(#q)"/>
+  <circle cx="36.9" cy="165.6" r="11" fill="#FFFFFF"/>
+  <circle cx="36.9" cy="165.6" r="5.5" fill="url(#q)"/>
+</svg>

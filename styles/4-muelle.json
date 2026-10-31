@@ -1,0 +1,10 @@
+{
+  "name": "Muelle",
+  "description": "Parecido a macOS: barra de menú arriba, dock grande y botones a la izquierda",
+  "settings": {
+    "appearance": { "accent": "#FF6B8B" },
+    "layout": { "style": "split", "topBar": { "floating": false, "showApp": true } },
+    "dock": { "floating": true, "align": "center", "size": "large", "showSearch": false },
+    "windows": { "corners": "round", "buttonsLeft": true, "animations": "smooth" }
+  }
+}

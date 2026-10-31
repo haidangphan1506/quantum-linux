@@ -1,0 +1,9 @@
+{
+  "name": "Gamer",
+  "description": "Oscuro, intenso y rápido: menos efectos, más FPS",
+  "settings": {
+    "appearance": { "mode": "dark", "accent": "#FF2D55", "panelOpacity": 0.95, "blur": false },
+    "dock": { "size": "small" },
+    "windows": { "corners": "sharp", "animations": "fast", "openAnimation": "fire" }
+  }
+}

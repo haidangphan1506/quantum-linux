@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Asistente Quantum
+GenericName=Asistente con IA
+Comment=Pregúntale a una IA que funciona en tu PC, sin internet
+Exec=qs -c quantum ipc call shell ai
+Icon=quantum-assistant
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=ia;ai;asistente;chat;ayuda;ollama;inteligencia artificial;

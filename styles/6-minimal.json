@@ -1,0 +1,10 @@
+{
+  "name": "Minimal",
+  "description": "Claro y limpio: la barra se esconde sola",
+  "settings": {
+    "appearance": { "mode": "light", "accent": "#5B5BD6", "panelOpacity": 0.92 },
+    "layout": { "topBar": { "floating": false, "showApp": false } },
+    "dock": { "autohide": true, "showSearch": false },
+    "windows": { "corners": "round", "animations": "smooth", "openAnimation": "fade" }
+  }
+}

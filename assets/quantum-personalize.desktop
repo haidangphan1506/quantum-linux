@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Personalizar
+GenericName=Apariencia del escritorio
+Comment=Estilos, colores, fondo, barra de tareas y ventanas
+Exec=qs -c quantum ipc call shell personalize
+Icon=quantum-personalize
+Terminal=false
+Type=Application
+Categories=Settings;DesktopSettings;
+Keywords=personalizar;tema;apariencia;estilo;barra;dock;color;fondo;escritorio;ventanas;
+StartupWMClass=org.quickshell
