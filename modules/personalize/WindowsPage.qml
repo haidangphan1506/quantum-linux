@@ -28,7 +28,7 @@ ColumnLayout {
                 Txt {
                     anchors.verticalCenter: parent.verticalCenter
                     x: wa.btnLeft ? 64 : 10
-                    text: "Mi ventana"
+                    text: I18n.t("Mi ventana")
                     font.pixelSize: Theme.textSmall
                     color: Theme.fgMuted
                 }
@@ -58,14 +58,14 @@ ColumnLayout {
     }
 
     Group {
-        title: "Esquinas"
-        help: "Qué tan redondeados se ven los paneles, menús y tarjetas de Quantum."
+        title: I18n.t("Esquinas")
+        help: I18n.t("Qué tan redondeados se ven los paneles, menús y tarjetas de Quantum.")
         icon: "rounded_corner"
         RowLayout {
             Layout.fillWidth: true
             spacing: 14
             Repeater {
-                model: [{ v: "sharp", t: "Rectas", c: 3 }, { v: "soft", t: "Suaves", c: 10 }, { v: "round", t: "Redondeadas", c: 20 }]
+                model: [{ v: "sharp", t: I18n.t("Rectas"), c: 3 }, { v: "soft", t: I18n.t("Suaves"), c: 10 }, { v: "round", t: I18n.t("Redondeadas"), c: 20 }]
                 ChoiceCard {
                     id: cc
                     required property var modelData
@@ -80,23 +80,23 @@ ColumnLayout {
     }
 
     Group {
-        title: "Botones de las ventanas"
-        help: "Dónde van minimizar, maximizar y cerrar. Se aplica a las ventanas que abras desde ahora."
+        title: I18n.t("Botones de las ventanas")
+        help: I18n.t("Dónde van minimizar, maximizar y cerrar. Se aplica a las ventanas que abras desde ahora.")
         icon: "web_asset"
         RowLayout {
             Layout.fillWidth: true
             spacing: 14
             ChoiceCard {
-                title: "A la derecha"
-                help: "Como en Windows."
+                title: I18n.t("A la derecha")
+                help: I18n.t("Como en Windows.")
                 selected: !Settings.windows.buttonsLeft
                 previewHeight: 96
                 onClicked: Settings.set("windows", "buttonsLeft", false)
                 WinArt { anchors.fill: parent; corner: 10 }
             }
             ChoiceCard {
-                title: "A la izquierda"
-                help: "Como en macOS."
+                title: I18n.t("A la izquierda")
+                help: I18n.t("Como en macOS.")
                 selected: Settings.windows.buttonsLeft
                 previewHeight: 96
                 onClicked: Settings.set("windows", "buttonsLeft", true)
@@ -106,63 +106,63 @@ ColumnLayout {
     }
 
     Group {
-        title: "Animaciones"
-        help: "La velocidad al abrir, cerrar y mover ventanas y paneles."
+        title: I18n.t("Animaciones")
+        help: I18n.t("La velocidad al abrir, cerrar y mover ventanas y paneles.")
         icon: "animation"
         OptionRow {
-            title: "Velocidad"
+            title: I18n.t("Velocidad")
             Segmented {
-                options: [{ v: "none", t: "Sin animaciones" }, { v: "fast", t: "Rápidas" }, { v: "normal", t: "Normales" }, { v: "smooth", t: "Suaves" }]
+                options: [{ v: "none", t: I18n.t("Sin animaciones") }, { v: "fast", t: I18n.t("Rápidas") }, { v: "normal", t: I18n.t("Normales") }, { v: "smooth", t: I18n.t("Suaves") }]
                 value: Settings.windows.animations
                 onPicked: v => Settings.set("windows", "animations", v)
             }
         }
         OptionRow {
-            title: "Al minimizar"
-            help: "Cómo se va la ventana a la barra de tareas."
+            title: I18n.t("Al minimizar")
+            help: I18n.t("Cómo se va la ventana a la barra de tareas.")
             visible: Settings.windows.animations !== "none"
             Segmented {
-                options: [{ v: "zoom", t: "Encoger", i: "close_fullscreen" }, { v: "squeezimize", t: "Aspirar", i: "south" },
-                          { v: "none", t: "Sin efecto", i: "block" }]
+                options: [{ v: "zoom", t: I18n.t("Encoger"), i: "close_fullscreen" }, { v: "squeezimize", t: I18n.t("Aspirar"), i: "south" },
+                          { v: "none", t: I18n.t("Sin efecto"), i: "block" }]
                 value: Settings.windows.minimizeAnimation
                 onPicked: v => Settings.set("windows", "minimizeAnimation", v)
             }
         }
         OptionRow {
-            title: "Al abrir una ventana"
+            title: I18n.t("Al abrir una ventana")
             visible: Settings.ui.advanced && Settings.windows.animations !== "none"
             Segmented {
-                options: [{ v: "zoom", t: "Zoom", i: "zoom_in" }, { v: "fade", t: "Aparecer", i: "gradient" },
-                          { v: "fire", t: "Fuego", i: "local_fire_department" }, { v: "spin", t: "Girar", i: "autorenew" }]
+                options: [{ v: "zoom", t: "Zoom", i: "zoom_in" }, { v: "fade", t: I18n.t("Aparecer"), i: "gradient" },
+                          { v: "fire", t: I18n.t("Fuego"), i: "local_fire_department" }, { v: "spin", t: I18n.t("Girar"), i: "autorenew" }]
                 value: Settings.windows.openAnimation
                 onPicked: v => Settings.set("windows", "openAnimation", v)
             }
         }
         OptionRow {
-            title: "Ventanas gelatina"
-            help: "Las ventanas se estiran como gelatina al moverlas. Divertido, pero consume más."
+            title: I18n.t("Ventanas gelatina")
+            help: I18n.t("Las ventanas se estiran como gelatina al moverlas. Divertido, pero consume más.")
             advanced: true
             Toggle { checked: Settings.windows.wobbly; onToggled: c => Settings.set("windows", "wobbly", c) }
         }
     }
 
     Group {
-        title: "Organización"
+        title: I18n.t("Organización")
         icon: "dashboard"
         OptionRow {
-            title: "Mosaico automático"
-            help: "Las ventanas se acomodan solas una al lado de otra, sin encimarse."
+            title: I18n.t("Mosaico automático")
+            help: I18n.t("Las ventanas se acomodan solas una al lado de otra, sin encimarse.")
             Toggle { checked: Settings.windows.tiling; onToggled: c => Settings.set("windows", "tiling", c) }
         }
     }
 
     Group {
-        title: "Barra de título"
-        help: "Se aplica a las ventanas que abras desde ahora."
+        title: I18n.t("Barra de título")
+        help: I18n.t("Se aplica a las ventanas que abras desde ahora.")
         icon: "toolbar"
         advanced: true
         OptionRow {
-            title: "Alto de la barra de título"
+            title: I18n.t("Alto de la barra de título")
             Slider {
                 implicitWidth: 240
                 from: 26; to: 44; step: 1
@@ -172,7 +172,7 @@ ColumnLayout {
             }
         }
         OptionRow {
-            title: "Grosor del borde"
+            title: I18n.t("Grosor del borde")
             Slider {
                 implicitWidth: 240
                 from: 0; to: 4; step: 1

@@ -329,6 +329,7 @@ Singleton {
                 property bool advanced: false
                 property string style: "quantum"
                 property string page: "styles"
+                property string lang: "vi"               // idioma de la interfaz: vi | en (I18n)
             }
         }
     }

@@ -141,12 +141,12 @@ PanelWindow {
                 Column {
                     width: mediaCol.width - 132; spacing: 6
                     anchors.verticalCenter: parent.verticalCenter
-                    T { width: parent.width; text: win.player?.trackTitle || "Nada sonando"; font.pixelSize: 15; font.weight: Font.Bold }
+                    T { width: parent.width; text: win.player?.trackTitle || I18n.t("Nada sonando"); font.pixelSize: 15; font.weight: Font.Bold }
                     T { width: parent.width; text: win.player?.trackArtist || ""; color: Serp.muted; visible: text !== "" }
                     Rectangle {
                         visible: (win.player?.identity ?? "") !== ""
                         width: via.implicitWidth + 16; height: 22; radius: 6; color: Serp.pinkSoft
-                        T { id: via; anchors.centerIn: parent; text: "en " + (win.player?.identity ?? ""); font.pixelSize: 10; color: Serp.pink }
+                        T { id: via; anchors.centerIn: parent; text: I18n.t("en ") + (win.player?.identity ?? ""); font.pixelSize: 10; color: Serp.pink }
                     }
                 }
             }
@@ -220,7 +220,7 @@ PanelWindow {
         Column {
             id: cal
             x: 24; y: 22; width: 230; spacing: 10
-            readonly property var loc: Qt.locale("es_ES")
+            readonly property var loc: I18n.locale
             Item {
                 width: parent.width; height: 24
                 MouseArea { width: 24; height: 24; cursorShape: Qt.PointingHandCursor; onClicked: { const d = parent.parent.parent.shownMonth; parent.parent.parent.shownMonth = new Date(d.getFullYear(), d.getMonth() - 1, 1); }
@@ -235,7 +235,7 @@ PanelWindow {
                 readonly property int first: (new Date(m.getFullYear(), m.getMonth(), 1).getDay() + 6) % 7
                 readonly property int days: new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate()
                 Repeater {
-                    model: ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"]
+                    model: I18n.weekdaysShort
                     T { required property string modelData; width: 30; height: 22; text: modelData; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 10; color: Serp.muted }
                 }
                 Repeater {
@@ -262,7 +262,7 @@ PanelWindow {
                 T { text: Qt.formatTime(clk.date, "HH:mm"); font.pixelSize: 64; font.weight: Font.Bold }
                 T { anchors.baseline: parent.children[0].baseline; text: ":" + Qt.formatTime(clk.date, "ss"); font.pixelSize: 20; color: Serp.muted }
             }
-            T { anchors.horizontalCenter: parent.horizontalCenter; text: Serp.cap(cal.loc.toString(clk.date, "dddd d 'de' MMMM")); color: Serp.muted }
+            T { anchors.horizontalCenter: parent.horizontalCenter; text: Serp.cap(cal.loc.toString(clk.date, I18n.dayMonth)); color: Serp.muted }
             // cuánto falta del día
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -281,9 +281,9 @@ PanelWindow {
                 Icon { anchors.verticalCenter: parent.verticalCenter; text: Weather.ready ? Weather.icon : "cloud_off"; size: 34; fill: 1; color: Serp.pink }
                 T { text: Weather.ready ? Math.round(Weather.temp) + "°" : "--"; font.pixelSize: 52; font.weight: Font.Bold }
             }
-            T { anchors.right: parent.right; text: Weather.ready ? Weather.text : "Sin datos del clima"; color: Serp.muted }
-            T { anchors.right: parent.right; visible: Weather.ready; text: "Máx " + Math.round(Weather.high) + "°  Mín " + Math.round(Weather.low) + "°"; font.pixelSize: 11; color: Serp.muted }
-            T { anchors.right: parent.right; visible: Weather.ready; text: "Sensación " + Math.round(Weather.feels) + "°"; font.pixelSize: 11; color: Serp.muted }
+            T { anchors.right: parent.right; text: Weather.ready ? Weather.text : I18n.t("Sin datos del clima"); color: Serp.muted }
+            T { anchors.right: parent.right; visible: Weather.ready; text: I18n.t("Máx ") + Math.round(Weather.high) + I18n.t("°  Mín ") + Math.round(Weather.low) + "°"; font.pixelSize: 11; color: Serp.muted }
+            T { anchors.right: parent.right; visible: Weather.ready; text: I18n.t("Sensación ") + Math.round(Weather.feels) + "°"; font.pixelSize: 11; color: Serp.muted }
         }
 
         // pie: uso del sistema
@@ -329,17 +329,17 @@ PanelWindow {
             // notificaciones
             Item {
                 width: parent.width; height: 20
-                T { text: "Notificaciones"; font.weight: Font.Bold }
+                T { text: I18n.t("Notificaciones"); font.weight: Font.Bold }
                 MouseArea {
                     anchors.right: parent.right; width: clr.implicitWidth; height: 20
                     visible: Notifs.count > 0; cursorShape: Qt.PointingHandCursor
                     onClicked: Notifs.clearAll()
-                    T { id: clr; text: "Borrar todo"; font.pixelSize: 10; color: Serp.pink }
+                    T { id: clr; text: I18n.t("Borrar todo"); font.pixelSize: 10; color: Serp.pink }
                 }
             }
             Column {
                 width: parent.width; spacing: 6
-                T { visible: Notifs.count === 0; text: "Nada nuevo por aquí."; color: Serp.muted; font.pixelSize: 11 }
+                T { visible: Notifs.count === 0; text: I18n.t("Nada nuevo por aquí."); color: Serp.muted; font.pixelSize: 11 }
                 Repeater {
                     model: Notifs.list.slice(-3).reverse()
                     Rectangle {
@@ -379,7 +379,7 @@ PanelWindow {
                     T {
                         anchors.horizontalCenter: parent.horizontalCenter
                         font.pixelSize: 9; color: Serp.muted
-                        text: !win.hasBattery ? "VOLUMEN" : win.battery?.state === UPowerDeviceState.Charging ? "CARGANDO" : "SIN CARGAR"
+                        text: !win.hasBattery ? "VOLUMEN" : win.battery?.state === UPowerDeviceState.Charging ? "CARGANDO" : I18n.t("SIN CARGAR")
                     }
                 }
             }
@@ -399,14 +399,14 @@ PanelWindow {
                 width: parent.width; spacing: 8
                 Btn { width: (parent.width - 16) / 3; icon: Net.icon; label: "Wi-Fi"; on: Net.wifiEnabled; onClicked: Net.toggleWifi(); onPressAndHold: Shell.openWifi() }
                 Btn { width: (parent.width - 16) / 3; icon: Bt.icon; label: "Bluetooth"; on: Bt.enabled; opacity: Bt.available ? 1 : 0.4; onClicked: Bt.toggle() }
-                Btn { width: (parent.width - 16) / 3; icon: "nightlight"; label: "Nocturna"; on: Settings.display.nightLight
+                Btn { width: (parent.width - 16) / 3; icon: "nightlight"; label: I18n.t("Nocturna"); on: Settings.display.nightLight
                       onClicked: Shell.toggleNightLight(); onPressAndHold: { Serp.panel = ""; Shell.personalizePage("display"); } }
             }
             Row {
                 width: parent.width; spacing: 8
                 readonly property var profiles: [PowerProfile.Performance, PowerProfile.Balanced, PowerProfile.PowerSaver]
                 Repeater {
-                    model: [{ i: "bolt", n: "Rendimiento" }, { i: "balance", n: "Equilibrio" }, { i: "eco", n: "Ahorro" }]
+                    model: [{ i: "bolt", n: I18n.t("Rendimiento") }, { i: "balance", n: I18n.t("Equilibrio") }, { i: "eco", n: I18n.t("Ahorro") }]
                     Btn {
                         required property var modelData
                         required property int index
@@ -420,12 +420,12 @@ PanelWindow {
             }
             Row {
                 width: parent.width; spacing: 8
-                Btn { width: (parent.width - 8) / 2; icon: "tune"; label: "Personalizar"; onClicked: { Serp.panel = ""; Shell.personalizePage("bar"); } }
-                Btn { width: (parent.width - 8) / 2; icon: "blur_on"; label: "Usar Caelestial"; onClicked: Serp.choose("caelestial", false) }
+                Btn { width: (parent.width - 8) / 2; icon: "tune"; label: I18n.t("Personalizar"); onClicked: { Serp.panel = ""; Shell.personalizePage("bar"); } }
+                Btn { width: (parent.width - 8) / 2; icon: "blur_on"; label: I18n.t("Usar Caelestial"); onClicked: Serp.choose("caelestial", false) }
             }
             T {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "Mantén presionado para más opciones"; font.pixelSize: 9; color: Serp.muted
+                text: I18n.t("Mantén presionado para más opciones"); font.pixelSize: 9; color: Serp.muted
             }
         }
     }

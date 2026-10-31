@@ -87,7 +87,7 @@ Item {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: Serp.cap(Qt.locale("es_ES").toString(clk.date, "dddd d 'de' MMMM"))
+            text: Serp.cap(I18n.date(clk.date, I18n.dayMonth))
             font.family: Serp.font; font.pixelSize: 20; color: Qt.rgba(1, 1, 1, 0.75)
         }
     }
@@ -95,7 +95,7 @@ Item {
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height * 0.66
-        text: "Presiona una tecla para desbloquear"
+        text: I18n.t("Presiona una tecla para desbloquear")
         font.family: Serp.font; font.pixelSize: 13; color: Qt.rgba(1, 1, 1, 0.6)
         opacity: root.appear * (1 - root.ask) * (1 - root.out)
     }
@@ -159,7 +159,7 @@ Item {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: !input.text
-                        text: root.lock.busy ? "Verificando..." : root.lock.error || "Contraseña"
+                        text: root.lock.busy ? I18n.t("Verificando...") : root.lock.error || I18n.t("Contraseña")
                         font.family: Serp.font; font.pixelSize: 13; font.letterSpacing: 0
                         color: root.lock.error ? "#FF8A96" : Serp.muted
                     }
@@ -194,7 +194,7 @@ Item {
             Icon { anchors.verticalCenter: parent.verticalCenter; text: parent.icon; size: 16; fill: 1; color: "white" }
             Text { anchors.verticalCenter: parent.verticalCenter; text: parent.text; font.family: Serp.font; font.pixelSize: 12; color: "white" }
         }
-        St { icon: Net.icon; text: Net.online ? Net.label : "Sin red" }
+        St { icon: Net.icon; text: Net.online ? Net.label : I18n.t("Sin red") }
         St { visible: root.battery?.isLaptopBattery ?? false; icon: "battery_full"; text: Math.round((root.battery?.percentage ?? 0) * 100) + "%" }
         St { visible: Weather.ready; icon: Weather.icon; text: Math.round(Weather.temp) + "°C" }
     }

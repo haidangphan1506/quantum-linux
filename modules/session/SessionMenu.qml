@@ -23,8 +23,8 @@ PanelWindow {
     color: Theme.alpha(Theme.scrim, 0.62 * Math.min(1, progress))
 
     readonly property var actions: [
-        { icon: "lock", label: "Bloquear", hint: "Super + L", run: () => Shell.lock() },
-        { icon: "logout", label: "Cerrar sesión", hint: "", run: () => Wm.logout() },
+        { icon: "lock", label: I18n.t("Bloquear"), hint: "Super + L", run: () => Shell.lock() },
+        { icon: "logout", label: I18n.t("Cerrar sesión"), hint: "", run: () => Wm.logout() },
         { icon: "bedtime", label: "Suspender", hint: "", run: () => Quickshell.execDetached(["systemctl", "suspend"]) },
         { icon: "restart_alt", label: "Reiniciar", hint: "", run: () => Quickshell.execDetached(["systemctl", "reboot"]) },
         { icon: "power_settings_new", label: "Apagar", hint: "", run: () => Quickshell.execDetached(["systemctl", "poweroff"]) },
@@ -77,7 +77,7 @@ PanelWindow {
         Txt {
             Layout.alignment: Qt.AlignHCenter
             readonly property int h: clock.date.getHours()
-            text: (h < 20 && h >= 6 ? "Hasta luego" : "Buenas noches") + (win.user ? ", " + win.user : "")
+            text: (h < 20 && h >= 6 ? I18n.t("Hasta luego") : I18n.t("Buenas noches")) + (win.user ? ", " + win.user : "")
             font.pixelSize: Theme.textTitle
             font.weight: Font.DemiBold
             color: Theme.alpha("white", 0.75)
@@ -192,7 +192,7 @@ PanelWindow {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 40
-        text: "← → para elegir · Enter para confirmar · Esc para volver"
+        text: I18n.t("← → para elegir · Enter para confirmar · Esc para volver")
         color: Theme.alpha("white", 0.45)
         opacity: win.stage(5)
     }

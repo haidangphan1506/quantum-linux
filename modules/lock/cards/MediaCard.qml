@@ -24,7 +24,7 @@ LockCard {
         width: parent.width
         spacing: 6
         visible: !!card.player
-        Txt { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: card.player?.trackTitle || "Sin título"; font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.primary; elide: Text.ElideRight }
+        Txt { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: card.player?.trackTitle || I18n.t("Sin título"); font.pixelSize: 20; font.weight: Font.DemiBold; color: Theme.primary; elide: Text.ElideRight }
         Txt { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: card.player?.trackArtist || ""; color: Theme.fg }
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
@@ -73,6 +73,6 @@ LockCard {
         spacing: 8
         visible: !card.player
         Icon { anchors.horizontalCenter: parent.horizontalCenter; text: "music_off"; size: 44; color: Theme.fgMuted }
-        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: "Nada sonando"; color: Theme.fgMuted }
+        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: I18n.t("Nada sonando"); color: Theme.fgMuted }
     }
 }

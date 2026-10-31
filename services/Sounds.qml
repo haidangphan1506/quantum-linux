@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.services
 
 // Sonidos del sistema (creados para Quantum, en assets/sounds). Se reproducen con
 // pw-play (PipeWire). Se activan, ajustan o apagan en Personalizar → Sonidos.
@@ -15,14 +16,14 @@ Singleton {
 
     // Estilos de sonidos (hechos para Quantum, branding/sounds): «quantum» es el original
     readonly property var packs: [
-        { id: "quantum", name: "Quantum", desc: "Campanas de cristal suaves. El de siempre.", icon: "blur_on" },
-        { id: "cristal", name: "Cristal", desc: "Campanitas brillantes y claras.", icon: "diamond" },
-        { id: "zen", name: "Zen", desc: "Kalimba y madera: tranquilo y suave.", icon: "spa" },
-        { id: "espacial", name: "Espacial", desc: "Sintetizadores con eco, como en el espacio.", icon: "rocket_launch" },
-        { id: "minimo", name: "Mínimo", desc: "Toques cortitos que casi no se notan.", icon: "radio_button_unchecked" },
-        { id: "burbujas", name: "Burbujas", desc: "Burbujas de agua, divertido.", icon: "bubble_chart" },
-        { id: "piano", name: "Piano", desc: "Notas de piano.", icon: "piano" },
-        { id: "synthwave", name: "Synthwave", desc: "Ochentero y con energía.", icon: "graphic_eq" },
+        { id: "quantum", name: "Quantum", desc: I18n.t("Campanas de cristal suaves. El de siempre."), icon: "blur_on" },
+        { id: "cristal", name: I18n.t("Cristal"), desc: I18n.t("Campanitas brillantes y claras."), icon: "diamond" },
+        { id: "zen", name: "Zen", desc: I18n.t("Kalimba y madera: tranquilo y suave."), icon: "spa" },
+        { id: "espacial", name: I18n.t("Espacial"), desc: I18n.t("Sintetizadores con eco, como en el espacio."), icon: "rocket_launch" },
+        { id: "minimo", name: I18n.t("Mínimo"), desc: I18n.t("Toques cortitos que casi no se notan."), icon: "radio_button_unchecked" },
+        { id: "burbujas", name: I18n.t("Burbujas"), desc: I18n.t("Burbujas de agua, divertido."), icon: "bubble_chart" },
+        { id: "piano", name: "Piano", desc: I18n.t("Notas de piano."), icon: "piano" },
+        { id: "synthwave", name: "Synthwave", desc: I18n.t("Ochentero y con energía."), icon: "graphic_eq" },
     ]
     function file(pack: string, name: string): string {
         return dir + (pack && pack !== "quantum" ? pack + "/" : "") + name + ".oga";

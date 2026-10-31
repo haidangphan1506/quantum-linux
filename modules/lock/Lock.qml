@@ -81,14 +81,14 @@ Scope {
                 root.password = "";
                 root.leave();
             } else {
-                root.error = "Contraseña incorrecta";
+                root.error = I18n.t("Contraseña incorrecta");
                 root.password = "";
                 Sounds.play("error");
             }
         }
         onError: {
             root.busy = false;
-            root.error = "No se pudo verificar la contraseña";
+            root.error = I18n.t("No se pudo verificar la contraseña");
         }
     }
 
@@ -139,7 +139,7 @@ Scope {
             demo.left = text;
             demo.start();
         }
-        function demoError(): void { if (root.previewOpen) { root.password = ""; root.error = ""; root.error = "Contraseña incorrecta"; Sounds.play("error"); } }
+        function demoError(): void { if (root.previewOpen) { root.password = ""; root.error = ""; root.error = I18n.t("Contraseña incorrecta"); Sounds.play("error"); } }
         function demoUnlock(): void { if (root.previewOpen) { root.success = true; root.password = ""; root.leave(); } }
     }
 }

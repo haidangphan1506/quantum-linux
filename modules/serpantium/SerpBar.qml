@@ -123,7 +123,7 @@ Scope {
                 }
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
-                    SText { anchors.verticalCenter: undefined; width: Math.min(150, implicitWidth); text: root.player?.trackTitle || "Sin título"; font.pixelSize: 11 }
+                    SText { anchors.verticalCenter: undefined; width: Math.min(150, implicitWidth); text: root.player?.trackTitle || I18n.t("Sin título"); font.pixelSize: 11 }
                     SText { anchors.verticalCenter: undefined; width: Math.min(150, implicitWidth); text: root.player?.trackArtist || ""; font.pixelSize: 9; color: Serp.muted; visible: text !== "" }
                 }
                 Repeater {
@@ -151,7 +151,7 @@ Scope {
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
                     SText { anchors.horizontalCenter: parent.horizontalCenter; anchors.verticalCenter: undefined; text: Qt.formatTime(clock.date, "HH:mm:ss"); font.pixelSize: 12; font.weight: Font.Bold }
-                    SText { anchors.horizontalCenter: parent.horizontalCenter; anchors.verticalCenter: undefined; text: Serp.cap(Qt.locale("es_ES").toString(clock.date, "dddd d 'de' MMM")); font.pixelSize: 9; color: Serp.muted }
+                    SText { anchors.horizontalCenter: parent.horizontalCenter; anchors.verticalCenter: undefined; text: Serp.cap(I18n.date(clock.date, I18n.dayMonthShort)); font.pixelSize: 9; color: Serp.muted }
                 }
             }
             Pill {
@@ -176,7 +176,7 @@ Scope {
             Pill {
                 panel: "control"
                 SIcon { text: Net.icon; fill: 1; color: Net.online ? Serp.pink : Serp.muted }
-                SText { width: Math.min(110, implicitWidth); text: Net.online ? Net.label : "Sin red" }
+                SText { width: Math.min(110, implicitWidth); text: Net.online ? Net.label : I18n.t("Sin red") }
             }
             Pill {
                 panel: "control"
@@ -200,7 +200,7 @@ Scope {
                 visible: Updates.rebootNeeded && !Updates.rebootAsk
                 onClicked: Updates.rebootAsk = true
                 SIcon { text: "restart_alt"; color: Serp.pink }
-                SText { text: "Reiniciar"; color: Serp.pink }
+                SText { text: I18n.t("Reiniciar"); color: Serp.pink }
             }
             Pill {
                 implicitWidth: 30

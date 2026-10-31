@@ -79,7 +79,7 @@ PanelWindow {
                 clip: true
                 Text {
                     visible: !search.text
-                    text: "Buscar apps..."
+                    text: I18n.t("Buscar apps...")
                     font: search.font; color: Serp.muted
                 }
                 Keys.onDownPressed: { win.sel = Math.min(win.results.length - 1, win.sel + 1); list.positionViewAtIndex(win.sel, ListView.Contain); }
@@ -132,7 +132,7 @@ PanelWindow {
             Text {
                 anchors.centerIn: parent
                 visible: win.results.length === 0
-                text: "No encontré nada con «" + search.text + "»"
+                text: I18n.t("No encontré nada con «") + search.text + "»"
                 font.family: Serp.font; font.pixelSize: 12; color: Serp.muted
             }
         }

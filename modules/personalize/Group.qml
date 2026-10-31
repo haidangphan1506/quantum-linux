@@ -42,7 +42,7 @@ Rectangle {
                         visible: root.advanced
                         implicitWidth: advT.implicitWidth + 14; implicitHeight: 20; radius: 10
                         color: Theme.alpha(Theme.primary, 0.16)
-                        Txt { id: advT; anchors.centerIn: parent; text: "Avanzado"; font.pixelSize: Theme.textSmall - 1; font.weight: Font.Bold; color: Theme.primary }
+                        Txt { id: advT; anchors.centerIn: parent; text: I18n.t("Avanzado"); font.pixelSize: Theme.textSmall - 1; font.weight: Font.Bold; color: Theme.primary }
                     }
                 }
                 Txt {

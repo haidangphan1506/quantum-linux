@@ -132,7 +132,7 @@ PanelWindow {
                 Row {
                     anchors.fill: parent
                     Repeater {
-                        model: [{ i: "home", t: "Inicio" }, { i: "monitoring", t: "Rendimiento" }]
+                        model: [{ i: "home", t: I18n.t("Inicio|panel") }, { i: "monitoring", t: I18n.t("Rendimiento") }]
                         Item {
                             required property var modelData
                             required property int index
@@ -201,16 +201,16 @@ PanelWindow {
                                 Item { Layout.fillHeight: true }
                                 Txt {
                                     Layout.fillWidth: true
-                                    text: clock.date.toLocaleDateString(Qt.locale(), "dddd")
+                                    text: clock.date.toLocaleDateString(I18n.locale, "dddd")
                                     font.pixelSize: Theme.textLarge + 2
                                     font.weight: Font.Bold
                                     font.capitalization: Font.Capitalize
                                 }
-                                Txt { text: clock.date.toLocaleDateString(Qt.locale(), "d 'de' MMMM yyyy"); color: Theme.fgMuted }
+                                Txt { text: I18n.date(clock.date, I18n.longDate); color: Theme.fgMuted }
                                 Txt {
                                     Layout.topMargin: 10
                                     readonly property int h: clock.date.getHours()
-                                    text: (h < 12 ? "Buenos días" : h < 20 ? "Buenas tardes" : "Buenas noches") + ", " + win.user
+                                    text: (h < 12 ? I18n.t("Buenos días") : h < 20 ? I18n.t("Buenas tardes") : I18n.t("Buenas noches")) + ", " + win.user
                                     font.weight: Font.DemiBold
                                     color: Theme.primary
                                 }
@@ -235,7 +235,7 @@ PanelWindow {
                                     Txt {
                                         Layout.fillWidth: true
                                         horizontalAlignment: Text.AlignHCenter
-                                        text: cal.month.toLocaleDateString(Qt.locale(), "MMMM yyyy")
+                                        text: cal.month.toLocaleDateString(I18n.locale, "MMMM yyyy")
                                         font.weight: Font.Bold
                                         font.capitalization: Font.Capitalize
                                     }
@@ -247,7 +247,7 @@ PanelWindow {
                                     columnSpacing: 2
                                     rowSpacing: 2
                                     Repeater {
-                                        model: ["L", "M", "M", "J", "V", "S", "D"]
+                                        model: I18n.weekdaysLetter
                                         Txt { required property string modelData; width: 38; height: 26; horizontalAlignment: Text.AlignHCenter; text: modelData; color: Theme.fgMuted; font.pixelSize: Theme.textSmall; font.weight: Font.Bold }
                                     }
                                     Repeater {
@@ -304,8 +304,8 @@ PanelWindow {
                                     rotation: win.player?.isPlaying ? Math.sin(clock.date.getSeconds() / 9.5) * 2 : 0
                                     Behavior on rotation { NumberAnimation { duration: 900 } }
                                 }
-                                Txt { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: win.player ? (win.player.trackTitle || "Sin título") : "Nada sonando"; font.weight: Font.Bold }
-                                Txt { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: win.player ? (win.player.trackArtist || win.player.identity || "") : "Pon música y aparecerá aquí"; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
+                                Txt { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: win.player ? (win.player.trackTitle || I18n.t("Sin título")) : I18n.t("Nada sonando"); font.weight: Font.Bold }
+                                Txt { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: win.player ? (win.player.trackArtist || win.player.identity || "") : I18n.t("Pon música y aparecerá aquí"); color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
                                 Item { Layout.fillHeight: true }
                                 RowLayout {
                                     Layout.alignment: Qt.AlignHCenter
@@ -338,10 +338,10 @@ PanelWindow {
                             spacing: 14
                             Repeater {
                                 model: [
-                                    { icon: "memory", name: "Procesador", v: SysInfo.cpu, txt: Math.round(SysInfo.cpu * 100) + "%" },
-                                    { icon: "memory_alt", name: "Memoria", v: SysInfo.ram, txt: SysInfo.ramUsedGb.toFixed(1) + " / " + SysInfo.ramTotalGb.toFixed(0) + " GB" },
-                                    { icon: "hard_drive", name: "Disco", v: SysInfo.disk, txt: Math.round(SysInfo.diskUsedGb) + " / " + Math.round(SysInfo.diskTotalGb) + " GB" },
-                                    { icon: "thermostat", name: "Temperatura", v: Math.min(1, SysInfo.temp / 100), txt: SysInfo.temp > 0 ? Math.round(SysInfo.temp) + " °C" : "—" },
+                                    { icon: "memory", name: I18n.t("Procesador"), v: SysInfo.cpu, txt: Math.round(SysInfo.cpu * 100) + "%" },
+                                    { icon: "memory_alt", name: I18n.t("Memoria"), v: SysInfo.ram, txt: SysInfo.ramUsedGb.toFixed(1) + " / " + SysInfo.ramTotalGb.toFixed(0) + " GB" },
+                                    { icon: "hard_drive", name: I18n.t("Disco"), v: SysInfo.disk, txt: Math.round(SysInfo.diskUsedGb) + " / " + Math.round(SysInfo.diskTotalGb) + " GB" },
+                                    { icon: "thermostat", name: I18n.t("Temperatura"), v: Math.min(1, SysInfo.temp / 100), txt: SysInfo.temp > 0 ? Math.round(SysInfo.temp) + " °C" : "—" },
                                 ]
                                 Rectangle {
                                     id: gauge
@@ -398,7 +398,7 @@ PanelWindow {
                             Layout.preferredHeight: 92
                             radius: Theme.radiusLarge
                             color: Theme.surfaceContainer
-                            Txt { x: 16; y: 10; text: "Procesador · últimos 45 s"; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
+                            Txt { x: 16; y: 10; text: I18n.t("Procesador · últimos 45 s"); color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
                             Canvas {
                                 id: spark
                                 anchors.fill: parent

@@ -51,7 +51,7 @@ ColumnLayout {
             anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter
             spacing: 2
             Icon { anchors.horizontalCenter: parent.horizontalCenter; text: art.natural ? "north" : "south"; size: 18; color: Theme.primary }
-            Txt { text: "página"; font.pixelSize: 10; color: Theme.fgMuted }
+            Txt { text: I18n.t("página"); font.pixelSize: 10; color: Theme.fgMuted }
         }
     }
 
@@ -68,38 +68,38 @@ ColumnLayout {
                 required property int index
                 width: ListView.view.width; height: 30; radius: 8
                 color: index % 2 ? Theme.alpha(Theme.primary, 0.1) : "transparent"
-                Txt { x: 12; anchors.verticalCenter: parent.verticalCenter; text: "Línea " + (parent.index + 1) + " · prueba aquí el desplazamiento"; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
+                Txt { x: 12; anchors.verticalCenter: parent.verticalCenter; text: I18n.t("Línea ") + (parent.index + 1) + I18n.t(" · prueba aquí el desplazamiento"); color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
             }
         }
     }
 
     // ---------------------------------------------------------------- mouse
     Group {
-        title: "Mouse"
-        help: "Los cambios se aplican al instante."
+        title: I18n.t("Mouse")
+        help: I18n.t("Los cambios se aplican al instante.")
         icon: "mouse"
 
         OptionRow {
-            title: "Velocidad del puntero"
+            title: I18n.t("Velocidad del puntero")
             Slider {
                 Layout.preferredWidth: 300; from: -1; to: 1; step: 0.05; live: true
                 value: page.m.speed
-                text: value < -0.3 ? "Lenta" : value > 0.3 ? "Rápida" : "Normal"
+                text: value < -0.3 ? I18n.t("Lenta") : value > 0.3 ? I18n.t("Rápida") : I18n.t("Normal")
                 onMoved: v => Settings.set("mouse", "speed", v)
             }
         }
         OptionRow {
-            title: "Aceleración del mouse"
-            help: page.m.accel ? "El puntero llega más lejos si mueves el mouse rápido." : "Sin aceleración: el puntero se mueve siempre igual. Ideal para juegos."
+            title: I18n.t("Aceleración del mouse")
+            help: page.m.accel ? I18n.t("El puntero llega más lejos si mueves el mouse rápido.") : I18n.t("Sin aceleración: el puntero se mueve siempre igual. Ideal para juegos.")
             Toggle { checked: page.m.accel; onToggled: v => Settings.set("mouse", "accel", v) }
         }
         OptionRow {
-            title: "Desplazamiento natural"
-            help: "La página sigue a la rueda, como en un celular."
+            title: I18n.t("Desplazamiento natural")
+            help: I18n.t("La página sigue a la rueda, como en un celular.")
             Toggle { checked: page.m.natural; onToggled: v => Settings.set("mouse", "natural", v) }
         }
         OptionRow {
-            title: "Velocidad de la rueda"
+            title: I18n.t("Velocidad de la rueda")
             Slider {
                 Layout.preferredWidth: 300; from: 0.25; to: 3; step: 0.05; live: true
                 value: page.m.scrollSpeed; text: value.toFixed(1) + "×"
@@ -107,8 +107,8 @@ ColumnLayout {
             }
         }
         OptionRow {
-            title: "Modo zurdo"
-            help: "Cambia el botón izquierdo por el derecho."
+            title: I18n.t("Modo zurdo")
+            help: I18n.t("Cambia el botón izquierdo por el derecho.")
             advanced: true
             Toggle { checked: page.m.leftHanded; onToggled: v => Settings.set("mouse", "leftHanded", v) }
         }
@@ -118,7 +118,7 @@ ColumnLayout {
     // ---------------------------------------------------------------- touchpad
     Group {
         title: "Touchpad"
-        help: "El panel táctil de tu laptop."
+        help: I18n.t("El panel táctil de tu laptop.")
         icon: "touchpad_mouse"
         visible: page.hasTouchpad || !!Quickshell.env("QUANTUM_DEMO_TOUCHPAD")
 
@@ -126,7 +126,7 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 14
             Repeater {
-                model: [{ n: false, t: "Tradicional", h: "Como un mouse con rueda." }, { n: true, t: "Natural", h: "Como un celular." }]
+                model: [{ n: false, t: I18n.t("Tradicional"), h: I18n.t("Como un mouse con rueda.") }, { n: true, t: I18n.t("Natural"), h: I18n.t("Como un celular.") }]
                 ChoiceCard {
                     id: cc
                     required property var modelData
@@ -140,34 +140,34 @@ ColumnLayout {
             }
         }
         OptionRow {
-            title: "Velocidad del puntero"
+            title: I18n.t("Velocidad del puntero")
             Slider {
                 Layout.preferredWidth: 300; from: -1; to: 1; step: 0.05; live: true
                 value: page.t.speed
-                text: value < -0.3 ? "Lenta" : value > 0.3 ? "Rápida" : "Normal"
+                text: value < -0.3 ? I18n.t("Lenta") : value > 0.3 ? I18n.t("Rápida") : I18n.t("Normal")
                 onMoved: v => Settings.set("touchpad", "speed", v)
             }
         }
         OptionRow {
-            title: "Tocar para hacer clic"
-            help: "Un toque suave cuenta como clic, sin apretar el touchpad."
+            title: I18n.t("Tocar para hacer clic")
+            help: I18n.t("Un toque suave cuenta como clic, sin apretar el touchpad.")
             Toggle { checked: page.t.tapToClick; onToggled: v => Settings.set("touchpad", "tapToClick", v) }
         }
         OptionRow {
-            title: "Desactivar mientras escribes"
-            help: "Evita mover el puntero sin querer con la palma."
+            title: I18n.t("Desactivar mientras escribes")
+            help: I18n.t("Evita mover el puntero sin querer con la palma.")
             Toggle { checked: page.t.disableWhileTyping; onToggled: v => Settings.set("touchpad", "disableWhileTyping", v) }
         }
         OptionRow {
-            title: "Clic derecho"
+            title: I18n.t("Clic derecho")
             Segmented {
-                options: [{ v: "clickfinger", t: "Con dos dedos", i: "touch_app" }, { v: "button-areas", t: "Esquina derecha", i: "south_east" }]
+                options: [{ v: "clickfinger", t: I18n.t("Con dos dedos"), i: "touch_app" }, { v: "button-areas", t: I18n.t("Esquina derecha"), i: "south_east" }]
                 value: page.t.clickMethod
                 onPicked: v => Settings.set("touchpad", "clickMethod", v)
             }
         }
         OptionRow {
-            title: "Velocidad del desplazamiento"
+            title: I18n.t("Velocidad del desplazamiento")
             advanced: true
             Slider {
                 Layout.preferredWidth: 300; from: 0.25; to: 3; step: 0.05; live: true
@@ -179,12 +179,12 @@ ColumnLayout {
 
     // ---------------------------------------------------------------- puntero
     Group {
-        title: "Puntero"
+        title: I18n.t("Puntero")
         icon: "arrow_selector_tool"
         OptionRow {
-            title: "Tamaño"
+            title: I18n.t("Tamaño")
             Segmented {
-                options: [{ v: 24, t: "Normal" }, { v: 32, t: "Grande" }, { v: 48, t: "Muy grande" }]
+                options: [{ v: 24, t: I18n.t("Normal") }, { v: 32, t: I18n.t("Grande") }, { v: 48, t: I18n.t("Muy grande") }]
                 value: page.m.cursorSize
                 onPicked: v => Settings.set("mouse", "cursorSize", v)
             }

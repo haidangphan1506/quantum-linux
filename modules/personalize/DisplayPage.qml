@@ -64,8 +64,8 @@ ColumnLayout {
 
     // ---------------------------------------------------------------- luz nocturna
     Group {
-        title: "Luz nocturna"
-        help: "Pone la pantalla más cálida (menos luz azul) para cuidar tu vista de noche y dormir mejor."
+        title: I18n.t("Luz nocturna")
+        help: I18n.t("Pone la pantalla más cálida (menos luz azul) para cuidar tu vista de noche y dormir mejor.")
         icon: "nightlight"
 
         // vista previa: de día y con la luz nocturna
@@ -73,7 +73,7 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: 14
             Repeater {
-                model: [{ t: "Normal", w: 0 }, { t: "Con luz nocturna", w: 1 }]
+                model: [{ t: I18n.t("Normal"), w: 0 }, { t: I18n.t("Con luz nocturna"), w: 1 }]
                 ColumnLayout {
                     required property var modelData
                     Layout.fillWidth: true
@@ -96,14 +96,14 @@ ColumnLayout {
         }
 
         OptionRow {
-            title: "Activar luz nocturna"
-            help: page.d.nightMode === "manual" ? "Se queda así hasta que la apagues." : "Se enciende y apaga sola según lo que elijas abajo."
+            title: I18n.t("Activar luz nocturna")
+            help: page.d.nightMode === "manual" ? I18n.t("Se queda así hasta que la apagues.") : I18n.t("Se enciende y apaga sola según lo que elijas abajo.")
             Toggle { checked: page.d.nightLight; onToggled: v => Settings.set("display", "nightLight", v) }
         }
         OptionRow {
-            title: "Cuándo"
+            title: I18n.t("Cuándo")
             Segmented {
-                options: [{ v: "manual", t: "Manual", i: "touch_app" }, { v: "sunset", t: "Al atardecer", i: "wb_twilight" }, { v: "schedule", t: "En un horario", i: "schedule" }]
+                options: [{ v: "manual", t: I18n.t("Manual"), i: "touch_app" }, { v: "sunset", t: I18n.t("Al atardecer"), i: "wb_twilight" }, { v: "schedule", t: I18n.t("En un horario"), i: "schedule" }]
                 value: page.d.nightMode
                 onPicked: v => Settings.set("display", "nightMode", v)
             }
@@ -111,12 +111,12 @@ ColumnLayout {
         // horario: dos horas que se cambian de a 30 min
         OptionRow {
             visible: page.d.nightMode === "schedule"
-            title: "Horario"
-            help: "Se enciende a la primera hora y se apaga a la segunda."
+            title: I18n.t("Horario")
+            help: I18n.t("Se enciende a la primera hora y se apaga a la segunda.")
             Row {
                 spacing: 10
                 Repeater {
-                    model: [{ k: "nightFrom", t: "Desde" }, { k: "nightTo", t: "Hasta" }]
+                    model: [{ k: "nightFrom", t: I18n.t("Desde") }, { k: "nightTo", t: I18n.t("Hasta") }]
                     Rectangle {
                         id: tp
                         required property var modelData
@@ -143,13 +143,13 @@ ColumnLayout {
         }
         OptionRow {
             visible: page.d.nightMode === "sunset"
-            title: "Según tu ubicación"
-            help: "Usa la misma ubicación que el clima. Se enciende al atardecer y se apaga al amanecer."
+            title: I18n.t("Según tu ubicación")
+            help: I18n.t("Usa la misma ubicación que el clima. Se enciende al atardecer y se apaga al amanecer.")
             icon: "location_on"
         }
         OptionRow {
-            title: "Calidez"
-            help: page.d.temperature <= 3200 ? "Muy cálida: ideal para leer de noche." : page.d.temperature <= 4500 ? "Cálida: cómoda y sin cansar la vista." : "Suave: casi no se nota."
+            title: I18n.t("Calidez")
+            help: page.d.temperature <= 3200 ? I18n.t("Muy cálida: ideal para leer de noche.") : page.d.temperature <= 4500 ? I18n.t("Cálida: cómoda y sin cansar la vista.") : I18n.t("Suave: casi no se nota.")
             Slider {
                 Layout.preferredWidth: 300
                 from: 2500; to: 6000; step: 100; live: true
@@ -162,8 +162,8 @@ ColumnLayout {
 
     // ---------------------------------------------------------------- imagen
     Group {
-        title: "Imagen"
-        help: "Ajusta cómo se ve la pantalla, ideal en laptops que no traen botones para esto. Funciona en todas tus pantallas."
+        title: I18n.t("Imagen")
+        help: I18n.t("Ajusta cómo se ve la pantalla, ideal en laptops que no traen botones para esto. Funciona en todas tus pantallas.")
         icon: "tune"
 
         Rectangle {
@@ -174,30 +174,30 @@ ColumnLayout {
             Rectangle {
                 anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 10
                 width: lbl.implicitWidth + 20; height: 26; radius: 13; color: Qt.rgba(0, 0, 0, 0.45)
-                Txt { id: lbl; anchors.centerIn: parent; text: "Vista previa"; color: "white"; font.pixelSize: Theme.textSmall }
+                Txt { id: lbl; anchors.centerIn: parent; text: I18n.t("Vista previa"); color: "white"; font.pixelSize: Theme.textSmall }
             }
         }
 
         OptionRow {
-            title: "Brillo extra"
-            help: "Oscurece la imagen por software. Útil en monitores externos sin control de brillo."
+            title: I18n.t("Brillo extra")
+            help: I18n.t("Oscurece la imagen por software. Útil en monitores externos sin control de brillo.")
             icon: "brightness_medium"
             Slider { Layout.preferredWidth: 300; from: 0.3; to: 1; step: 0.01; live: true; value: page.d.brightness; text: page.pct(value); onMoved: v => Settings.set("display", "brightness", v) }
         }
         OptionRow {
-            title: "Contraste"
+            title: I18n.t("Contraste")
             icon: "contrast"
             Slider { Layout.preferredWidth: 300; from: 0.5; to: 1.5; step: 0.01; live: true; value: page.d.contrast; text: page.pct(value); onMoved: v => Settings.set("display", "contrast", v) }
         }
         OptionRow {
             title: "Gamma"
-            help: "Aclara u oscurece los tonos medios sin tocar el blanco ni el negro."
+            help: I18n.t("Aclara u oscurece los tonos medios sin tocar el blanco ni el negro.")
             icon: "exposure"
             Slider { Layout.preferredWidth: 300; from: 0.5; to: 2; step: 0.05; live: true; value: page.d.gamma; text: value.toFixed(2); onMoved: v => Settings.set("display", "gamma", v) }
         }
         OptionRow {
-            title: "Saturación"
-            help: page.d.saturation !== 1 ? "Usa un filtro: el Modo juego lo apaga para no perder FPS." : "Qué tan vivos se ven los colores."
+            title: I18n.t("Saturación")
+            help: page.d.saturation !== 1 ? I18n.t("Usa un filtro: el Modo juego lo apaga para no perder FPS.") : I18n.t("Qué tan vivos se ven los colores.")
             icon: "palette"
             Slider { Layout.preferredWidth: 300; from: 0; to: 2; step: 0.05; live: true; value: page.d.saturation; text: page.pct(value); onMoved: v => Settings.set("display", "saturation", v) }
         }
@@ -205,7 +205,7 @@ ColumnLayout {
             Layout.fillWidth: true
             Item { Layout.fillWidth: true }
             PillButton {
-                icon: "restart_alt"; text: "Restablecer imagen"
+                icon: "restart_alt"; text: I18n.t("Restablecer imagen")
                 onClicked: Settings.setMany({ display: { brightness: 1, contrast: 1, gamma: 1, saturation: 1 } })
             }
         }

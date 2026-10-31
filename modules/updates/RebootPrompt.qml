@@ -75,20 +75,20 @@ PanelWindow {
             }
             Txt {
                 width: parent.width; wrapMode: Text.WordWrap; elide: Text.ElideNone
-                text: "Reinicia para terminar de actualizar"
+                text: I18n.t("Reinicia para terminar de actualizar")
                 font.pixelSize: 24; font.weight: Font.Bold
                 color: win.serp ? Serp.fg : Theme.fg
             }
             Txt {
                 width: parent.width; wrapMode: Text.WordWrap; elide: Text.ElideNone
                 readonly property string what: Updates.friendly()
-                text: "Quantum se actualizó" + (what ? " (" + what + ")" : "") +
-                      ". Los cambios se aplican al reiniciar. Guarda lo que estés haciendo antes."
+                text: I18n.t("Quantum se actualizó") + (what ? " (" + what + ")" : "") +
+                      I18n.t(". Los cambios se aplican al reiniciar. Guarda lo que estés haciendo antes.")
                 font.pixelSize: 15; lineHeight: 1.15
                 color: win.serp ? Serp.muted : Theme.fgMuted
             }
             Txt {
-                text: Updates.rebootPackages.length === 1 ? "1 paquete actualizado" : Updates.rebootPackages.length + " paquetes actualizados"
+                text: Updates.rebootPackages.length === 1 ? I18n.t("1 paquete actualizado") : Updates.rebootPackages.length + I18n.t(" paquetes actualizados")
                 font.pixelSize: 12
                 color: win.serp ? Serp.muted : Theme.fgMuted
                 opacity: 0.8
@@ -115,8 +115,8 @@ PanelWindow {
                     }
                     MouseArea { id: ma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: b.clicked() }
                 }
-                Btn { label: "Más tarde"; onClicked: Updates.snoozeReboot() }
-                Btn { label: "Reiniciar ahora"; icon: "restart_alt"; primary: true; onClicked: Updates.reboot() }
+                Btn { label: I18n.t("Más tarde"); onClicked: Updates.snoozeReboot() }
+                Btn { label: I18n.t("Reiniciar ahora"); icon: "restart_alt"; primary: true; onClicked: Updates.reboot() }
             }
         }
     }

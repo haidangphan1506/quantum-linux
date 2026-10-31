@@ -37,14 +37,14 @@ ColumnLayout {
 
     // ------------------------------------------------------------- modo
     Group {
-        title: "Modo"
-        help: "El color general de las ventanas, menús y paneles."
+        title: I18n.t("Modo")
+        help: I18n.t("El color general de las ventanas, menús y paneles.")
         icon: "contrast"
         RowLayout {
             Layout.fillWidth: true
             spacing: 14
             Repeater {
-                model: [{ m: "dark", t: "Oscuro", h: "Descansa la vista de noche" }, { m: "light", t: "Claro", h: "Ideal con mucha luz" }]
+                model: [{ m: "dark", t: I18n.t("Oscuro"), h: I18n.t("Descansa la vista de noche") }, { m: "light", t: I18n.t("Claro"), h: I18n.t("Ideal con mucha luz") }]
                 ChoiceCard {
                     id: mc
                     required property var modelData
@@ -64,8 +64,8 @@ ColumnLayout {
 
     // --------------------------------------------------------- acento
     Group {
-        title: "Color de acento"
-        help: "Se usa en botones, selecciones e indicadores de todo el sistema."
+        title: I18n.t("Color de acento")
+        help: I18n.t("Se usa en botones, selecciones e indicadores de todo el sistema.")
         icon: "palette"
 
         Flow {
@@ -87,7 +87,7 @@ ColumnLayout {
                     anchors.centerIn: parent
                     spacing: 8
                     Icon { anchors.verticalCenter: parent.verticalCenter; text: "wallpaper"; size: 18; fill: 1; color: dyn.on ? Theme.primaryContainerFg : Theme.primary }
-                    Txt { anchors.verticalCenter: parent.verticalCenter; text: "Del fondo de pantalla"; font.weight: Font.DemiBold; color: dyn.on ? Theme.primaryContainerFg : Theme.fg }
+                    Txt { anchors.verticalCenter: parent.verticalCenter; text: I18n.t("Del fondo de pantalla"); font.weight: Font.DemiBold; color: dyn.on ? Theme.primaryContainerFg : Theme.fg }
                 }
                 MouseArea {
                     id: dynArea
@@ -169,8 +169,8 @@ ColumnLayout {
 
     // ---------------------------------------------------------- fondos
     Group {
-        title: "Fondo de pantalla"
-        help: "Elige uno de Quantum o una imagen tuya."
+        title: I18n.t("Fondo de pantalla")
+        help: I18n.t("Elige uno de Quantum o una imagen tuya.")
         icon: "wallpaper"
 
         GridLayout {
@@ -198,7 +198,7 @@ ColumnLayout {
                     anchors.left: parent.left; anchors.bottom: parent.bottom; anchors.margins: 8
                     width: liveT.implicitWidth + 16; height: 24; radius: 12
                     color: Qt.rgba(0, 0, 0, 0.55)
-                    Txt { id: liveT; anchors.centerIn: parent; text: "Fondo vivo"; font.pixelSize: Theme.textSmall; font.weight: Font.Bold; color: "white" }
+                    Txt { id: liveT; anchors.centerIn: parent; text: I18n.t("Fondo vivo"); font.pixelSize: Theme.textSmall; font.weight: Font.Bold; color: "white" }
                 }
                 Rectangle {
                     visible: liveTile.on
@@ -256,14 +256,14 @@ ColumnLayout {
         }
         RowLayout {
             spacing: 10
-            PillButton { text: "Elegir imagen…"; icon: "add_photo_alternate"; onClicked: wallDialog.open() }
-            Txt { text: "También puedes usar Super + W"; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
+            PillButton { text: I18n.t("Elegir imagen…"); icon: "add_photo_alternate"; onClicked: wallDialog.open() }
+            Txt { text: I18n.t("También puedes usar Super + W"); color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
         }
     }
     FileDialog {
         id: wallDialog
-        title: "Elegir fondo de pantalla"
-        nameFilters: ["Imágenes (*.png *.jpg *.jpeg *.webp)"]
+        title: I18n.t("Elegir fondo de pantalla")
+        nameFilters: [I18n.t("Imágenes (*.png *.jpg *.jpeg *.webp)")]
         onAccepted: {
             page.setWallpaper(decodeURIComponent(selectedFile.toString().replace(/^file:\/\//, "")));
             lister.running = true;
@@ -272,9 +272,9 @@ ColumnLayout {
 
     // ------------------------------------------------------ íconos
     Group {
-        title: "Íconos"
-        help: Icons.installing ? "Descargando los íconos… el escritorio se recarga un segundo al terminar."
-                               : "Las carpetas toman el color de tu escritorio. Al cambiarlos, el escritorio se recarga un segundo."
+        title: I18n.t("Íconos")
+        help: Icons.installing ? I18n.t("Descargando los íconos… el escritorio se recarga un segundo al terminar.")
+                               : I18n.t("Las carpetas toman el color de tu escritorio. Al cambiarlos, el escritorio se recarga un segundo.")
         icon: "interests"
         GridLayout {
             Layout.fillWidth: true
@@ -286,7 +286,7 @@ ColumnLayout {
                     id: icc
                     required property var modelData
                     title: modelData.name
-                    help: Icons.installing === modelData.id ? "Descargando…" : Icons.installed[modelData.id] ? modelData.desc : modelData.desc + " Se descarga (" + modelData.size + ")."
+                    help: Icons.installing === modelData.id ? I18n.t("Descargando…") : Icons.installed[modelData.id] ? modelData.desc : modelData.desc + I18n.t(" Se descarga (") + modelData.size + ")."
                     selected: Icons.current === modelData.id
                     previewHeight: 86
                     onClicked: Icons.choose(modelData.id)
@@ -302,15 +302,15 @@ ColumnLayout {
     // ------------------------------------------------------ efecto vidrio
     Group {
         id: glassG
-        title: "Efecto vidrio"
-        help: "Partes translúcidas que dejan ver el fondo desenfocado detrás, como un cristal."
+        title: I18n.t("Efecto vidrio")
+        help: I18n.t("Partes translúcidas que dejan ver el fondo desenfocado detrás, como un cristal.")
         icon: "blur_on"
 
         readonly property var parts: [
-            { k: "bar", t: "Barra superior", i: "top_panel_open" },
-            { k: "dock", t: "Barra de tareas", i: "dock_to_bottom" },
-            { k: "panels", t: "Menús y paneles", i: "dashboard" },
-            { k: "windows", t: "Ventanas de apps", i: "web_asset" },
+            { k: "bar", t: I18n.t("Barra superior"), i: "top_panel_open" },
+            { k: "dock", t: I18n.t("Barra de tareas"), i: "dock_to_bottom" },
+            { k: "panels", t: I18n.t("Menús y paneles"), i: "dashboard" },
+            { k: "windows", t: I18n.t("Ventanas de apps"), i: "web_asset" },
         ]
 
         // vista previa: tarjeta de vidrio sobre tu fondo
@@ -348,11 +348,11 @@ ColumnLayout {
                 width: 360; height: 90; radius: Theme.radiusLarge
                 color: Theme.alpha(Theme.surface, Settings.appearance.panelOpacity)
                 border.width: 1; border.color: Theme.alpha(Theme.fg, 0.14)
-                Txt { anchors.centerIn: parent; text: "Así se ve el vidrio"; font.weight: Font.Bold; font.pixelSize: Theme.textLarge }
+                Txt { anchors.centerIn: parent; text: I18n.t("Así se ve el vidrio"); font.weight: Font.Bold; font.pixelSize: Theme.textLarge }
             }
         }
 
-        Txt { text: "Dónde se aplica"; font.weight: Font.DemiBold }
+        Txt { text: I18n.t("Dónde se aplica"); font.weight: Font.DemiBold }
         Flow {
             Layout.fillWidth: true
             spacing: 10
@@ -385,8 +385,8 @@ ColumnLayout {
         }
 
         OptionRow {
-            title: "Opacidad de barras y paneles"
-            help: "Más bajo = más transparente."
+            title: I18n.t("Opacidad de barras y paneles")
+            help: I18n.t("Más bajo = más transparente.")
             Slider {
                 implicitWidth: 240
                 from: 0.4; to: 1; step: 0.02
@@ -398,8 +398,8 @@ ColumnLayout {
         }
         OptionRow {
             visible: Settings.appearance.glass.windows
-            title: "Opacidad de las ventanas de apps"
-            help: "Las ventanas se vuelven translúcidas (sin desenfoque). Se aplica a las que abras desde ahora; muy bajo puede costar leer."
+            title: I18n.t("Opacidad de las ventanas de apps")
+            help: I18n.t("Las ventanas se vuelven translúcidas (sin desenfoque). Se aplica a las que abras desde ahora; muy bajo puede costar leer.")
             Slider {
                 implicitWidth: 240
                 from: 0.6; to: 1; step: 0.02
@@ -409,22 +409,22 @@ ColumnLayout {
             }
         }
         OptionRow {
-            title: "Desenfoque detrás"
-            help: "Desenfoca lo que hay detrás del vidrio. Consume algo de gráfica (en máquinas virtuales se desactiva solo)."
+            title: I18n.t("Desenfoque detrás")
+            help: I18n.t("Desenfoca lo que hay detrás del vidrio. Consume algo de gráfica (en máquinas virtuales se desactiva solo).")
             Toggle { checked: Settings.appearance.blur; onToggled: c => Settings.set("appearance", "blur", c) }
         }
     }
 
     // --------------------------------------------------------------- texto
     Group {
-        title: "Texto"
+        title: I18n.t("Texto")
         icon: "format_size"
         advanced: true
         OptionRow {
-            title: "Tamaño del texto"
-            help: "Afecta a la barra, menús y paneles de Quantum."
+            title: I18n.t("Tamaño del texto")
+            help: I18n.t("Afecta a la barra, menús y paneles de Quantum.")
             Segmented {
-                options: [{ v: 0.9, t: "Pequeño" }, { v: 1.0, t: "Normal" }, { v: 1.12, t: "Grande" }]
+                options: [{ v: 0.9, t: I18n.t("Pequeño") }, { v: 1.0, t: I18n.t("Normal") }, { v: 1.12, t: I18n.t("Grande") }]
                 value: Settings.appearance.textScale
                 onPicked: v => Settings.set("appearance", "textScale", v)
             }

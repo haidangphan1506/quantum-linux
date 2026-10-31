@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.services
 
 // Avisa cuando hay actualizaciones. Usa checkupdates (copia aparte de la base de
 // pacman: no toca el sistema ni pide contraseña) y revisa cada 3 horas.
@@ -30,12 +31,12 @@ Singleton {
 
     // Nombres que entiende cualquiera, para el aviso
     function friendly(): string {
-        const names = { "linux-zen": "el kernel", "linux": "el kernel", "mesa": "los drivers de video", "nvidia-open-dkms": "el driver de NVIDIA",
-                        "quantum-shell": "el escritorio", "wayfire": "el gestor de ventanas", "systemd": "el sistema base",
-                        "glibc": "el sistema base", "firefox": "Firefox", "steam": "Steam" };
+        const names = { "linux-zen": I18n.t("el kernel"), "linux": I18n.t("el kernel"), "mesa": I18n.t("los drivers de video"), "nvidia-open-dkms": I18n.t("el driver de NVIDIA"),
+                        "quantum-shell": I18n.t("el escritorio"), "wayfire": I18n.t("el gestor de ventanas"), "systemd": I18n.t("el sistema base"),
+                        "glibc": I18n.t("el sistema base"), "firefox": "Firefox", "steam": "Steam" };
         const out = [];
         for (const p of rebootPackages) {
-            const n = names[p] ?? (p.startsWith("quantum-") ? "las apps de Quantum" : null);
+            const n = names[p] ?? (p.startsWith("quantum-") ? I18n.t("las apps de Quantum") : null);
             if (n && !out.includes(n)) out.push(n);
             if (out.length >= 3) break;
         }
@@ -102,10 +103,10 @@ Singleton {
                 root.checking = false;
                 if (root.count > 0 && root.count !== root.notifiedFor) {
                     root.notifiedFor = root.count;
-                    const extra = root.quantumCount > 0 ? ", con " + root.quantumCount + " mejoras de Quantum" : "";
+                    const extra = root.quantumCount > 0 ? I18n.t(", con ") + root.quantumCount + I18n.t(" mejoras de Quantum") : "";
                     Quickshell.execDetached(["notify-send", "-a", "Quantum Linux", "-i", "system-software-update",
-                                             "Hay " + root.count + " actualizaciones" + extra,
-                                             "Toca el ícono de actualizaciones en la barra para instalarlas."]);
+                                             I18n.t("Hay ") + root.count + I18n.t(" actualizaciones") + extra,
+                                             I18n.t("Toca el ícono de actualizaciones en la barra para instalarlas.")]);
                 }
             }
         }

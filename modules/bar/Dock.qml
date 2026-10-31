@@ -168,7 +168,7 @@ Variants {
 
                 DockButton {
                     visible: Settings.dock.showStart && !Serp.on
-                    tip: "Inicio"
+                    tip: I18n.t("Inicio")
                     active: Shell.launcherOpen && !Shell.clipboardMode
                     onClicked: Shell.toggleLauncher(false)
                     Image {
@@ -182,7 +182,7 @@ Variants {
                 }
                 DockButton {
                     visible: Settings.dock.showSearch && !Serp.on
-                    tip: "Buscar"
+                    tip: I18n.t("Buscar")
                     onClicked: Shell.toggleLauncher(false)
                     Icon { anchors.centerIn: parent; text: "search"; size: Math.round(24 * Theme.dockScale); color: Theme.fg }
                 }
@@ -312,10 +312,10 @@ Variants {
                 }
                 Repeater {
                     model: menu.g ? [
-                        { icon: "add", text: "Nueva ventana", show: !!menu.g.entry, run: () => Apps.launch(menu.g.entry) },
-                        { icon: menu.g.pinned ? "keep_off" : "keep", text: menu.g.pinned ? "Quitar de la barra" : "Fijar en la barra",
+                        { icon: "add", text: I18n.t("Nueva ventana"), show: !!menu.g.entry, run: () => Apps.launch(menu.g.entry) },
+                        { icon: menu.g.pinned ? "keep_off" : "keep", text: menu.g.pinned ? I18n.t("Quitar de la barra") : I18n.t("Fijar en la barra"),
                           show: !!menu.g.entry, run: () => Wm.togglePin(menu.g.id) },
-                        { icon: "close", text: menu.g.wins.length > 1 ? "Cerrar todas las ventanas" : "Cerrar ventana",
+                        { icon: "close", text: menu.g.wins.length > 1 ? I18n.t("Cerrar todas las ventanas") : I18n.t("Cerrar ventana"),
                           show: menu.g.wins.length > 0, run: () => menu.g.wins.forEach(w => w.close()) },
                     ].filter(o => o.show) : []
                     Rectangle {

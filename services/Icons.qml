@@ -13,12 +13,12 @@ Singleton {
     id: root
 
     readonly property var packs: [
-        { id: "papirus", name: "Papirus", desc: "Los de siempre: claros y completos.", pkg: "papirus-icon-theme", size: "" },
-        { id: "tela", name: "Tela", desc: "Redondeados y muy coloridos.", pkg: "tela-icon-theme", size: "19 MB" },
-        { id: "fluent", name: "Fluent", desc: "Como Windows 11.", pkg: "fluent-icon-theme", size: "11 MB" },
-        { id: "whitesur", name: "WhiteSur", desc: "Como macOS.", pkg: "whitesur-icon-theme", size: "10 MB" },
-        { id: "colloid", name: "Colloid", desc: "Planos, suaves y modernos.", pkg: "colloid-icon-theme", size: "21 MB" },
-        { id: "candy", name: "Candy", desc: "Degradados de neón, para gamers.", pkg: "candy-icons-git", size: "2 MB" },
+        { id: "papirus", name: "Papirus", desc: I18n.t("Los de siempre: claros y completos."), pkg: "papirus-icon-theme", size: "" },
+        { id: "tela", name: "Tela", desc: I18n.t("Redondeados y muy coloridos."), pkg: "tela-icon-theme", size: "19 MB" },
+        { id: "fluent", name: "Fluent", desc: I18n.t("Como Windows 11."), pkg: "fluent-icon-theme", size: "11 MB" },
+        { id: "whitesur", name: "WhiteSur", desc: I18n.t("Como macOS."), pkg: "whitesur-icon-theme", size: "10 MB" },
+        { id: "colloid", name: "Colloid", desc: I18n.t("Planos, suaves y modernos."), pkg: "colloid-icon-theme", size: "21 MB" },
+        { id: "candy", name: "Candy", desc: I18n.t("Degradados de neón, para gamers."), pkg: "candy-icons-git", size: "2 MB" },
     ]
     readonly property string current: Settings.appearance.iconTheme || "papirus"
     property var installed: ({ papirus: true })
@@ -34,8 +34,8 @@ Singleton {
         if (!pk) return;
         if (installed[id]) { Settings.set("appearance", "iconTheme", id); return; }
         installing = id;
-        Quickshell.execDetached(["notify-send", "-a", "Quantum", "-i", "folder-download", "Descargando los íconos " + pk.name,
-                                 "Te pedirá tu contraseña. El escritorio se recarga un segundo al terminar."]);
+        Quickshell.execDetached(["notify-send", "-a", "Quantum", "-i", "folder-download", I18n.t("Descargando los íconos ") + pk.name,
+                                 I18n.t("Te pedirá tu contraseña. El escritorio se recarga un segundo al terminar.")]);
         install.command = ["pkexec", "pacman", "-S", "--needed", "--noconfirm", pk.pkg];
         install.running = true;
     }
@@ -63,8 +63,8 @@ Singleton {
                 const inst = Object.assign({}, root.installed); inst[pk.id] = true; root.installed = inst;
                 Settings.set("appearance", "iconTheme", pk.id);
             } else if (pk) {
-                Quickshell.execDetached(["notify-send", "-a", "Quantum", "-i", "dialog-warning", "No se pudieron descargar los íconos " + pk.name,
-                                         "Revisa tu internet e inténtalo de nuevo en Personalizar → Colores y fondo."]);
+                Quickshell.execDetached(["notify-send", "-a", "Quantum", "-i", "dialog-warning", I18n.t("No se pudieron descargar los íconos ") + pk.name,
+                                         I18n.t("Revisa tu internet e inténtalo de nuevo en Personalizar → Colores y fondo.")]);
             }
             root.installing = "";
         }

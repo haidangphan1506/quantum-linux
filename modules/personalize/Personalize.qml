@@ -16,7 +16,7 @@ Scope {
         FloatingWindow {
             id: win
 
-            title: "Personalizar"
+            title: I18n.t("Personalizar")
             implicitWidth: 1100
             implicitHeight: 740
             minimumSize: Qt.size(860, 580)
@@ -25,14 +25,15 @@ Scope {
             onVisibleChanged: if (!visible) Shell.personalizeOpen = false
 
             readonly property var pages: [
-                { id: "styles", t: "Estilos", h: "Cambia todo el escritorio con un clic.", i: "auto_awesome", c: stylesPage },
-                { id: "colors", t: "Colores y fondo", h: "Modo claro u oscuro, color de acento y fondo de pantalla.", i: "palette", c: colorsPage },
-                { id: "bar", t: "Barra y dock", h: "Dónde van tus apps, la hora y el estado del sistema.", i: "dock_to_bottom", c: barPage },
-                { id: "windows", t: "Ventanas", h: "Esquinas, botones y animaciones de las ventanas.", i: "web_asset", c: windowsPage },
-                { id: "lock", t: "Bloqueo", h: "Qué tarjetas se ven en la pantalla de bloqueo y en qué orden.", i: "lock", c: lockPage },
-                { id: "sounds", t: "Sonidos", h: "Los sonidos del sistema y su volumen.", i: "music_note", c: soundsPage },
-                { id: "display", t: "Pantalla", h: "Luz nocturna, brillo, contraste, gamma y saturación.", i: "desktop_windows", c: displayPage },
-                { id: "input", t: "Mouse y touchpad", h: "Velocidad, aceleración, desplazamiento y clics.", i: "mouse", c: inputPage },
+                { id: "language", t: I18n.t("Idioma"), h: I18n.t("El idioma de la barra, los menús, los paneles y esta ventana."), i: "translate", c: languagePage },
+                { id: "styles", t: I18n.t("Estilos"), h: I18n.t("Cambia todo el escritorio con un clic."), i: "auto_awesome", c: stylesPage },
+                { id: "colors", t: I18n.t("Colores y fondo"), h: I18n.t("Modo claro u oscuro, color de acento y fondo de pantalla."), i: "palette", c: colorsPage },
+                { id: "bar", t: I18n.t("Barra y dock"), h: I18n.t("Dónde van tus apps, la hora y el estado del sistema."), i: "dock_to_bottom", c: barPage },
+                { id: "windows", t: I18n.t("Ventanas"), h: I18n.t("Esquinas, botones y animaciones de las ventanas."), i: "web_asset", c: windowsPage },
+                { id: "lock", t: I18n.t("Bloqueo"), h: I18n.t("Qué tarjetas se ven en la pantalla de bloqueo y en qué orden."), i: "lock", c: lockPage },
+                { id: "sounds", t: I18n.t("Sonidos"), h: I18n.t("Los sonidos del sistema y su volumen."), i: "music_note", c: soundsPage },
+                { id: "display", t: I18n.t("Pantalla"), h: I18n.t("Luz nocturna, brillo, contraste, gamma y saturación."), i: "desktop_windows", c: displayPage },
+                { id: "input", t: I18n.t("Mouse y touchpad"), h: I18n.t("Velocidad, aceleración, desplazamiento y clics."), i: "mouse", c: inputPage },
             ]
             property string current: pages.some(p => p.id === Settings.ui.page) ? Settings.ui.page : "styles"
             readonly property var page: pages.find(p => p.id === current)
@@ -40,6 +41,7 @@ Scope {
 
             Component.onCompleted: Settings.snapshot()
 
+            Component { id: languagePage; LanguagePage {} }
             Component { id: stylesPage; StylesPage {} }
             Component { id: colorsPage; ColorsPage {} }
             Component { id: barPage; BarPage {} }
@@ -85,8 +87,8 @@ Scope {
                             }
                             ColumnLayout {
                                 spacing: 0
-                                Txt { text: "Personalizar"; font.pixelSize: Theme.textLarge + 2; font.weight: Font.Bold }
-                                Txt { text: "Tu escritorio, a tu manera"; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
+                                Txt { text: I18n.t("Personalizar"); font.pixelSize: Theme.textLarge + 2; font.weight: Font.Bold }
+                                Txt { text: I18n.t("Tu escritorio, a tu manera"); color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
                             }
                         }
 
@@ -131,7 +133,7 @@ Scope {
                         Item { Layout.fillHeight: true }
 
                         // vista previa en vivo de los ajustes actuales
-                        Txt { text: "Vista previa"; font.weight: Font.Bold; font.pixelSize: Theme.textSmall; color: Theme.fgMuted }
+                        Txt { text: I18n.t("Vista previa"); font.weight: Font.Bold; font.pixelSize: Theme.textSmall; color: Theme.fgMuted }
                         MiniDesktop {
                             Layout.fillWidth: true
                             Layout.preferredHeight: width * 9 / 16
@@ -141,14 +143,14 @@ Scope {
                         PillButton {
                             Layout.fillWidth: true
                             Layout.topMargin: 10
-                            text: "Deshacer cambios"
+                            text: I18n.t("Deshacer cambios")
                             icon: "undo"
                             enabled_: Settings.changed
                             onClicked: Settings.undo()
                         }
                         PillButton {
                             Layout.fillWidth: true
-                            text: win.confirmReset ? "¿Seguro? Toca otra vez" : "Restablecer todo"
+                            text: win.confirmReset ? I18n.t("¿Seguro? Toca otra vez") : I18n.t("Restablecer todo")
                             icon: "restart_alt"
                             danger: true
                             onClicked: {
@@ -192,7 +194,7 @@ Scope {
                                 anchors.centerIn: parent
                                 spacing: 10
                                 Icon { text: "tune"; size: 19; color: Settings.ui.advanced ? Theme.primary : Theme.fg }
-                                Txt { text: "Opciones avanzadas"; font.weight: Font.DemiBold }
+                                Txt { text: I18n.t("Opciones avanzadas"); font.weight: Font.DemiBold }
                                 Toggle {
                                     implicitWidth: 44; implicitHeight: 26
                                     checked: Settings.ui.advanced

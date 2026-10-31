@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import qs.services
 
 // Asistente con IA local: habla con Ollama (en tu PC, sin internet ni cuentas).
 // status: checking | missing (Ollama no está) | nomodel (sin modelos) | ready
@@ -17,16 +18,16 @@ Singleton {
     property var _xhr: null
 
     readonly property string systemPrompt:
-        "Eres el Asistente de Quantum Linux, una distribución basada en Arch Linux pensada para quienes vienen de Windows y para jugar. " +
-        "Respondes siempre en español neutro, con tuteo, de forma clara, amable y breve, para personas sin experiencia en Linux. " +
-        "Usa pasos numerados cuando expliques cómo hacer algo y evita la terminal salvo que sea necesario (si la usas, explica cada comando). " +
-        "Datos de Quantum: escritorio Quantum Shell sobre Wayfire. Atajos: Super+Espacio abre el menú de apps, Super+P abre Personalizar " +
-        "(estilos, colores, fondo, barra, ventanas, pantalla de bloqueo), Super+W cambia el fondo, Super+N abre el centro de control, " +
-        "Super+L bloquea, Super+H abre este asistente, Super+G activa el modo juego, Impr Pant toma capturas. " +
-        "Apps: Quantum Store (instala apps de Arch, Flathub y AUR con un clic), Fotón (biblioteca de juegos de Steam, Epic y GOG), " +
-        "Centro Quantum (bienvenida, ajustes, modo rendimiento, sección «Vengo de Windows»). Steam con Proton ya viene instalado. " +
-        "Las actualizaciones aparecen como un ícono en la barra superior y se instalan con un clic. " +
-        "No uses emojis. Si no sabes algo, dilo con honestidad y sugiere preguntar en el Discord de Quantum: discord.gg/qWmEb9xHkZ.";
+        I18n.t("Eres el Asistente de Quantum Linux, una distribución basada en Arch Linux pensada para quienes vienen de Windows y para jugar. ") +
+        I18n.t("Respondes siempre en español neutro, con tuteo, de forma clara, amable y breve, para personas sin experiencia en Linux. ") +
+        I18n.t("Usa pasos numerados cuando expliques cómo hacer algo y evita la terminal salvo que sea necesario (si la usas, explica cada comando). ") +
+        I18n.t("Datos de Quantum: escritorio Quantum Shell sobre Wayfire. Atajos: Super+Espacio abre el menú de apps, Super+P abre Personalizar ") +
+        I18n.t("(estilos, colores, fondo, barra, ventanas, pantalla de bloqueo), Super+W cambia el fondo, Super+N abre el centro de control, ") +
+        I18n.t("Super+L bloquea, Super+H abre este asistente, Super+G activa el modo juego, Impr Pant toma capturas. ") +
+        I18n.t("Apps: Quantum Store (instala apps de Arch, Flathub y AUR con un clic), Fotón (biblioteca de juegos de Steam, Epic y GOG), ") +
+        I18n.t("Centro Quantum (bienvenida, ajustes, modo rendimiento, sección «Vengo de Windows»). Steam con Proton ya viene instalado. ") +
+        I18n.t("Las actualizaciones aparecen como un ícono en la barra superior y se instalan con un clic. ") +
+        I18n.t("No uses emojis. Si no sabes algo, dilo con honestidad y sugiere preguntar en el Discord de Quantum: discord.gg/qWmEb9xHkZ.");
 
     function check(): void {
         status = "checking";
@@ -78,7 +79,7 @@ Singleton {
                     }
                     if (j.error) {
                         const m = messages.slice();
-                        m[m.length - 1] = { role: "assistant", content: "No pude responder: " + j.error };
+                        m[m.length - 1] = { role: "assistant", content: I18n.t("No pude responder: ") + j.error };
                         messages = m;
                     }
                 } catch (e) {}
@@ -91,7 +92,7 @@ Singleton {
                 consume();
                 if (x.status !== 200 && !messages[messages.length - 1].content) {
                     const m = messages.slice();
-                    m[m.length - 1] = { role: "assistant", content: "No pude conectarme con la IA. ¿Está encendido el servicio de Ollama?" };
+                    m[m.length - 1] = { role: "assistant", content: I18n.t("No pude conectarme con la IA. ¿Está encendido el servicio de Ollama?") };
                     messages = m;
                 }
                 busy = false;

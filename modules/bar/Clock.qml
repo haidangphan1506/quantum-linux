@@ -27,7 +27,7 @@ Item {
         }
         Txt {
             visible: !parent.parent.compact && Settings.clock.showDate
-            text: clock.date.toLocaleDateString(Qt.locale(), "ddd d MMM")
+            text: clock.date.toLocaleDateString(I18n.locale, "ddd d MMM")
             color: Theme.fgMuted
         }
     }

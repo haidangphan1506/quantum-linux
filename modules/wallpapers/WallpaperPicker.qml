@@ -87,7 +87,7 @@ PanelWindow {
                 Layout.fillWidth: true
                 spacing: 10
                 Icon { text: "wallpaper"; size: 22; fill: 1; color: Theme.primary }
-                Txt { text: "Fondo de pantalla"; font.weight: Font.Bold; font.pixelSize: Theme.textLarge }
+                Txt { text: I18n.t("Fondo de pantalla"); font.weight: Font.Bold; font.pixelSize: Theme.textLarge }
                 Item { Layout.fillWidth: true }
                 // claro / oscuro
                 Rectangle {
@@ -98,7 +98,7 @@ PanelWindow {
                         anchors.centerIn: parent
                         spacing: 4
                         Repeater {
-                            model: [{ m: "dark", i: "dark_mode", t: "Oscuro" }, { m: "light", i: "light_mode", t: "Claro" }]
+                            model: [{ m: "dark", i: "dark_mode", t: I18n.t("Oscuro") }, { m: "light", i: "light_mode", t: I18n.t("Claro") }]
                             Rectangle {
                                 required property var modelData
                                 readonly property bool on: Settings.appearance.mode === modelData.m
@@ -129,7 +129,7 @@ PanelWindow {
                         anchors.centerIn: parent
                         spacing: 6
                         Icon { text: "palette"; size: 16; fill: parent.parent.on ? 1 : 0; color: parent.parent.on ? Theme.primary : Theme.fg }
-                        Txt { text: "Colores del fondo"; font.pixelSize: Theme.textSmall; font.weight: Font.DemiBold }
+                        Txt { text: I18n.t("Colores del fondo"); font.pixelSize: Theme.textSmall; font.weight: Font.DemiBold }
                     }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Settings.set("appearance", "dynamicColors", !parent.on) }
                 }
@@ -162,7 +162,7 @@ PanelWindow {
                             anchors.left: parent.left; anchors.bottom: parent.bottom; anchors.margins: 8
                             width: liveT.implicitWidth + 16; height: 24; radius: 12
                             color: Qt.rgba(0, 0, 0, 0.55)
-                            Txt { id: liveT; anchors.centerIn: parent; text: "Fondo vivo"; font.pixelSize: Theme.textSmall; font.weight: Font.Bold; color: "white" }
+                            Txt { id: liveT; anchors.centerIn: parent; text: I18n.t("Fondo vivo"); font.pixelSize: Theme.textSmall; font.weight: Font.Bold; color: "white" }
                         }
                         MouseArea {
                             id: liveArea

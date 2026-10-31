@@ -269,7 +269,7 @@ Item {
                     Txt {
                         readonly property real e: root.ease(root.stage(260, 600))
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: clock.date.toLocaleDateString(Qt.locale(), "dddd • d MMM").toUpperCase()
+                        text: clock.date.toLocaleDateString(I18n.locale, "dddd • d MMM").toUpperCase()
                         font.pixelSize: 22; font.weight: Font.Bold
                         font.letterSpacing: 1 + 8 * (1 - e)
                         color: Theme.fg
@@ -447,7 +447,7 @@ Item {
                                 Txt {
                                     anchors.verticalCenter: parent.verticalCenter
                                     visible: !input.text
-                                    text: root.lock.busy ? "Verificando…" : "Escribe tu contraseña"
+                                    text: root.lock.busy ? I18n.t("Verificando…") : I18n.t("Escribe tu contraseña")
                                     color: Theme.fgMuted
                                     font.pixelSize: Theme.textNormal + 1
                                 }
@@ -508,7 +508,7 @@ Item {
                     Item { width: 1; height: 14 }
                     Txt {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: root.lock.success ? "¡Hola de nuevo!" : root.lock.error || (Quickshell.env("USER") ?? "")
+                        text: root.lock.success ? I18n.t("¡Hola de nuevo!") : root.lock.error || (Quickshell.env("USER") ?? "")
                         color: root.lock.success ? "#3DDC84" : root.lock.error ? Theme.error : Theme.fgMuted
                         font.weight: Font.DemiBold
                         opacity: root.ease(root.stage(620, 600))

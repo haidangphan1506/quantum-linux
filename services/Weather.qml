@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.services
 
 // Clima para la pantalla de bloqueo (Open-Meteo: gratis y sin cuenta).
 // La ubicación sale de la IP (aproximada) o de la ciudad escrita en Personalizar.
@@ -24,16 +25,16 @@ Singleton {
 
     // Códigos WMO → texto en español
     function describe(c: int): string {
-        if (c === 0) return "Despejado";
-        if (c <= 2) return "Parcialmente nublado";
-        if (c === 3) return "Nublado";
-        if (c <= 48) return "Niebla";
-        if (c <= 57) return "Llovizna";
-        if (c <= 67) return "Lluvia";
-        if (c <= 77) return "Nieve";
-        if (c <= 82) return "Chubascos";
-        if (c <= 86) return "Nevadas";
-        return "Tormenta";
+        if (c === 0) return I18n.t("Despejado");
+        if (c <= 2) return I18n.t("Parcialmente nublado");
+        if (c === 3) return I18n.t("Nublado");
+        if (c <= 48) return I18n.t("Niebla");
+        if (c <= 57) return I18n.t("Llovizna");
+        if (c <= 67) return I18n.t("Lluvia");
+        if (c <= 77) return I18n.t("Nieve");
+        if (c <= 82) return I18n.t("Chubascos");
+        if (c <= 86) return I18n.t("Nevadas");
+        return I18n.t("Tormenta");
     }
     function iconFor(c: int, isDay: bool): string {
         if (c === 0) return isDay ? "clear_day" : "clear_night";

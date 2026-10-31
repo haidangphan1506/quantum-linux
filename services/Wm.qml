@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import qs.services
 
 // Gestor de ventanas (Wayfire) a través de protocolos estándar de Wayland:
 // ventanas abiertas para la barra de tareas y la pantalla donde mostrar paneles.
@@ -96,7 +97,7 @@ Singleton {
     }
 
     function nameFor(appId: string): string {
-        if (appId === "org.quickshell") return "Personalizar";
+        if (appId === "org.quickshell") return I18n.t("Personalizar");
         return DesktopEntries.heuristicLookup(appId)?.name ?? appId;
     }
 

@@ -107,7 +107,7 @@ PanelWindow {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 0
-                        Txt { text: "Hola, " + win.user; font.weight: Font.DemiBold; font.pixelSize: Theme.textLarge }
+                        Txt { text: I18n.t("Hola, ") + win.user; font.weight: Font.DemiBold; font.pixelSize: Theme.textLarge }
                         Txt { text: "Quantum Linux"; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
                     }
                     IconButton {
@@ -165,27 +165,27 @@ PanelWindow {
                     ToggleTile {
                         Layout.fillWidth: true
                         icon: Settings.notifications.dnd ? "do_not_disturb_on" : "do_not_disturb_off"
-                        title: "No molestar"
-                        subtitle: Settings.notifications.dnd ? "Activado" : "Desactivado"
+                        title: I18n.t("No molestar")
+                        subtitle: Settings.notifications.dnd ? I18n.t("Activado") : I18n.t("Desactivado")
                         on: Settings.notifications.dnd
                         onToggled: Settings.set("notifications", "dnd", !Settings.notifications.dnd)
                     }
                     ToggleTile {
                         Layout.fillWidth: true
                         icon: "dark_mode"
-                        title: "Modo oscuro"
-                        subtitle: Theme.dark ? "Activado" : "Desactivado"
+                        title: I18n.t("Modo oscuro")
+                        subtitle: Theme.dark ? I18n.t("Activado") : I18n.t("Desactivado")
                         on: Settings.appearance.mode === "dark"
                         onToggled: Settings.set("appearance", "mode", Settings.appearance.mode === "dark" ? "light" : "dark")
                     }
                     ToggleTile {
                         Layout.fillWidth: true
                         icon: "nightlight"
-                        title: "Luz nocturna"
-                        subtitle: !Settings.display.nightLight ? "Desactivada"
-                            : Settings.display.nightMode === "sunset" ? "Al atardecer"
+                        title: I18n.t("Luz nocturna")
+                        subtitle: !Settings.display.nightLight ? I18n.t("Desactivada")
+                            : Settings.display.nightMode === "sunset" ? I18n.t("Al atardecer")
                             : Settings.display.nightMode === "schedule" ? Settings.display.nightFrom + " a " + Settings.display.nightTo
-                            : "Activada"
+                            : I18n.t("Activada")
                         on: Settings.display.nightLight
                         onToggled: Shell.toggleNightLight()
                         moreVisible: true
@@ -194,24 +194,24 @@ PanelWindow {
                     ToggleTile {
                         Layout.fillWidth: true
                         icon: "sports_esports"
-                        title: "Modo juego"
-                        subtitle: Shell.gameMode ? "Máximo rendimiento" : "Desactivado"
+                        title: I18n.t("Modo juego")
+                        subtitle: Shell.gameMode ? I18n.t("Máximo rendimiento") : I18n.t("Desactivado")
                         on: Shell.gameMode
                         onToggled: Shell.setGameMode(!Shell.gameMode)
                     }
                     ToggleTile {
                         Layout.fillWidth: true
                         icon: "grid_view"
-                        title: "Mosaico"
-                        subtitle: Settings.windows.tiling ? "Ventanas ordenadas" : "Ventanas libres"
+                        title: I18n.t("Mosaico")
+                        subtitle: Settings.windows.tiling ? I18n.t("Ventanas ordenadas") : I18n.t("Ventanas libres")
                         on: Settings.windows.tiling
                         onToggled: Settings.set("windows", "tiling", !Settings.windows.tiling)
                     }
                     ToggleTile {
                         Layout.fillWidth: true
                         icon: "palette"
-                        title: "Colores del fondo"
-                        subtitle: Settings.appearance.dynamicColors ? "Activado" : "Colores Quantum"
+                        title: I18n.t("Colores del fondo")
+                        subtitle: Settings.appearance.dynamicColors ? I18n.t("Activado") : I18n.t("Colores Quantum")
                         on: Settings.appearance.dynamicColors
                         onToggled: Settings.set("appearance", "dynamicColors", !Settings.appearance.dynamicColors)
                     }
@@ -219,11 +219,11 @@ PanelWindow {
                         Layout.fillWidth: true
                         Layout.columnSpan: 2          // queda sola en su fila: que ocupe todo el ancho
                         readonly property var profiles: [PowerProfile.PowerSaver, PowerProfile.Balanced, PowerProfile.Performance]
-                        readonly property var names: ["Ahorro", "Equilibrado", "Rendimiento"]
+                        readonly property var names: [I18n.t("Ahorro"), I18n.t("Equilibrado"), I18n.t("Rendimiento")]
                         readonly property int current: profiles.indexOf(PowerProfiles.profile)
                         icon: current < 0 ? "battery_unknown" : ["eco", "balance", "bolt"][current]
-                        title: "Energía"
-                        subtitle: current < 0 ? "No disponible" : names[current]
+                        title: I18n.t("Energía")
+                        subtitle: current < 0 ? I18n.t("No disponible") : names[current]
                         on: PowerProfiles.profile === PowerProfile.Performance
                         opacity: current < 0 ? 0.5 : 1
                         onToggled: {
@@ -271,7 +271,7 @@ PanelWindow {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 2
-                            Txt { Layout.fillWidth: true; text: win.player?.trackTitle || "Sin título"; font.weight: Font.DemiBold }
+                            Txt { Layout.fillWidth: true; text: win.player?.trackTitle || I18n.t("Sin título"); font.weight: Font.DemiBold }
                             Txt { Layout.fillWidth: true; text: win.player?.trackArtist || win.player?.identity || ""; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
                         }
                         IconButton { icon: "skip_previous"; onClicked: win.player.previous() }
@@ -290,13 +290,13 @@ PanelWindow {
                     Layout.topMargin: 4
                     Txt {
                         Layout.fillWidth: true
-                        text: "Notificaciones"
+                        text: I18n.t("Notificaciones")
                         font.weight: Font.Bold
                         font.pixelSize: Theme.textLarge
                     }
                     Txt {
                         visible: Notifs.count > 0
-                        text: "Borrar todo"
+                        text: I18n.t("Borrar todo")
                         color: Theme.primary
                         font.weight: Font.DemiBold
                         MouseArea {
@@ -335,7 +335,7 @@ PanelWindow {
                         }
                         Txt {
                             Layout.alignment: Qt.AlignHCenter
-                            text: "Todo al día"
+                            text: I18n.t("Todo al día")
                             color: Theme.fgMuted
                         }
                     }

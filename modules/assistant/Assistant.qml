@@ -30,9 +30,9 @@ Scope {
 
             // modelos para instalar si todavía no hay IA
             readonly property var tiers: [
-                { m: "gemma3:1b", t: "Ligero", h: "0,8 GB · PCs con 4 GB de RAM" },
-                { m: "gemma3:4b", t: "Equilibrado", h: "3,4 GB · 8 GB de RAM" },
-                { m: "qwen3:8b", t: "Avanzado", h: "5,2 GB · 16 GB de RAM o buena gráfica" },
+                { m: "gemma3:1b", t: I18n.t("Ligero"), h: I18n.t("0,8 GB · PCs con 4 GB de RAM") },
+                { m: "gemma3:4b", t: I18n.t("Equilibrado"), h: I18n.t("3,4 GB · 8 GB de RAM") },
+                { m: "qwen3:8b", t: I18n.t("Avanzado"), h: I18n.t("5,2 GB · 16 GB de RAM o buena gráfica") },
             ]
             property string tier: "gemma3:4b"
 
@@ -66,10 +66,10 @@ Scope {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 0
-                            Txt { text: "Asistente Quantum"; font.pixelSize: Theme.textLarge + 1; font.weight: Font.Bold }
+                            Txt { text: I18n.t("Asistente Quantum"); font.pixelSize: Theme.textLarge + 1; font.weight: Font.Bold }
                             Txt {
                                 Layout.fillWidth: true
-                                text: Ai.status === "ready" ? "IA local · " + Ai.model + " · sin internet" : "IA que funciona en tu PC"
+                                text: Ai.status === "ready" ? I18n.t("IA local · ") + Ai.model + I18n.t(" · sin internet") : I18n.t("IA que funciona en tu PC")
                                 color: Theme.fgMuted; font.pixelSize: Theme.textSmall
                             }
                         }
@@ -127,21 +127,21 @@ Scope {
                             Icon { anchors.horizontalCenter: parent.horizontalCenter; text: "forum"; size: 44; color: Theme.primary }
                             Txt {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "¿En qué te ayudo?"
+                                text: I18n.t("¿En qué te ayudo?")
                                 font.pixelSize: Theme.textTitle; font.weight: Font.Bold
                             }
                             Txt {
                                 width: parent.width
                                 horizontalAlignment: Text.AlignHCenter
-                                text: "Pregúntame lo que quieras sobre Quantum, Linux o tu PC. Todo se queda en tu computador."
+                                text: I18n.t("Pregúntame lo que quieras sobre Quantum, Linux o tu PC. Todo se queda en tu computador.")
                                 color: Theme.fgMuted
                                 wrapMode: Text.WordWrap
                                 elide: Text.ElideNone
                             }
                             Item { width: 1; height: 6 }
                             Repeater {
-                                model: ["¿Cómo instalo un juego de Steam?", "¿Cómo cambio el estilo del escritorio?",
-                                        "¿Qué es Proton y para qué sirve?", "Mi PC va lento, ¿qué puedo hacer?"]
+                                model: [I18n.t("¿Cómo instalo un juego de Steam?"), I18n.t("¿Cómo cambio el estilo del escritorio?"),
+                                        I18n.t("¿Qué es Proton y para qué sirve?"), I18n.t("Mi PC va lento, ¿qué puedo hacer?")]
                                 Rectangle {
                                     required property string modelData
                                     anchors.horizontalCenter: parent.horizontalCenter
@@ -164,13 +164,13 @@ Scope {
                         Icon { Layout.alignment: Qt.AlignHCenter; text: "download_for_offline"; size: 52; color: Theme.primary }
                         Txt {
                             Layout.alignment: Qt.AlignHCenter
-                            text: "Instala tu asistente"
+                            text: I18n.t("Instala tu asistente")
                             font.pixelSize: Theme.textTitle; font.weight: Font.Bold
                         }
                         Txt {
                             Layout.fillWidth: true
                             horizontalAlignment: Text.AlignHCenter
-                            text: "La IA funciona en tu PC: no necesita cuentas ni envía tus datos a nadie. Elige un tamaño según tu equipo."
+                            text: I18n.t("La IA funciona en tu PC: no necesita cuentas ni envía tus datos a nadie. Elige un tamaño según tu equipo.")
                             color: Theme.fgMuted; wrapMode: Text.WordWrap; elide: Text.ElideNone
                         }
                         Repeater {
@@ -187,7 +187,7 @@ Scope {
                                     anchors.verticalCenter: parent.verticalCenter
                                     x: 16
                                     spacing: 0
-                                    Txt { text: tc.modelData.t + (tc.modelData.m === "gemma3:4b" ? "  (recomendado)" : ""); font.weight: Font.Bold }
+                                    Txt { text: tc.modelData.t + (tc.modelData.m === "gemma3:4b" ? I18n.t("  (recomendado)") : ""); font.weight: Font.Bold }
                                     Txt { text: tc.modelData.h; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
                                 }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: win.tier = tc.modelData.m }
@@ -195,7 +195,7 @@ Scope {
                         }
                         PillButton {
                             Layout.alignment: Qt.AlignHCenter
-                            text: "Instalar asistente"
+                            text: I18n.t("Instalar asistente")
                             icon: "download"
                             primary: true
                             onClicked: {
@@ -211,7 +211,7 @@ Scope {
                         }
                         PillButton {
                             Layout.alignment: Qt.AlignHCenter
-                            text: "Ya lo instalé, revisar otra vez"
+                            text: I18n.t("Ya lo instalé, revisar otra vez")
                             onClicked: Ai.check()
                         }
                         Item { Layout.fillHeight: true }
@@ -222,7 +222,7 @@ Scope {
                         visible: Ai.status === "checking"
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Txt { anchors.centerIn: parent; text: "Conectando con la IA…"; color: Theme.fgMuted }
+                        Txt { anchors.centerIn: parent; text: I18n.t("Conectando con la IA…"); color: Theme.fgMuted }
                     }
 
                     // ---------------------------------------------- escribir
@@ -249,7 +249,7 @@ Scope {
                                 Ai.send(text); text = "";
                             }
                             Keys.onEscapePressed: Shell.aiOpen = false
-                            Txt { visible: !input.text; text: "Escribe tu pregunta…"; color: Theme.fgMuted }
+                            Txt { visible: !input.text; text: I18n.t("Escribe tu pregunta…"); color: Theme.fgMuted }
                         }
                         Rectangle {
                             id: sendBtn
@@ -268,7 +268,7 @@ Scope {
                     Txt {
                         visible: Ai.status === "ready"
                         Layout.alignment: Qt.AlignHCenter
-                        text: "La IA puede equivocarse. Revisa lo importante."
+                        text: I18n.t("La IA puede equivocarse. Revisa lo importante.")
                         color: Theme.fgMuted; font.pixelSize: Theme.textSmall - 1
                     }
                 }

@@ -13,7 +13,7 @@ LockCard {
     readonly property int days: new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
     Txt {
         id: head
-        text: card.today.toLocaleDateString(Qt.locale(), "MMMM yyyy")
+        text: card.today.toLocaleDateString(I18n.locale, "MMMM yyyy")
         font.pixelSize: 18; font.weight: Font.Bold; color: Theme.fg
         font.capitalization: Font.Capitalize
     }
@@ -22,7 +22,7 @@ LockCard {
         columns: 7
         readonly property real cell: (card.width - 44) / 7
         Repeater {
-            model: ["L", "M", "M", "J", "V", "S", "D"]
+            model: I18n.weekdaysLetter
             Txt { required property string modelData; width: parent.cell; height: 28; horizontalAlignment: Text.AlignHCenter; text: modelData; color: Theme.fgMuted; font.weight: Font.DemiBold }
         }
         Repeater {

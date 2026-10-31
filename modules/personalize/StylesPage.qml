@@ -69,7 +69,7 @@ ColumnLayout {
     Process {
         id: writer
         property string okText: ""
-        onExited: code => { page.say(code === 0 ? okText : "No se pudo guardar el archivo"); page.reload(); }
+        onExited: code => { page.say(code === 0 ? okText : I18n.t("No se pudo guardar el archivo")); page.reload(); }
     }
     function writeFile(path: string, content: string, okText: string): void {
         writer.okText = okText;
@@ -82,7 +82,7 @@ ColumnLayout {
         const v = Settings.visualState();
         delete v.appearance.wallpaper;
         delete v.ui;
-        return JSON.stringify({ name: name, description: "Creado por ti", settings: v }, null, 2);
+        return JSON.stringify({ name: name, description: I18n.t("Creado por ti"), settings: v }, null, 2);
     }
 
     function slug(name: string): string {
@@ -100,8 +100,8 @@ ColumnLayout {
     Group {
         title: "Quantum Shell"
         help: Settings.ui.shell === "serpantium"
-            ? "Serpantium: barra de píldoras, paneles oscuros y tonos rosados. Inspirado en Serpantinum de ilyamiro."
-            : "Caelestial: barra arriba, dock y paneles de vidrio. Inspirado en Caelestia Shell, pero más liviano."
+            ? I18n.t("Serpantium: barra de píldoras, paneles oscuros y tonos rosados. Inspirado en Serpantinum de ilyamiro.")
+            : I18n.t("Caelestial: barra arriba, dock y paneles de vidrio. Inspirado en Caelestia Shell, pero más liviano.")
         icon: "dashboard"
         Segmented {
             options: [{ v: "caelestial", t: "Caelestial", i: "blur_on" }, { v: "serpantium", t: "Serpantium", i: "terminal" }]
@@ -112,8 +112,8 @@ ColumnLayout {
 
     // ------------------------------------------------------------ estilos
     Group {
-        title: "Elige un estilo"
-        help: "Cambia todo el escritorio de una vez. Después puedes ajustar cada detalle en las otras secciones."
+        title: I18n.t("Elige un estilo")
+        help: I18n.t("Cambia todo el escritorio de una vez. Después puedes ajustar cada detalle en las otras secciones.")
         icon: "auto_awesome"
 
         GridLayout {
@@ -139,7 +139,7 @@ ColumnLayout {
         Txt {
             visible: Settings.ui.style === "custom"
             Layout.fillWidth: true
-            text: "Ahora tienes un estilo personalizado. Guárdalo en «Tus estilos» para no perderlo."
+            text: I18n.t("Ahora tienes un estilo personalizado. Guárdalo en «Tus estilos» para no perderlo.")
             color: Theme.primary
             font.weight: Font.DemiBold
             wrapMode: Text.WordWrap
@@ -148,8 +148,8 @@ ColumnLayout {
 
     // ------------------------------------------------------- tus estilos
     Group {
-        title: "Tus estilos"
-        help: "Guarda cómo tienes tu escritorio, o importa uno que te compartieron (por ejemplo, en el Discord de Quantum)."
+        title: I18n.t("Tus estilos")
+        help: I18n.t("Guarda cómo tienes tu escritorio, o importa uno que te compartieron (por ejemplo, en el Discord de Quantum).")
         icon: "bookmark"
 
         GridLayout {
@@ -183,7 +183,7 @@ ColumnLayout {
                 }
             }
         }
-        Process { id: remover; onExited: { page.say("Estilo borrado"); page.reload(); } }
+        Process { id: remover; onExited: { page.say(I18n.t("Estilo borrado")); page.reload(); } }
 
         // poner nombre al guardar
         RowLayout {
@@ -213,24 +213,24 @@ ColumnLayout {
                     Txt {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: !nameInput.text
-                        text: "Nombre de tu estilo, por ejemplo «Mi setup»"
+                        text: I18n.t("Nombre de tu estilo, por ejemplo «Mi setup»")
                         color: Theme.fgMuted
                     }
                 }
             }
             PillButton {
                 id: saveBtn
-                text: "Guardar"
+                text: I18n.t("Guardar")
                 icon: "check"
                 primary: true
                 onClicked: {
-                    const name = nameInput.text.trim() || "Mi estilo";
-                    page.writeFile(page.userDir + "/" + page.slug(name) + ".json", page.currentStyle(name), "Estilo «" + name + "» guardado");
+                    const name = nameInput.text.trim() || I18n.t("Mi estilo");
+                    page.writeFile(page.userDir + "/" + page.slug(name) + ".json", page.currentStyle(name), I18n.t("Estilo «") + name + I18n.t("» guardado"));
                     page.naming = false;
                     nameInput.text = "";
                 }
             }
-            PillButton { text: "Cancelar"; onClicked: page.naming = false }
+            PillButton { text: I18n.t("Cancelar"); onClicked: page.naming = false }
         }
 
         Flow {
@@ -238,13 +238,13 @@ ColumnLayout {
             spacing: 10
             PillButton {
                 visible: !page.naming
-                text: "Guardar mi estilo"
+                text: I18n.t("Guardar mi estilo")
                 icon: "bookmark_add"
                 primary: true
                 onClicked: { page.naming = true; nameInput.forceActiveFocus(); }
             }
-            PillButton { text: "Importar"; icon: "file_open"; onClicked: openDialog.open() }
-            PillButton { text: "Exportar"; icon: "ios_share"; onClicked: saveDialog.open() }
+            PillButton { text: I18n.t("Importar"); icon: "file_open"; onClicked: openDialog.open() }
+            PillButton { text: I18n.t("Exportar"); icon: "ios_share"; onClicked: saveDialog.open() }
         }
 
         Txt {
@@ -258,8 +258,8 @@ ColumnLayout {
     // Importar: se valida el JSON y se copia a tus estilos
     FileDialog {
         id: openDialog
-        title: "Importar un estilo de Quantum"
-        nameFilters: ["Estilos de Quantum (*.json)"]
+        title: I18n.t("Importar un estilo de Quantum")
+        nameFilters: [I18n.t("Estilos de Quantum (*.json)")]
         onAccepted: {
             reader.command = ["cat", decodeURIComponent(selectedFile.toString().replace(/^file:\/\//, ""))];
             reader.running = true;
@@ -272,13 +272,13 @@ ColumnLayout {
                 try {
                     const j = JSON.parse(text);
                     if (!j.settings || typeof j.settings !== "object")
-                        throw "sin ajustes";
-                    const name = String(j.name || "Estilo importado").substring(0, 40);
+                        throw I18n.t("sin ajustes");
+                    const name = String(j.name || I18n.t("Estilo importado")).substring(0, 40);
                     page.writeFile(page.userDir + "/" + page.slug(name) + ".json",
-                                   JSON.stringify({ name: name, description: j.description || "Importado", settings: j.settings }, null, 2),
-                                   "Estilo «" + name + "» importado");
+                                   JSON.stringify({ name: name, description: j.description || I18n.t("Importado"), settings: j.settings }, null, 2),
+                                   I18n.t("Estilo «") + name + I18n.t("» importado"));
                 } catch (e) {
-                    page.say("Ese archivo no es un estilo de Quantum");
+                    page.say(I18n.t("Ese archivo no es un estilo de Quantum"));
                 }
             }
         }
@@ -287,14 +287,14 @@ ColumnLayout {
     // Exportar: el aspecto actual a un archivo para compartir
     FileDialog {
         id: saveDialog
-        title: "Exportar mi estilo"
+        title: I18n.t("Exportar mi estilo")
         fileMode: FileDialog.SaveFile
         currentFile: "file://" + Quickshell.env("HOME") + "/mi-estilo-quantum.json"
-        nameFilters: ["Estilos de Quantum (*.json)"]
+        nameFilters: [I18n.t("Estilos de Quantum (*.json)")]
         onAccepted: {
             let path = decodeURIComponent(selectedFile.toString().replace(/^file:\/\//, ""));
             if (!path.endsWith(".json")) path += ".json";
-            page.writeFile(path, page.currentStyle("Mi estilo"), "Exportado: " + path);
+            page.writeFile(path, page.currentStyle(I18n.t("Mi estilo")), I18n.t("Exportado: ") + path);
         }
     }
 }

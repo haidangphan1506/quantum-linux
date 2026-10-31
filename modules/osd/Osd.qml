@@ -117,7 +117,7 @@ PanelWindow {
                 RowLayout {
                     Layout.fillWidth: true
                     Txt {
-                        text: win.kind === "volume" ? (Audio.muted ? "Silenciado" : "Volumen") : "Brillo"
+                        text: win.kind === "volume" ? (Audio.muted ? I18n.t("Silenciado") : I18n.t("Volumen")) : I18n.t("Brillo")
                         font.weight: Font.DemiBold
                     }
                     Item { Layout.fillWidth: true }

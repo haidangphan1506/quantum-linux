@@ -17,7 +17,7 @@ LockCard {
         onLoaded: {
             const s = Math.floor(Number(text().split(" ")[0]));
             const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
-            card.uptime = (d ? d + (d === 1 ? " día, " : " días, ") : "") + (h ? h + " h " : "") + m + " min";
+            card.uptime = (d ? d + (d === 1 ? I18n.t(" día, ") : I18n.t(" días, ")) : "") + (h ? h + " h " : "") + m + " min";
         }
     }
     Row {
@@ -43,10 +43,10 @@ LockCard {
             Repeater {
                 model: [
                     ["SO  ", "Quantum Linux 1.0"],
-                    ["WM  ", "Wayfire"],
+                    ["WM  ", "Hyprland"],
                     ["USER", Quickshell.env("USER") ?? ""],
                     ["UP  ", card.uptime],
-                    (card.battery?.isLaptopBattery ? ["BAT ", Math.round(card.battery.percentage * 100) + "%"] : ["PC  ", "Escritorio"])
+                    (card.battery?.isLaptopBattery ? ["BAT ", Math.round(card.battery.percentage * 100) + "%"] : ["PC  ", I18n.t("Escritorio")])
                 ]
                 Txt {
                     required property var modelData

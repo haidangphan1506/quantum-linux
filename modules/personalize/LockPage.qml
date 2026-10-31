@@ -11,12 +11,12 @@ ColumnLayout {
     spacing: 16
 
     readonly property var info: ({
-        weather: { t: "Clima", h: "Temperatura y pronóstico de hoy", i: "partly_cloudy_day" },
-        fetch: { t: "Ficha del sistema", h: "Tu PC al estilo «fetch» y la paleta", i: "terminal" },
-        media: { t: "Música", h: "Lo que suena, con controles", i: "music_note" },
-        stats: { t: "Uso del sistema", h: "CPU, temperatura, RAM y disco", i: "monitoring" },
-        notifs: { t: "Notificaciones", h: "Avisos agrupados por app", i: "notifications" },
-        calendar: { t: "Calendario", h: "El mes con el día de hoy", i: "calendar_month" },
+        weather: { t: I18n.t("Clima"), h: I18n.t("Temperatura y pronóstico de hoy"), i: "partly_cloudy_day" },
+        fetch: { t: I18n.t("Ficha del sistema"), h: I18n.t("Tu PC al estilo «fetch» y la paleta"), i: "terminal" },
+        media: { t: I18n.t("Música"), h: I18n.t("Lo que suena, con controles"), i: "music_note" },
+        stats: { t: I18n.t("Uso del sistema"), h: I18n.t("CPU, temperatura, RAM y disco"), i: "monitoring" },
+        notifs: { t: I18n.t("Notificaciones"), h: I18n.t("Avisos agrupados por app"), i: "notifications" },
+        calendar: { t: I18n.t("Calendario"), h: I18n.t("El mes con el día de hoy"), i: "calendar_month" },
     })
     readonly property var all: ["weather", "fetch", "media", "stats", "notifs", "calendar"]
     readonly property var unused: all.filter(k => Settings.lock.left.indexOf(k) < 0 && Settings.lock.right.indexOf(k) < 0)
@@ -44,27 +44,27 @@ ColumnLayout {
 
     // vista previa real
     Group {
-        title: "Así se ve"
-        help: "Abre la pantalla de bloqueo de verdad, sin bloquear la sesión. Sal con Esc."
+        title: I18n.t("Así se ve")
+        help: I18n.t("Abre la pantalla de bloqueo de verdad, sin bloquear la sesión. Sal con Esc.")
         icon: "lock"
         RowLayout {
             spacing: 10
             PillButton { text: "Ver pantalla de bloqueo"; icon: "visibility"; primary: true; onClicked: Quickshell.execDetached(["qs", "-c", "caelestia", "ipc", "call", "lock", "preview"]) }
-            PillButton { text: "Bloquear ahora"; icon: "lock"; onClicked: Shell.lock() }
+            PillButton { text: I18n.t("Bloquear ahora"); icon: "lock"; onClicked: Shell.lock() }
         }
     }
 
     // columnas
     Group {
-        title: "Tarjetas"
-        help: "Ordénalas con las flechas, pásalas al otro lado o quítalas. La última de cada lado ocupa el espacio que sobra."
+        title: I18n.t("Tarjetas")
+        help: I18n.t("Ordénalas con las flechas, pásalas al otro lado o quítalas. La última de cada lado ocupa el espacio que sobra.")
         icon: "dashboard_customize"
 
         RowLayout {
             Layout.fillWidth: true
             spacing: 14
             Repeater {
-                model: [{ s: "left", t: "Lado izquierdo" }, { s: "right", t: "Lado derecho" }]
+                model: [{ s: "left", t: I18n.t("Lado izquierdo") }, { s: "right", t: I18n.t("Lado derecho") }]
                 ColumnLayout {
                     id: colSide
                     required property var modelData
@@ -108,7 +108,7 @@ ColumnLayout {
                     }
                     Txt {
                         visible: Settings.lock[colSide.modelData.s].length === 0
-                        text: "Sin tarjetas"
+                        text: I18n.t("Sin tarjetas")
                         color: Theme.fgMuted
                     }
                 }
@@ -116,7 +116,7 @@ ColumnLayout {
         }
 
         // tarjetas sin usar
-        Txt { visible: page.unused.length > 0; text: "Agregar"; font.weight: Font.Bold; color: Theme.fgMuted }
+        Txt { visible: page.unused.length > 0; text: I18n.t("Agregar"); font.weight: Font.Bold; color: Theme.fgMuted }
         Flow {
             visible: page.unused.length > 0
             Layout.fillWidth: true
@@ -145,16 +145,16 @@ ColumnLayout {
     }
 
     Group {
-        title: "Privacidad y clima"
+        title: I18n.t("Privacidad y clima")
         icon: "shield_person"
         OptionRow {
-            title: "Mostrar el contenido de las notificaciones"
-            help: "Si está apagado, solo se ve qué app te avisó (nadie puede leer tus mensajes con la pantalla bloqueada)."
+            title: I18n.t("Mostrar el contenido de las notificaciones")
+            help: I18n.t("Si está apagado, solo se ve qué app te avisó (nadie puede leer tus mensajes con la pantalla bloqueada).")
             Toggle { checked: Settings.lock.showNotifContent; onToggled: c => Settings.setPath("lock.showNotifContent", c) }
         }
         OptionRow {
-            title: "Ciudad del clima"
-            help: "Déjala vacía para usar tu ubicación aproximada (por tu conexión)."
+            title: I18n.t("Ciudad del clima")
+            help: I18n.t("Déjala vacía para usar tu ubicación aproximada (por tu conexión).")
             Rectangle {
                 implicitWidth: 240; implicitHeight: 40; radius: 20
                 color: Theme.surfaceHigh
@@ -170,7 +170,7 @@ ColumnLayout {
                     clip: true
                     text: Settings.lock.city
                     onEditingFinished: if (text !== Settings.lock.city) Settings.setPath("lock.city", text.trim())
-                    Txt { anchors.verticalCenter: parent.verticalCenter; visible: !cityIn.text && !cityIn.activeFocus; text: "Automática"; color: Theme.fgMuted }
+                    Txt { anchors.verticalCenter: parent.verticalCenter; visible: !cityIn.text && !cityIn.activeFocus; text: I18n.t("Automática"); color: Theme.fgMuted }
                 }
             }
         }

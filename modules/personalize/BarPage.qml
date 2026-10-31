@@ -49,8 +49,8 @@ ColumnLayout {
     // Las dos formas de Quantum Shell: también aquí, que es donde se busca al querer cambiar la barra
     Group {
         title: "Quantum Shell"
-        help: Serp.on ? "Serpantium: barra de píldoras arriba, paneles oscuros y tonos rosados."
-                      : "Caelestial: barra arriba, dock y paneles de vidrio."
+        help: Serp.on ? I18n.t("Serpantium: barra de píldoras arriba, paneles oscuros y tonos rosados.")
+                      : I18n.t("Caelestial: barra arriba, dock y paneles de vidrio.")
         icon: "dashboard"
         Segmented {
             options: [{ v: "caelestial", t: "Caelestial", i: "blur_on" }, { v: "serpantium", t: "Serpantium", i: "terminal" }]
@@ -62,23 +62,23 @@ ColumnLayout {
     // Serpantium: dónde van las apps abiertas y fijadas
     Group {
         visible: Serp.on
-        title: "Tus apps"
-        help: "Dónde aparecen las apps fijadas y las que tienes abiertas."
+        title: I18n.t("Tus apps")
+        help: I18n.t("Dónde aparecen las apps fijadas y las que tienes abiertas.")
         icon: "apps"
         RowLayout {
             Layout.fillWidth: true
             spacing: 14
             ChoiceCard {
-                title: "En la barra de arriba"
-                help: "Íconos chicos junto al buscador. Más espacio para tus ventanas."
+                title: I18n.t("En la barra de arriba")
+                help: I18n.t("Íconos chicos junto al buscador. Más espacio para tus ventanas.")
                 selected: Settings.ui.serpApps !== "dock"
                 previewHeight: 96
                 onClicked: Settings.setUi("serpApps", "bar")
                 SerpArt { anchors.fill: parent; dock: false }
             }
             ChoiceCard {
-                title: "Dock abajo"
-                help: "Una barra de apps abajo, como en Windows: fijar, ordenar arrastrando y ver ventanas."
+                title: I18n.t("Dock abajo")
+                help: I18n.t("Una barra de apps abajo, como en Windows: fijar, ordenar arrastrando y ver ventanas.")
                 selected: Settings.ui.serpApps === "dock"
                 previewHeight: 96
                 onClicked: Settings.setUi("serpApps", "dock")
@@ -112,23 +112,23 @@ ColumnLayout {
 
     Group {
         visible: !Serp.on
-        title: "Distribución"
-        help: "Cómo se reparten las barras en la pantalla."
+        title: I18n.t("Distribución")
+        help: I18n.t("Cómo se reparten las barras en la pantalla.")
         icon: "view_quilt"
         RowLayout {
             Layout.fillWidth: true
             spacing: 14
             ChoiceCard {
-                title: "Barra arriba + barra de tareas"
-                help: "Como viene Quantum: hora y estado arriba, apps abajo."
+                title: I18n.t("Barra arriba + barra de tareas")
+                help: I18n.t("Como viene Quantum: hora y estado arriba, apps abajo.")
                 selected: !page.single
                 previewHeight: 96
                 onClicked: Settings.setPath("layout.style", "split")
                 LayoutArt { anchors.fill: parent; single: false }
             }
             ChoiceCard {
-                title: "Una sola barra abajo"
-                help: "Como en Windows: apps, bandeja y hora en una barra."
+                title: I18n.t("Una sola barra abajo")
+                help: I18n.t("Como en Windows: apps, bandeja y hora en una barra.")
                 selected: page.single
                 previewHeight: 96
                 onClicked: Settings.setPath("layout.style", "single")
@@ -139,117 +139,117 @@ ColumnLayout {
 
     Group {
         visible: !Serp.on || Settings.ui.serpApps === "dock"
-        title: Serp.on ? "Dock" : "Barra de tareas"
-        help: Serp.on ? "La barra de apps de abajo: fijadas y abiertas." : "La barra de abajo, donde están Inicio y tus apps."
+        title: Serp.on ? I18n.t("Dock") : I18n.t("Barra de tareas")
+        help: Serp.on ? I18n.t("La barra de apps de abajo: fijadas y abiertas.") : I18n.t("La barra de abajo, donde están Inicio y tus apps.")
         icon: "dock_to_bottom"
 
         OptionRow {
             visible: !Serp.on
-            title: "Estilo"
-            help: "Flotante deja un espacio alrededor; pegada ocupa todo el borde."
+            title: I18n.t("Estilo")
+            help: I18n.t("Flotante deja un espacio alrededor; pegada ocupa todo el borde.")
             Segmented {
-                options: [{ v: true, t: "Flotante", i: "rounded_corner" }, { v: false, t: "Pegada", i: "border_bottom" }]
+                options: [{ v: true, t: I18n.t("Flotante"), i: "rounded_corner" }, { v: false, t: I18n.t("Pegada"), i: "border_bottom" }]
                 value: Settings.dock.floating
                 onPicked: v => Settings.set("dock", "floating", v)
             }
         }
         OptionRow {
             visible: !Serp.on
-            title: "Posición de las apps"
-            help: page.single || !Settings.dock.floating ? "" : "Con la barra flotante sola, las apps siempre van al centro."
+            title: I18n.t("Posición de las apps")
+            help: page.single || !Settings.dock.floating ? "" : I18n.t("Con la barra flotante sola, las apps siempre van al centro.")
             Segmented {
-                options: [{ v: "center", t: "Al centro", i: "format_align_center" }, { v: "left", t: "A la izquierda", i: "format_align_left" }]
+                options: [{ v: "center", t: I18n.t("Al centro"), i: "format_align_center" }, { v: "left", t: I18n.t("A la izquierda"), i: "format_align_left" }]
                 value: Settings.dock.align
                 onPicked: v => Settings.set("dock", "align", v)
             }
         }
         OptionRow {
-            title: "Tamaño"
+            title: I18n.t("Tamaño")
             Segmented {
-                options: [{ v: "small", t: "Pequeña" }, { v: "medium", t: "Mediana" }, { v: "large", t: "Grande" }]
+                options: [{ v: "small", t: I18n.t("Pequeña") }, { v: "medium", t: I18n.t("Mediana") }, { v: "large", t: I18n.t("Grande") }]
                 value: Settings.dock.size
                 onPicked: v => Settings.set("dock", "size", v)
             }
         }
         OptionRow {
-            title: "Ocultar automáticamente"
-            help: "La barra se esconde y aparece al llevar el mouse al borde de abajo."
+            title: I18n.t("Ocultar automáticamente")
+            help: I18n.t("La barra se esconde y aparece al llevar el mouse al borde de abajo.")
             Toggle { checked: Settings.dock.autohide; onToggled: c => Settings.set("dock", "autohide", c) }
         }
     }
 
     Group {
         visible: !Serp.on
-        title: "Botones de la barra"
-        help: "Qué se muestra junto a tus apps."
+        title: I18n.t("Botones de la barra")
+        help: I18n.t("Qué se muestra junto a tus apps.")
         icon: "apps"
         advanced: true
         OptionRow {
-            title: "Botón de Inicio"
+            title: I18n.t("Botón de Inicio")
             icon: "grid_view"
             Toggle { checked: Settings.dock.showStart; onToggled: c => Settings.set("dock", "showStart", c) }
         }
         OptionRow {
-            title: "Botón de búsqueda"
+            title: I18n.t("Botón de búsqueda")
             icon: "search"
             Toggle { checked: Settings.dock.showSearch; onToggled: c => Settings.set("dock", "showSearch", c) }
         }
         OptionRow {
-            title: "Aviso de actualizaciones"
+            title: I18n.t("Aviso de actualizaciones")
             icon: "system_update_alt"
-            help: "Aparece solo cuando hay algo nuevo para instalar."
+            help: I18n.t("Aparece solo cuando hay algo nuevo para instalar.")
             Toggle { checked: Settings.dock.showUpdates; onToggled: c => Settings.set("dock", "showUpdates", c) }
         }
         OptionRow {
-            title: "Bandeja del sistema"
+            title: I18n.t("Bandeja del sistema")
             icon: "notifications"
-            help: "Los íconos de las apps en segundo plano (Discord, Steam, etc.)."
+            help: I18n.t("Los íconos de las apps en segundo plano (Discord, Steam, etc.).")
             Toggle { checked: Settings.dock.showTray; onToggled: c => Settings.set("dock", "showTray", c) }
         }
     }
 
     Group {
         visible: !Serp.on
-        title: "Barra superior"
-        help: page.single ? "No se usa con «Una sola barra abajo»." : "La barra de arriba, con la app activa, la hora y el estado."
+        title: I18n.t("Barra superior")
+        help: page.single ? I18n.t("No se usa con «Una sola barra abajo».") : I18n.t("La barra de arriba, con la app activa, la hora y el estado.")
         icon: "top_panel_open"
         advanced: true
         enabled: !page.single
         opacity: page.single ? 0.5 : 1
         OptionRow {
-            title: "Estilo"
+            title: I18n.t("Estilo")
             Segmented {
-                options: [{ v: true, t: "Flotante" }, { v: false, t: "Pegada" }]
+                options: [{ v: true, t: I18n.t("Flotante") }, { v: false, t: I18n.t("Pegada") }]
                 value: Settings.layout.topBar.floating
                 onPicked: v => Settings.setPath("layout.topBar.floating", v)
             }
         }
         OptionRow {
-            title: "Mostrar la app activa"
-            help: "El nombre y el ícono de la ventana que estás usando, a la izquierda."
+            title: I18n.t("Mostrar la app activa")
+            help: I18n.t("El nombre y el ícono de la ventana que estás usando, a la izquierda.")
             Toggle { checked: Settings.layout.topBar.showApp; onToggled: c => Settings.setPath("layout.topBar.showApp", c) }
         }
     }
 
     Group {
         visible: !Serp.on
-        title: "Reloj"
+        title: I18n.t("Reloj")
         icon: "schedule"
         advanced: true
         OptionRow {
-            title: "Formato"
+            title: I18n.t("Formato")
             Segmented {
-                options: [{ v: true, t: "24 horas" }, { v: false, t: "12 horas (a. m./p. m.)" }]
+                options: [{ v: true, t: I18n.t("24 horas") }, { v: false, t: I18n.t("12 horas (a. m./p. m.)") }]
                 value: Settings.clock.format24h
                 onPicked: v => Settings.set("clock", "format24h", v)
             }
         }
         OptionRow {
-            title: "Mostrar la fecha"
+            title: I18n.t("Mostrar la fecha")
             Toggle { checked: Settings.clock.showDate; onToggled: c => Settings.set("clock", "showDate", c) }
         }
         OptionRow {
-            title: "Mostrar los segundos"
+            title: I18n.t("Mostrar los segundos")
             Toggle { checked: Settings.clock.showSeconds; onToggled: c => Settings.set("clock", "showSeconds", c) }
         }
     }

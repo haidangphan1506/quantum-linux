@@ -49,7 +49,7 @@ RowLayout {
             anchors.centerIn: parent
             spacing: 6
             Icon { text: "restart_alt"; size: 18; fill: 1; color: Theme.primary }
-            Txt { text: "Reiniciar"; font.weight: Font.Bold; color: Theme.primary }
+            Txt { text: I18n.t("Reiniciar"); font.weight: Font.Bold; color: Theme.primary }
         }
         MouseArea {
             id: rbArea

@@ -136,7 +136,7 @@ PanelWindow {
                         Txt {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: !search.text
-                            text: win.clipMode ? "Busca en lo que copiaste…" : "Busca apps, juegos o ajustes…"
+                            text: win.clipMode ? I18n.t("Busca en lo que copiaste…") : I18n.t("Busca apps, juegos o ajustes…")
                             font.pixelSize: Theme.textLarge
                             color: Theme.fgMuted
                         }
@@ -157,7 +157,7 @@ PanelWindow {
 
                     Txt {
                         visible: win.clipMode && Clipboard.entries.length > 0
-                        text: "Borrar todo"
+                        text: I18n.t("Borrar todo")
                         color: Theme.primary
                         font.weight: Font.DemiBold
                         MouseArea {
@@ -245,7 +245,7 @@ PanelWindow {
                         }
                         Txt {
                             Layout.fillWidth: true
-                            text: win.clipMode ? (cell.modelData.isImage ? "Imagen" : cell.modelData.text) : ""
+                            text: win.clipMode ? (cell.modelData.isImage ? I18n.t("Imagen") : cell.modelData.text) : ""
                             maximumLineCount: 1
                         }
                     }
@@ -255,7 +255,7 @@ PanelWindow {
                 Txt {
                     anchors.centerIn: parent
                     visible: win.results.length === 0
-                    text: win.clipMode ? "Aún no has copiado nada" : "No encontré nada con «" + search.text + "»"
+                    text: win.clipMode ? I18n.t("Aún no has copiado nada") : I18n.t("No encontré nada con «") + search.text + "»"
                     color: Theme.fgMuted
                 }
             }
@@ -290,7 +290,7 @@ PanelWindow {
                     Txt {
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignHCenter
-                        text: win.clipMode ? "Enter para copiar · Esc para cerrar" : "Enter para abrir · Esc para cerrar"
+                        text: win.clipMode ? I18n.t("Enter para copiar · Esc para cerrar") : I18n.t("Enter para abrir · Esc para cerrar")
                         font.pixelSize: Theme.textSmall
                         color: Theme.alpha(Theme.fgMuted, 0.75)
                     }

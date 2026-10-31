@@ -10,7 +10,7 @@ LockCard {
     readonly property var groups: {
         const map = {}, out = [];
         for (const n of Notifs.list) {
-            const k = n.appName || "Sistema";
+            const k = n.appName || I18n.t("Sistema");
             if (!map[k]) { map[k] = { name: k, icon: n.appIcon, items: [] }; out.push(map[k]); }
             map[k].items.push(n);
         }
@@ -18,7 +18,7 @@ LockCard {
     }
     Txt {
         id: head
-        text: Notifs.count === 0 ? "Sin notificaciones" : Notifs.count === 1 ? "1 notificación" : Notifs.count + " notificaciones"
+        text: Notifs.count === 0 ? I18n.t("Sin notificaciones") : Notifs.count === 1 ? I18n.t("1 notificación") : Notifs.count + I18n.t(" notificaciones")
         font.family: "monospace"; font.pixelSize: 16; color: Theme.fgMuted
     }
     Column {
@@ -61,7 +61,7 @@ LockCard {
                             required property var modelData
                             width: col.width
                             text: Settings.lock.showNotifContent ? (modelData.summary + "  " + (modelData.body || "")).replace(/<[^>]+>/g, "")
-                                                                 : (g.modelData.items.length === 1 ? "Notificación nueva" : "Notificaciones nuevas")
+                                                                 : (g.modelData.items.length === 1 ? I18n.t("Notificación nueva") : I18n.t("Notificaciones nuevas"))
                             color: Theme.fgMuted; font.pixelSize: Theme.textSmall + 1
                             elide: Text.ElideRight
                         }

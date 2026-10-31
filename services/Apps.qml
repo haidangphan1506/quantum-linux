@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import qs.services
 
 // Lista de apps y búsqueda tolerante (sin tildes, por nombre, descripción y palabras clave).
 Singleton {
@@ -13,7 +14,7 @@ Singleton {
     readonly property var all: DesktopEntries.applications.values
         .filter(a => !a.noDisplay)
         .slice()
-        .sort((a, b) => a.name.localeCompare(b.name, "es"))
+        .sort((a, b) => a.name.localeCompare(b.name, I18n.lang))
 
     function normalize(s: string): string {
         return (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -44,7 +45,7 @@ Singleton {
         scored.sort((a, b) => {
             if (a.score !== b.score)
                 return a.score - b.score;
-            return a.app.name.localeCompare(b.app.name, "es");
+            return a.app.name.localeCompare(b.app.name, I18n.lang);
         });
         const out = [];
         for (let i = 0; i < scored.length; i++)

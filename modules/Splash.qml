@@ -125,7 +125,7 @@ Scope {
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: atom.bottom
                     anchors.topMargin: 40
-                    text: "Preparando tu escritorio"
+                    text: I18n.t("Preparando tu escritorio")
                     font.family: "Inter"
                     font.pixelSize: 17
                     color: "#9C95B8"

@@ -32,15 +32,15 @@ LockCard {
                 transform: Translate { y: wIcon.bob }
             }
         }
-        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: "Sensación de " + Math.round(Weather.feels) + "°C"; font.pixelSize: 17; color: Theme.fg }
-        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: "Máx " + Math.round(Weather.high) + "°C  ·  Mín " + Math.round(Weather.low) + "°C"; font.pixelSize: 15; color: Theme.fgMuted }
+        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: I18n.t("Sensación de ") + Math.round(Weather.feels) + "°C"; font.pixelSize: 17; color: Theme.fg }
+        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: I18n.t("Máx ") + Math.round(Weather.high) + I18n.t("°C  ·  Mín ") + Math.round(Weather.low) + "°C"; font.pixelSize: 15; color: Theme.fgMuted }
     }
     Column {
         anchors.centerIn: parent
         spacing: 8
         visible: !Weather.ready
         Icon { anchors.horizontalCenter: parent.horizontalCenter; text: "cloud_off"; size: 48; color: Theme.fgMuted }
-        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: "Sin datos del clima"; color: Theme.fgMuted }
-        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: "Conéctate a internet"; font.pixelSize: Theme.textSmall; color: Theme.fgMuted }
+        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: I18n.t("Sin datos del clima"); color: Theme.fgMuted }
+        Txt { anchors.horizontalCenter: parent.horizontalCenter; text: I18n.t("Conéctate a internet"); font.pixelSize: Theme.textSmall; color: Theme.fgMuted }
     }
 }

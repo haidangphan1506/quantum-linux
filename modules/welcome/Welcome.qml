@@ -76,20 +76,20 @@ PanelWindow {
     // ---------------------------------------------------------------- estilos (paso 1)
     // Usan los mismos valores que los estilos de un clic de Personalizar (styles/*.json).
     readonly property var options: [
-        { id: "windows", name: "Windows", tag: "Lo de siempre",
-          desc: "Barra pegada abajo con los íconos a la izquierda. Como siempre.",
+        { id: "windows", name: "Windows", tag: I18n.t("Lo de siempre"),
+          desc: I18n.t("Barra pegada abajo con los íconos a la izquierda. Como siempre."),
           style: "clasico", values: { appearance: { accent: "#2F7BFF", panelOpacity: 0.95 }, layout: { style: "single" },
                                       dock: { floating: false, align: "left" }, windows: { corners: "sharp", animations: "fast" } } },
-        { id: "quantum", name: "Quantum", tag: "Recomendado",
-          desc: "Barra flotante, animaciones y los colores de tu fondo.",
+        { id: "quantum", name: "Quantum", tag: I18n.t("Recomendado"),
+          desc: I18n.t("Barra flotante, animaciones y los colores de tu fondo."),
           style: "quantum", values: { appearance: { dynamicColors: true, wallpaper: win.beako } } },
         { id: "macos", name: "macOS", tag: "",
-          desc: "Barra arriba y un dock centrado, limpio y elegante.",
+          desc: I18n.t("Barra arriba y un dock centrado, limpio y elegante."),
           style: "muelle", values: { appearance: { accent: "#FF6B8B" }, layout: { style: "split", topBar: { floating: false, showApp: true } },
                                      dock: { floating: true, align: "center", size: "large", showSearch: false },
                                      windows: { corners: "round", buttonsLeft: true, animations: "smooth" } } },
         { id: "minimal", name: "Minimal", tag: "",
-          desc: "Claro y limpio: la barra se esconde sola.",
+          desc: I18n.t("Claro y limpio: la barra se esconde sola."),
           style: "minimal", values: { appearance: { mode: "light", accent: "#5B5BD6", panelOpacity: 0.92 },
                                       layout: { topBar: { floating: false, showApp: false } },
                                       dock: { autohide: true, showSearch: false },
@@ -128,17 +128,17 @@ PanelWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 12
             Image { source: Quickshell.shellDir + "/assets/quantum-mark.svg"; width: 40; height: 40; sourceSize: Qt.size(80, 80) }
-            Txt { anchors.verticalCenter: parent.verticalCenter; text: "¡Bienvenido a Quantum!"; color: "#C5C0FF"; font.pixelSize: 24; font.weight: Font.DemiBold }
+            Txt { anchors.verticalCenter: parent.verticalCenter; text: I18n.t("¡Bienvenido a Quantum!"); color: "#C5C0FF"; font.pixelSize: 24; font.weight: Font.DemiBold }
         }
         Txt {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: ["Elige cómo se ve tu escritorio", "Elige tus colores y tu fondo", "Elige tu Quantum Shell",
-                   "Elige cómo suena Quantum", "Elige tus íconos"][win.step]
+            text: [I18n.t("Elige cómo se ve tu escritorio"), I18n.t("Elige tus colores y tu fondo"), I18n.t("Elige tu Quantum Shell"),
+                   I18n.t("Elige cómo suena Quantum"), I18n.t("Elige tus íconos")][win.step]
             color: "#EDE9F7"; font.pixelSize: 58; font.weight: Font.Black
         }
         Txt {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "Puedes cambiarlo cuando quieras desde Personalizar."
+            text: I18n.t("Puedes cambiarlo cuando quieras desde Personalizar.")
             color: "#A39DB8"; font.pixelSize: 20
         }
     }
@@ -252,8 +252,8 @@ PanelWindow {
                             visible: c.modelData.tag !== ""
                             anchors.verticalCenter: parent.verticalCenter
                             width: tagTxt.implicitWidth + 22; height: 28; radius: 14
-                            color: c.modelData.tag === "Recomendado" ? Qt.rgba(0.77, 0.75, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
-                            Txt { id: tagTxt; anchors.centerIn: parent; text: c.modelData.tag; color: c.modelData.tag === "Recomendado" ? "#C5C0FF" : "#A39DB8"; font.pixelSize: 14; font.weight: Font.DemiBold }
+                            color: c.modelData.tag === I18n.t("Recomendado") ? Qt.rgba(0.77, 0.75, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+                            Txt { id: tagTxt; anchors.centerIn: parent; text: c.modelData.tag; color: c.modelData.tag === I18n.t("Recomendado") ? "#C5C0FF" : "#A39DB8"; font.pixelSize: 14; font.weight: Font.DemiBold }
                         }
                     }
                     Txt { width: parent.width; wrapMode: Text.WordWrap; text: c.modelData.desc; color: "#A39DB8"; font.pixelSize: 18 }
@@ -285,7 +285,7 @@ PanelWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: 18
             Repeater {
-                model: [{ v: "dark", n: "Oscuro", i: "dark_mode" }, { v: "light", n: "Claro", i: "light_mode" }]
+                model: [{ v: "dark", n: I18n.t("Oscuro"), i: "dark_mode" }, { v: "light", n: I18n.t("Claro"), i: "light_mode" }]
                 Rectangle {
                     id: m
                     required property var modelData
@@ -331,7 +331,7 @@ PanelWindow {
                         visible: w.modelData === "quantum:live"
                         Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 15; gradient: Gradient { GradientStop { position: 0; color: "#1B1640" } GradientStop { position: 1; color: "#06050C" } } }
                         Image { anchors.centerIn: parent; width: 70; height: 70; source: Quickshell.shellDir + "/assets/quantum-mark.svg"; sourceSize: Qt.size(140, 140) }
-                        Txt { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 10; text: "Fondo vivo"; color: "white"; font.pixelSize: 14; font.weight: Font.DemiBold }
+                        Txt { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 10; text: I18n.t("Fondo vivo"); color: "white"; font.pixelSize: 14; font.weight: Font.DemiBold }
                     }
                     MouseArea { id: wa; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { win.lookTouched = true; Settings.set("appearance", "wallpaper", w.modelData); } }
                 }
@@ -351,7 +351,7 @@ PanelWindow {
                 Row {
                     anchors.centerIn: parent; spacing: 10
                     Icon { text: "palette"; size: 22; fill: 1; color: "#EDE9F7" }
-                    Txt { anchors.verticalCenter: parent.verticalCenter; text: "Colores de tu fondo"; font.pixelSize: 18; font.weight: Font.DemiBold; color: "#EDE9F7" }
+                    Txt { anchors.verticalCenter: parent.verticalCenter; text: I18n.t("Colores de tu fondo"); font.pixelSize: 18; font.weight: Font.DemiBold; color: "#EDE9F7" }
                     Rectangle {
                         anchors.verticalCenter: parent.verticalCenter; width: 42; height: 24; radius: 12
                         color: dyn.on ? "#C5C0FF" : Qt.rgba(1, 1, 1, 0.2)
@@ -387,10 +387,10 @@ PanelWindow {
 
     // ---------------------------------------------------------------- paso 3: la forma del shell
     readonly property var shells: [
-        { id: "caelestial", name: "Caelestial", tag: "El de siempre",
-          desc: "Inspirado en Caelestia Shell, pero más liviano: barra arriba, dock flotante y paneles de vidrio con tus colores." },
-        { id: "serpantium", name: "Serpantium", tag: "Nuevo",
-          desc: "Inspirado en Serpantinum de ilyamiro: barra de píldoras, paneles oscuros que bajan, letra monoespaciada y tonos rosados." },
+        { id: "caelestial", name: "Caelestial", tag: I18n.t("El de siempre"),
+          desc: I18n.t("Inspirado en Caelestia Shell, pero más liviano: barra arriba, dock flotante y paneles de vidrio con tus colores.") },
+        { id: "serpantium", name: "Serpantium", tag: I18n.t("Nuevo"),
+          desc: I18n.t("Inspirado en Serpantinum de ilyamiro: barra de píldoras, paneles oscuros que bajan, letra monoespaciada y tonos rosados.") },
     ]
     Row {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -532,7 +532,7 @@ PanelWindow {
                         Icon { anchors.verticalCenter: parent.verticalCenter; text: "touch_app"; size: 18; fill: 1; color: sc.fill > 0 ? "#3A1028" : "#F4A7C9" }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: sc.fill > 0 ? "Sigue presionando…" : "Mantén presionado para elegir"
+                            text: sc.fill > 0 ? I18n.t("Sigue presionando…") : I18n.t("Mantén presionado para elegir")
                             font.family: "JetBrains Mono"; font.pixelSize: 14; font.bold: true
                             color: sc.fill > 0 ? "#3A1028" : "#F3E7ED"
                         }
@@ -639,7 +639,7 @@ PanelWindow {
             Row {
                 id: offRow; anchors.centerIn: parent; spacing: 10
                 Icon { anchors.verticalCenter: parent.verticalCenter; text: "volume_off"; size: 22; color: "#EDE9F7" }
-                Txt { anchors.verticalCenter: parent.verticalCenter; text: Settings.sounds.enabled ? "Prefiero sin sonidos" : "Sin sonidos (puedes activarlos en Personalizar)"; color: "#EDE9F7"; font.pixelSize: 16; font.weight: Font.DemiBold }
+                Txt { anchors.verticalCenter: parent.verticalCenter; text: Settings.sounds.enabled ? I18n.t("Prefiero sin sonidos") : I18n.t("Sin sonidos (puedes activarlos en Personalizar)"); color: "#EDE9F7"; font.pixelSize: 16; font.weight: Font.DemiBold }
             }
             MouseArea { id: offMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: { Sounds.stopPreview(); Settings.set("sounds", "enabled", !Settings.sounds.enabled); } }
@@ -688,7 +688,7 @@ PanelWindow {
                         width: tagT.implicitWidth + 18; height: 24; radius: 12
                         color: Icons.installed[ic.modelData.id] ? Qt.rgba(0.48, 0.85, 0.56, 0.16) : Qt.rgba(1, 1, 1, 0.08)
                         Txt { id: tagT; anchors.centerIn: parent; font.pixelSize: 12; font.weight: Font.DemiBold
-                              text: Icons.installed[ic.modelData.id] ? "Instalado" : "Se descarga · " + ic.modelData.size
+                              text: Icons.installed[ic.modelData.id] ? I18n.t("Instalado") : I18n.t("Se descarga · ") + ic.modelData.size
                               color: Icons.installed[ic.modelData.id] ? "#7BE0A4" : "#A39DB8" }
                     }
                 }
@@ -708,7 +708,7 @@ PanelWindow {
         visible: win.step === 4
         anchors.horizontalCenter: parent.horizontalCenter
         y: Math.round(parent.height * 0.32) + 2 * 230 + 22 + 26
-        text: "Las carpetas toman el color de tu escritorio. Al terminar, el escritorio se recarga un segundo."
+        text: I18n.t("Las carpetas toman el color de tu escritorio. Al terminar, el escritorio se recarga un segundo.")
         color: "#A39DB8"; font.pixelSize: 15
     }
 
@@ -737,7 +737,7 @@ PanelWindow {
             width: 170; height: 60; radius: 30; color: "transparent"; border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.2)
             scale: backMa.pressed ? 0.93 : 1
             Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutBack } }
-            Txt { anchors.centerIn: parent; text: win.step === 0 ? "Saltar" : "Atrás"; color: "#EDE9F7"; font.pixelSize: 19; font.weight: Font.DemiBold }
+            Txt { anchors.centerIn: parent; text: win.step === 0 ? I18n.t("Saltar") : I18n.t("Atrás"); color: "#EDE9F7"; font.pixelSize: 19; font.weight: Font.DemiBold }
             MouseArea { id: backMa; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { Sounds.stopPreview(); win.step === 0 ? win.finish() : win.step--; } }
         }
         Rectangle {
@@ -748,7 +748,7 @@ PanelWindow {
             Row {
                 id: goRow
                 anchors.centerIn: parent; spacing: 8
-                Txt { text: win.step < 4 ? "Continuar" : "Empezar a usar Quantum"; color: "#2A1A9A"; font.pixelSize: 19; font.weight: Font.Bold }
+                Txt { text: win.step < 4 ? I18n.t("Continuar") : I18n.t("Empezar a usar Quantum"); color: "#2A1A9A"; font.pixelSize: 19; font.weight: Font.Bold }
                 Icon { anchors.verticalCenter: parent.verticalCenter; text: win.step < 4 ? "arrow_forward" : "check"; size: 20; color: "#2A1A9A" }
             }
             MouseArea { id: goMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: win.step < 4 ? win.step++ : win.finish() }

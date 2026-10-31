@@ -38,14 +38,14 @@ ColumnLayout {
 
     readonly property string subtitle: {
         if (!Net.hasDevice)
-            return "Este equipo no tiene adaptador Wi-Fi";
+            return I18n.t("Este equipo no tiene adaptador Wi-Fi");
         if (!Net.wifiEnabled)
-            return "El Wi-Fi está apagado";
+            return I18n.t("El Wi-Fi está apagado");
         if (Net.connectedName)
-            return "Conectado a " + Net.connectedName;
+            return I18n.t("Conectado a ") + Net.connectedName;
         if (Net.networks.length === 0)
-            return "Buscando redes…";
-        return Net.networks.length + (Net.networks.length === 1 ? " red disponible" : " redes disponibles");
+            return I18n.t("Buscando redes…");
+        return Net.networks.length + (Net.networks.length === 1 ? I18n.t(" red disponible") : I18n.t(" redes disponibles"));
     }
 
     // -------------------------------------------------------------- estado
@@ -70,7 +70,7 @@ ColumnLayout {
             Txt {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
-                text: !Net.hasDevice ? "No se encontró un adaptador Wi-Fi" : "El Wi-Fi está apagado"
+                text: !Net.hasDevice ? I18n.t("No se encontró un adaptador Wi-Fi") : I18n.t("El Wi-Fi está apagado")
                 font.weight: Font.DemiBold
             }
             Txt {
@@ -78,8 +78,8 @@ ColumnLayout {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 text: !Net.hasDevice
-                    ? "Conéctate con un cable de red o revisa si el equipo tiene Wi-Fi."
-                    : "Enciéndelo para ver las redes de alrededor."
+                    ? I18n.t("Conéctate con un cable de red o revisa si el equipo tiene Wi-Fi.")
+                    : I18n.t("Enciéndelo para ver las redes de alrededor.")
                 color: Theme.fgMuted
                 font.pixelSize: Theme.textSmall
             }
@@ -110,7 +110,7 @@ ColumnLayout {
 
             Txt {
                 Layout.fillWidth: true
-                text: "Contraseña de «" + Net.pendingSsid + "»"
+                text: I18n.t("Contraseña de «") + Net.pendingSsid + "»"
                 font.weight: Font.DemiBold
                 elide: Text.ElideMiddle
             }
@@ -166,7 +166,7 @@ ColumnLayout {
 
                     Txt {
                         anchors.centerIn: parent
-                        text: "Conectar"
+                        text: I18n.t("Conectar")
                         color: Theme.primaryFg
                         font.weight: Font.DemiBold
                     }
@@ -181,7 +181,7 @@ ColumnLayout {
             Txt {
                 Layout.fillWidth: true
                 visible: text !== ""
-                text: "Cancelar"
+                text: I18n.t("Cancelar")
                 color: Theme.primary
                 font.weight: Font.DemiBold
                 font.pixelSize: Theme.textSmall
@@ -292,7 +292,7 @@ ColumnLayout {
             Txt {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
-                text: Net.scanning ? "Buscando redes…" : "No hay redes a la vista"
+                text: Net.scanning ? I18n.t("Buscando redes…") : I18n.t("No hay redes a la vista")
                 color: Theme.fgMuted
             }
         }
@@ -339,7 +339,7 @@ ColumnLayout {
         }
         Txt {
             Layout.fillWidth: true
-            text: "Configuración avanzada de red"
+            text: I18n.t("Configuración avanzada de red")
             color: Theme.fgMuted
             font.pixelSize: Theme.textSmall
         }
@@ -373,20 +373,20 @@ ColumnLayout {
 
     function networkHint(net: var): string {
         if (net.connected === true)
-            return "Conectada";
+            return I18n.t("Conectada");
         if (Net.tracked === net && Net.connecting)
-            return "Conectando…";
+            return I18n.t("Conectando…");
         if (Net.pendingSsid === net.name)
-            return "Escribe la contraseña";
+            return I18n.t("Escribe la contraseña");
         const kind = Net.securityKind(net);
         if (kind === "open")
-            return "Abierta";
+            return I18n.t("Abierta");
         if (kind === "enterprise")
-            return "Red empresarial";
+            return I18n.t("Red empresarial");
         if (kind === "wep")
-            return "WEP (no compatible)";
+            return I18n.t("WEP (no compatible)");
         if (kind === "unknown")
-            return "No se puede conectar desde aquí";
-        return net.known === true ? "Guardada" : "Protegida";
+            return I18n.t("No se puede conectar desde aquí");
+        return net.known === true ? I18n.t("Guardada") : I18n.t("Protegida");
     }
 }

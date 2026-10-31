@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Networking
+import qs.services
 
 // Estado de la red: dispositivos, Wi-Fi y lista de redes visibles.
 // Las redes las da NetworkManager a través de Quickshell (el mismo origen que
@@ -25,12 +26,12 @@ Singleton {
     readonly property string demoName: Quickshell.env("QUANTUM_DEMO_WIFI") ?? ""
     readonly property string label: {
         if (wired)
-            return "Cable";
+            return I18n.t("Cable");
         if (demo)
-            return demoConnected || demoName || "Sin conexión";
+            return demoConnected || demoName || I18n.t("Sin conexión");
         if (wifi)
             return demoName || wifi.name;
-        return wifiEnabled ? "Sin conexión" : "Wi-Fi apagado";
+        return wifiEnabled ? I18n.t("Sin conexión") : I18n.t("Wi-Fi apagado");
     }
     readonly property string icon: {
         if (wired)
@@ -138,7 +139,7 @@ Singleton {
     function select(ssid: string): void {
         const net = find(ssid);
         if (!net) {
-            setStatus("La red ya no está disponible", true);
+            setStatus(I18n.t("La red ya no está disponible"), true);
             return;
         }
         if (net.connected === true) {
@@ -157,8 +158,8 @@ Singleton {
             return;
         }
         setStatus(kind === "enterprise"
-            ? "Las redes empresariales se configuran en el editor de conexiones"
-            : "Esta red no se puede conectar desde aquí", true);
+            ? I18n.t("Las redes empresariales se configuran en el editor de conexiones")
+            : I18n.t("Esta red no se puede conectar desde aquí"), true);
     }
 
     // Conecta con la contraseña escrita.
@@ -169,7 +170,7 @@ Singleton {
             return;
         }
         if (password.trim() === "") {
-            setStatus("Escribe la contraseña de la red", true);
+            setStatus(I18n.t("Escribe la contraseña de la red"), true);
             return;
         }
         if (demo) {
@@ -180,7 +181,7 @@ Singleton {
         password = "";
         tracked = net;
         connecting = true;
-        setStatus("Conectando a " + net.name + "…", false);
+        setStatus(I18n.t("Conectando a ") + net.name + "…", false);
         net.connectWithPsk(psk);
     }
 
@@ -196,7 +197,7 @@ Singleton {
         }
         tracked = net;
         connecting = true;
-        setStatus("Conectando a " + net.name + "…", false);
+        setStatus(I18n.t("Conectando a ") + net.name + "…", false);
         net.connect();
     }
 
@@ -209,7 +210,7 @@ Singleton {
             return;
         }
         net.disconnect();
-        setStatus("Desconectado de " + net.name, false);
+        setStatus(I18n.t("Desconectado de ") + net.name, false);
     }
 
     // NetworkManager avisó de que la conexión falló.
@@ -221,22 +222,22 @@ Singleton {
         case ConnectionFailReason.NoSecrets:
             pendingSsid = ssid;
             password = "";
-            setStatus("Escribe la contraseña para conectarte", false);
+            setStatus(I18n.t("Escribe la contraseña para conectarte"), false);
             return;
         case ConnectionFailReason.WifiAuthTimeout:
-            setStatus("La contraseña no es correcta o la señal es muy débil", true);
+            setStatus(I18n.t("La contraseña no es correcta o la señal es muy débil"), true);
             break;
         case ConnectionFailReason.WifiNetworkLost:
-            setStatus("La red ya no está disponible", true);
+            setStatus(I18n.t("La red ya no está disponible"), true);
             break;
         case ConnectionFailReason.WifiClientDisconnected:
-            setStatus("Se perdió la conexión con la red", true);
+            setStatus(I18n.t("Se perdió la conexión con la red"), true);
             break;
         case ConnectionFailReason.WifiClientFailed:
-            setStatus("No se pudo conectar a la red", true);
+            setStatus(I18n.t("No se pudo conectar a la red"), true);
             break;
         default:
-            setStatus("No se pudo conectar a " + ssid, true);
+            setStatus(I18n.t("No se pudo conectar a ") + ssid, true);
         }
         // Si la red pide contraseña, la dejamos lista para reintentar.
         if (net && securityKind(net) === "psk")
@@ -285,7 +286,7 @@ Singleton {
         });
         pendingSsid = "";
         password = "";
-        setStatus("Conectado a " + ssid, false);
+        setStatus(I18n.t("Conectado a ") + ssid, false);
     }
 
     function demoDisconnect(ssid: string): void {
@@ -296,7 +297,7 @@ Singleton {
             copy.known = false;
             return copy;
         });
-        setStatus("Desconectado de " + ssid, false);
+        setStatus(I18n.t("Desconectado de ") + ssid, false);
     }
 
     // ------------------------------------------------------------------
@@ -322,7 +323,7 @@ Singleton {
             if (net.state === ConnectionState.Connected) {
                 root.connecting = false;
                 root.pendingSsid = "";
-                root.setStatus("Conectado a " + net.name, false);
+                root.setStatus(I18n.t("Conectado a ") + net.name, false);
             } else if (net.state === ConnectionState.Disconnected) {
                 root.connecting = false;
             }
@@ -346,7 +347,7 @@ Singleton {
         onExited: code => {
             if (code !== 0) {
                 root.demoNetworks = [];
-                root.setStatus("No se pudo leer la lista de redes de prueba", true);
+                root.setStatus(I18n.t("No se pudo leer la lista de redes de prueba"), true);
                 return;
             }
             root.demoNetworks = root.parseDemo(demoOut.text);
