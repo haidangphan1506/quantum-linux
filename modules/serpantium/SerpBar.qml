@@ -85,7 +85,7 @@ Scope {
                         id: app
                         required property var modelData
                         readonly property bool running: modelData.wins.length > 0
-                        readonly property bool focused: modelData.wins.some(w => w.activated && !w.minimized)
+                        readonly property bool focused: modelData.wins.some(w => w.activated && !Wm.isMinimized(w))
                         width: 24; height: 24
                         anchors.verticalCenter: parent.verticalCenter
                         hoverEnabled: true

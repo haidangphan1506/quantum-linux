@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import qs.services
 
 // Gestor de ventanas (Wayfire) a través de protocolos estándar de Wayland:
@@ -101,10 +102,33 @@ Singleton {
         return DesktopEntries.heuristicLookup(appId)?.name ?? appId;
     }
 
-    // Clic en la barra de tareas: si ya está activa se minimiza, si no, se enfoca.
+    // Hyprland no tiene "minimizado": hyprlands/minimize.lua mueve la ventana al workspace
+    // oculto "special:minimized" cuando se pide minimizar. Aquí se lee de ahí.
+    readonly property string minimizedWs: "special:minimized"
+    readonly property var minimizedWins: Hyprland.toplevels.values
+        .filter(t => t.workspace?.name === root.minimizedWs)
+        .map(t => t.wayland)
+
+    function isMinimized(win: var): bool {
+        return !!win && (win.minimized || root.minimizedWins.indexOf(win) >= 0);
+    }
+
+    // Minimizar / restaurar: se pide por wlr-foreign-toplevel y Hyprland (minimize.lua) lo hace.
+    function minimize(win: Toplevel): void { win.minimized = true; }
+    function restore(win: Toplevel): void { win.minimized = false; }
+
+    // Enfocar una ventana; si está minimizada, primero vuelve del dock (como en macOS).
+    function focus(win: Toplevel): void {
+        if (root.isMinimized(win)) root.restore(win);
+        else win.activate();
+    }
+
+    // Clic en el dock: si ya está activa se minimiza, si está minimizada vuelve, si no, se enfoca.
     function toggle(win: Toplevel): void {
-        if (win.activated && !win.minimized)
-            win.minimized = true;
+        if (root.isMinimized(win))
+            root.restore(win);
+        else if (win.activated)
+            root.minimize(win);
         else
             win.activate();
     }

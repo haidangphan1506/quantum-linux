@@ -267,7 +267,7 @@ Variants {
                             hoverEnabled: true
                             onEntered: hideTimer.stop()
                             onExited: hideTimer.restart()
-                            onClicked: { winRow.modelData.activate(); dock.hoverGroup = null; }
+                            onClicked: { Wm.focus(winRow.modelData); dock.hoverGroup = null; }
                         }
                     }
                 }

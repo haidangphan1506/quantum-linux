@@ -31,7 +31,7 @@ RowLayout {
             required property int index
             readonly property var g: modelData
             readonly property bool running: g.wins.length > 0
-            readonly property bool focused: g.wins.some(w => w.activated && !w.minimized)
+            readonly property bool focused: g.wins.some(w => w.activated && !Wm.isMinimized(w))
             property bool launching: false
 
             active: focused
@@ -77,9 +77,9 @@ RowLayout {
                         if (g.wins[i].activated) { idx = i; break; }
                     }
                     if (idx >= 0)
-                        g.wins[(idx + 1) % g.wins.length].activate();
+                        Wm.focus(g.wins[(idx + 1) % g.wins.length]);
                     else
-                        g.wins[0].activate();
+                        Wm.focus(g.wins[0]);
                 }
             }
             onMiddleClicked: if (g.entry) {
@@ -107,7 +107,7 @@ RowLayout {
                 anchors.verticalCenterOffset: -2
                 size: Math.round(28 * Theme.dockScale)
                 name: btn.g.icon
-                opacity: btn.running && btn.g.wins.every(w => w.minimized) ? 0.6 : 1
+                opacity: btn.running && btn.g.wins.every(w => Wm.isMinimized(w)) ? 0.6 : 1
                 // rebote mientras la app abre
                 SequentialAnimation on anchors.verticalCenterOffset {
                     running: btn.launching

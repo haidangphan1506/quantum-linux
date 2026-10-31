@@ -51,7 +51,7 @@ Variants {
         // Izquierda: la app activa (o el logo si no hay ninguna)
         Section {
             id: activeApp
-            readonly property var win: Wm.active && !Wm.active.minimized ? Wm.active : null
+            readonly property var win: Wm.active && !Wm.isMinimized(Wm.active) ? Wm.active : null
             visible: Settings.layout.topBar.showApp
             anchors.left: parent.left
             anchors.leftMargin: bar.floating ? 10 : 6
