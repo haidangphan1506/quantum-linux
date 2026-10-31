@@ -49,7 +49,7 @@ ColumnLayout {
         icon: "lock"
         RowLayout {
             spacing: 10
-            PillButton { text: "Ver pantalla de bloqueo"; icon: "visibility"; primary: true; onClicked: Quickshell.execDetached(["qs", "-c", "quantum", "ipc", "call", "lock", "preview"]) }
+            PillButton { text: "Ver pantalla de bloqueo"; icon: "visibility"; primary: true; onClicked: Quickshell.execDetached(["qs", "-c", "caelestia", "ipc", "call", "lock", "preview"]) }
             PillButton { text: "Bloquear ahora"; icon: "lock"; onClicked: Shell.lock() }
         }
     }
