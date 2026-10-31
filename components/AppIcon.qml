@@ -12,6 +12,7 @@ Item {
     property int size: 24
 
     readonly property string path: {
+        if (root.name.startsWith("/")) return "file://" + root.name;   // ruta absoluta (ej. assets/*.svg)
         const own = root.name ? Quickshell.iconPath(root.name, true) : "";
         return own || Quickshell.iconPath("application-x-executable", true);
     }

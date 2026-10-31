@@ -260,7 +260,7 @@ Variants {
                             anchors.leftMargin: 8
                             anchors.rightMargin: 8
                             spacing: 8
-                            AppIcon { size: 18; name: Wm.iconFor(winRow.modelData.appId) }
+                            AppIcon { size: 18; name: Wm.iconForWin(winRow.modelData) }
                             Txt {
                                 id: winTitle
                                 Layout.fillWidth: true

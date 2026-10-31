@@ -18,6 +18,12 @@ Singleton {
     readonly property var screen: active?.screens?.[0] ?? Quickshell.screens[0]
 
     // Las ventanas propias del shell (Personalizar) llegan como «org.quickshell».
+    // El Task Manager es otra config de Quickshell: mismo appId (org.quickshell) que Personalizar, se distingue por el titulo
+    function isTaskMgr(w): bool {
+        return w?.appId === "org.quickshell" && w.title === "Trình quản lý tác vụ";
+    }
+    function iconForWin(w): string { return isTaskMgr(w) ? Quickshell.shellDir + "/assets/quantum-taskmgr.svg" : iconFor(w.appId); }
+
     function iconFor(appId: string): string {
         if (appId === "org.quickshell") return "quantum-personalize";
         return DesktopEntries.heuristicLookup(appId)?.icon ?? appId;
@@ -49,8 +55,9 @@ Singleton {
         }
         for (let i = 0; i < root.windows.length; i++) {
             const w = root.windows[i];
-            const e = DesktopEntries.heuristicLookup(w.appId);
-            const id = e?.id ?? w.appId;
+            const tm = root.isTaskMgr(w);
+            const e = tm ? DesktopEntries.byId("quantum-taskmgr") : DesktopEntries.heuristicLookup(w.appId);
+            const id = tm ? "quantum-taskmgr" : (e?.id ?? w.appId);
             const g = byId[id] ?? add(id, e, false);
             if (g.wins.indexOf(w) === -1)
                 g.wins.push(w);
