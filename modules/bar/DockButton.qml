@@ -21,7 +21,7 @@ Rectangle {
 
     implicitWidth: Math.round(46 * Theme.dockScale)
     implicitHeight: Math.round(44 * Theme.dockScale)
-    radius: Math.max(6, Theme.radiusSmall + 2)
+    radius: Math.max(10, Theme.radiusSmall + 6)
     color: active ? Theme.alpha(Theme.fg, 0.12) : area.containsMouse ? Theme.alpha(Theme.fg, 0.07) : "transparent"
     Behavior on color { ColorAnimation { duration: Theme.animFast } }
 

@@ -74,6 +74,14 @@ MouseArea {
             font.features: { "tnum": 1 }
             Layout.minimumWidth: 30
         }
+        Icon { visible: !root.compact; text: "hard_drive"; size: 15 }
+        Txt {
+            visible: !root.compact
+            text: Math.round(SysInfo.disk * 100) + "%"
+            font.pixelSize: 13
+            font.features: { "tnum": 1 }
+            Layout.minimumWidth: 30
+        }
     }
 
     // ------------------------------------------------------------ panel

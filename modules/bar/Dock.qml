@@ -114,8 +114,8 @@ Variants {
             x: dock.full ? dock.gap : (parent.width - width) / 2
             width: dock.full ? parent.width - 2 * dock.gap : row.implicitWidth + 16
             height: dock.barH
-            radius: dock.floating ? Math.round(20 * Theme.dockScale) * Theme.radius / 16 : 0
-            color: Theme.alpha(Theme.surface, Math.min(0.97, Theme.glassOpacity("dock") + 0.04))
+            radius: dock.floating ? Math.round(dock.barH * 0.46) : 0
+            color: Theme.alpha(Theme.surface, Math.max(0.3, Math.min(0.97, Theme.glassOpacity("dock") - 0.42)))
             border.width: dock.floating ? 1 : 0
             // Ẩn/hiện khi hover: một giá trị 0..1 điều khiển trượt + mờ + co.
             // Hiện: bật lên nhẹ (OutBack khi nổi) — Ẩn: nhanh hơn, tăng tốc dần (InCubic).

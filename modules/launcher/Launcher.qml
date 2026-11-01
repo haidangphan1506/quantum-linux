@@ -284,18 +284,6 @@ PanelWindow {
                         }
                     }
 
-                    // fijada en la barra
-                    Icon {
-                        visible: !win.clipMode && Apps.isPinned(cell.modelData.id ?? "")
-                        anchors.top: parent.top
-                        anchors.right: parent.right
-                        anchors.margins: 12
-                        text: "keep"
-                        size: 15
-                        fill: 1
-                        color: Theme.primary
-                    }
-
                     // Modo apps: ícono grande y nombre
                     ColumnLayout {
                         visible: !win.clipMode
@@ -420,7 +408,6 @@ PanelWindow {
                 Repeater {
                     model: win.ctxApp ? [
                         { icon: "open_in_new", text: I18n.t("Abrir"), run: () => { Apps.launch(win.ctxApp); Shell.launcherOpen = false; } },
-                        { icon: ctxMenu.pinned ? "keep_off" : "keep", text: ctxMenu.pinned ? I18n.t("Quitar de la barra") : I18n.t("Fijar en la barra"), run: () => Wm.togglePin(win.ctxApp.id) },
                         { icon: "visibility_off", text: I18n.t("Ocultar del menú"), run: () => Apps.setVisible(win.ctxApp, false) }
                     ] : []
                     MouseArea {

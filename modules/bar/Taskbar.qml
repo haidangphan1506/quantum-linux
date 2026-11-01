@@ -21,6 +21,11 @@ RowLayout {
     readonly property real slot: (rep.itemAt(0)?.width ?? 46) + spacing
     readonly property int dragTo: dragFrom < 0 ? -1 : Math.max(0, Math.min(rep.count - 1, dragFrom + Math.round(dragDx / slot)))
 
+    // Phóng đại kiểu dock macOS: icon gần con trỏ nhất to nhất, nhỏ dần theo khoảng cách
+    readonly property real magMax: 1.75
+    HoverHandler { id: magHover }
+    readonly property real mouseX: magHover.point.position.x
+
     Repeater {
         id: rep
         model: Wm.groups
@@ -33,13 +38,25 @@ RowLayout {
             readonly property bool running: g.wins.length > 0
             readonly property bool focused: g.wins.some(w => w.activated && !Wm.isMinimized(w))
             property bool launching: false
+            // Animación de aparición (app nueva abierta o fijada): salta desde abajo y crece
+            property real appear: 0
+            Component.onCompleted: appearAnim.start()
+            NumberAnimation { id: appearAnim; target: btn; property: "appear"; from: 0; to: 1; duration: 420; easing.type: Easing.OutBack; easing.overshoot: 1.6 }
+            opacity: Math.min(1, appear * 2.5)
+            scale: 0.4 + 0.6 * appear
+            transformOrigin: Item.Bottom
+            readonly property real mag: {
+                if (!magHover.hovered || root.dragFrom >= 0) return 1;
+                const d = (x + width / 2 - root.mouseX) / (root.slot * 1.4);
+                return 1 + (root.magMax - 1) * Math.exp(-d * d * 2);
+            }
 
             active: focused
             onRunningChanged: if (running) launching = false
 
             // reordenar arrastrando: el que se arrastra sigue al mouse y los demás se corren
             draggable: true
-            z: dragging ? 10 : 0
+            z: dragging ? 10 : mag > 1.05 ? 5 : 0
             onDragMoved: dx => { root.dragFrom = index; root.dragDx = dx; root.dock.closeMenu(); root.dock.hoverGroup = null; }
             onDropped: {
                 const to = root.dragTo;
@@ -116,8 +133,9 @@ RowLayout {
                     NumberAnimation { to: -9; duration: 260; easing.type: Easing.OutQuad }
                     NumberAnimation { to: -2; duration: 300; easing.type: Easing.OutBounce }
                 }
-                scale: btn.hovered && !btn.pressed ? 1.08 : 1
-                Behavior on scale { NumberAnimation { duration: Theme.animFast } }
+                transformOrigin: Item.Bottom
+                scale: btn.mag * (btn.pressed ? 0.92 : 1)
+                Behavior on scale { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
             }
 
             // Indicador: punto si está abierta, raya con degradado si está activa
@@ -131,7 +149,9 @@ RowLayout {
                 radius: 1.5
                 color: Theme.fgMuted
                 gradient: btn.focused ? brand : null
-                Behavior on width { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
+                Behavior on width { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutBack } }
+                opacity: btn.running ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: Theme.anim } }
                 Gradient {
                     id: brand
                     orientation: Gradient.Horizontal
