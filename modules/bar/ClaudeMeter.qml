@@ -25,14 +25,20 @@ MouseArea {
     SystemClock { id: clock; precision: SystemClock.Minutes }
     readonly property real now: clock.date.getTime() / 1000
 
+    // "5 h 27%": porcentaje ya usado de la ventana (el popup sigue mostrando lo que queda).
+    // Sin límites de la cuenta se muestran los tokens de los registros locales.
+    function limPart(key: string, label: string, tokens: real): string {
+        if (!ClaudeUsage.limits) return label + " " + ClaudeUsage.fmtTokens(tokens);
+        const u = ClaudeUsage.used(key);
+        return label + " " + (u >= 0 ? Math.round(u) + "%" : "—");
+    }
+
     function pill(): string {
         if (!ClaudeUsage.ready) return "Claude";
         const p = [];
         if (ClaudeUsage.ctxPct >= 0) p.push(I18n.t("Contexto") + " " + Math.round(ClaudeUsage.ctxPct) + "%");
-        const l5 = ClaudeUsage.left("five_hour"), l7 = ClaudeUsage.left("seven_day");
-        // sin límites de la cuenta: se muestran los tokens de los registros locales
-        p.push(I18n.t("5 h") + " " + (l5 >= 0 ? Math.round(l5) + "%" : ClaudeUsage.fmtTokens(ClaudeUsage.block.tokens)));
-        p.push(I18n.t("7 días") + " " + (l7 >= 0 ? Math.round(l7) + "%" : ClaudeUsage.fmtTokens(ClaudeUsage.week.tokens)));
+        p.push(limPart("five_hour", I18n.t("5 h"), ClaudeUsage.block.tokens));
+        p.push(limPart("seven_day", I18n.t("7 días"), ClaudeUsage.week.tokens));
         return p.join("   ");
     }
 
@@ -108,14 +114,22 @@ MouseArea {
             RowLayout {
                 Layout.fillWidth: true
                 Txt { Layout.fillWidth: true; text: lc.title; font.pixelSize: 12; color: Theme.fgMuted }
-                Txt { text: Math.round(lc.leftPct) + "% " + I18n.t("restante"); font.pixelSize: 12; font.weight: Font.DemiBold; color: root.leftColor(lc.leftPct) }
+                Txt {
+                    text: lc.leftPct >= 0 ? Math.round(lc.leftPct) + "% " + I18n.t("restante") : "—"
+                    font.pixelSize: 12; font.weight: Font.DemiBold
+                    color: lc.leftPct >= 0 ? root.leftColor(lc.leftPct) : Theme.fgMuted
+                }
             }
-            Meter { value: lc.leftPct / 100; accent: root.leftColor(lc.leftPct) }
+            Meter { value: Math.max(0, lc.leftPct) / 100; accent: root.leftColor(lc.leftPct) }
             Txt {
                 Layout.fillWidth: true
                 font.pixelSize: 11
                 color: Theme.fgMuted
-                text: I18n.t("reinicia en") + " " + ClaudeUsage.until(lc.lim?.resets ?? 0, root.now)
+                wrapMode: Text.WordWrap
+                text: (lc.leftPct >= 0
+                        ? I18n.t("reinicia en") + " " + ClaudeUsage.until(lc.lim?.resets ?? 0, root.now)
+                        : I18n.t("Sin lectura tras el reinicio"))
+                    + (ClaudeUsage.readAt(lc.key) ? " · " + I18n.t("leído a las") + " " + ClaudeUsage.readAt(lc.key) : "")
             }
         }
     }

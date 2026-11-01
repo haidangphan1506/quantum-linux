@@ -3,6 +3,17 @@
 // Tao boi i18n_extract.py; them chuoi moi: them vao ca en va vi.
 
 var en = {
+    "Animación al ocultar": "Hide animation",
+    "Cómo entra y sale una ventana por el dock al ocultarla o mostrarla.": "How a window slides into and out of the dock when hidden or shown.",
+    "Genio": "Genie",
+    "Escala": "Scale",
+    "Succión": "Suck",
+    "Lado de la pantalla": "Screen edge",
+    "Abajo": "Bottom",
+    "Arriba": "Top",
+    "Izquierda": "Left",
+    "Derecha": "Right",
+    "Al ponerla a un lado, las apps van en columna.": "On a side, apps are stacked in a column.",
     "Hilos": "Threads",
     "Total": "Total",
     "Rápido": "Fast",
@@ -314,6 +325,8 @@ var en = {
     "Uso de Claude Code": "Claude Code Usage",
     "Tokens usados en la ventana de 5 h y en los últimos 7 días, según los registros locales.": "Tokens used in the 5-hour window and the last 7 days, from local logs.",
     "reinicia en": "resets in",
+    "Sin lectura tras el reinicio": "No reading since reset",
+    "leído a las": "read at",
     "5 h": "5 h",
     "7 días": "7 days",
     "Fondo de pantalla": "Wallpaper",
@@ -772,6 +785,17 @@ var en = {
 };
 
 var vi = {
+    "Animación al ocultar": "Hiệu ứng ẩn/hiện",
+    "Cómo entra y sale una ventana por el dock al ocultarla o mostrarla.": "Cửa sổ đi vào và ra khỏi dock thế nào khi ẩn hoặc hiện.",
+    "Genio": "Genie",
+    "Escala": "Thu phóng",
+    "Succión": "Hút",
+    "Lado de la pantalla": "Cạnh màn hình",
+    "Abajo": "Dưới",
+    "Arriba": "Trên",
+    "Izquierda": "Trái",
+    "Derecha": "Phải",
+    "Al ponerla a un lado, las apps van en columna.": "Khi đặt ở một bên, các ứng dụng xếp thành cột.",
     "Hilos": "Luồng",
     "Total": "Tổng",
     "Rápido": "Nhanh",
@@ -1083,6 +1107,8 @@ var vi = {
     "Uso de Claude Code": "Mức dùng Claude Code",
     "Tokens usados en la ventana de 5 h y en los últimos 7 días, según los registros locales.": "Số token đã dùng trong cửa sổ 5 giờ và 7 ngày gần đây, theo nhật ký cục bộ.",
     "reinicia en": "đặt lại sau",
+    "Sin lectura tras el reinicio": "Chưa có số liệu sau khi đặt lại",
+    "leído a las": "đọc lúc",
     "5 h": "5 giờ",
     "7 días": "7 ngày",
     "Fondo de pantalla": "Hình nền",

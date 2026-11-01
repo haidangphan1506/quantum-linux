@@ -154,13 +154,34 @@ ColumnLayout {
             }
         }
         OptionRow {
+            title: I18n.t("Lado de la pantalla")
+            help: Settings.dock.position === "bottom" ? "" : I18n.t("Al ponerla a un lado, las apps van en columna.")
+            Segmented {
+                options: [{ v: "bottom", t: I18n.t("Abajo"), i: "south" }, { v: "top", t: I18n.t("Arriba"), i: "north" },
+                          { v: "left", t: I18n.t("Izquierda"), i: "west" }, { v: "right", t: I18n.t("Derecha"), i: "east" }]
+                value: Settings.dock.position
+                onPicked: v => Settings.set("dock", "position", v)
+            }
+        }
+        OptionRow {
             visible: !Serp.on
             title: I18n.t("Posición de las apps")
             help: page.single || !Settings.dock.floating ? "" : I18n.t("Con la barra flotante sola, las apps siempre van al centro.")
             Segmented {
-                options: [{ v: "center", t: I18n.t("Al centro"), i: "format_align_center" }, { v: "left", t: I18n.t("A la izquierda"), i: "format_align_left" }]
+                readonly property bool vertical: Settings.dock.position === "left" || Settings.dock.position === "right"
+                options: [{ v: "center", t: I18n.t("Al centro"), i: "format_align_center" },
+                          { v: "left", t: vertical ? I18n.t("Arriba") : I18n.t("A la izquierda"), i: vertical ? "vertical_align_top" : "format_align_left" }]
                 value: Settings.dock.align
                 onPicked: v => Settings.set("dock", "align", v)
+            }
+        }
+        OptionRow {
+            title: I18n.t("Animación al ocultar")
+            help: I18n.t("Cómo entra y sale una ventana por el dock al ocultarla o mostrarla.")
+            Segmented {
+                options: [{ v: "genie", t: I18n.t("Genio"), i: "gesture" }, { v: "scale", t: I18n.t("Escala"), i: "zoom_in_map" }, { v: "suck", t: I18n.t("Succión"), i: "south_east" }]
+                value: Settings.dock.minimizeEffect
+                onPicked: v => Settings.set("dock", "minimizeEffect", v)
             }
         }
         OptionRow {

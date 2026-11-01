@@ -88,18 +88,23 @@ def statusline_state(now):
         pass
     sessions.sort(key=lambda s: s.get("updated", 0), reverse=True)
 
-    # Los límites son de la cuenta: se toma la lectura más reciente que siga vigente
-    limits = None
-    for s in sessions:
-        lim = s.get("limits") or {}
-        out = {}
-        for k in ("five_hour", "seven_day"):
-            v = lim.get(k)
-            if v and v.get("used") is not None and (v.get("resets") or 0) > now:
-                out[k] = v
-        if out:
-            limits = out
-            break
+    # Los límites son de la cuenta: para cada ventana se toma la lectura más reciente.
+    # Si esa ventana ya se reinició (resets <= ahora) y no hay lectura nueva, el uso es
+    # desconocido (used = None): no se puede asumir 0 %, porque pudo usarse después del reinicio.
+    # "read" es cuándo se leyó el valor (epoch s), para mostrar lo antiguo que es.
+    limits = {}
+    for k in ("five_hour", "seven_day"):
+        for s in sessions:
+            v = (s.get("limits") or {}).get(k)
+            if v and v.get("used") is not None:
+                reset = v.get("resets") or 0
+                limits[k] = {
+                    "used": v["used"] if reset > now else None,
+                    "resets": reset,
+                    "read": s.get("updated") or 0,
+                }
+                break
+    limits = limits or None
 
     # Coste de las sesiones activas en la última ventana de 5 h (aproximado)
     recent = [s for s in sessions if now - s.get("updated", 0) < BLOCK]

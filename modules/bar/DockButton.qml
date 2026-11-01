@@ -13,10 +13,10 @@ Rectangle {
     signal clicked
     signal rightClicked
     signal middleClicked
-    // Arrastrar para reordenar (solo si draggable): dragMoved(dx) mientras se mueve, dropped() al soltar
+    // Arrastrar para reordenar o quitar (solo si draggable): dragMoved(dx, dy) mientras se mueve, dropped() al soltar
     property bool draggable: false
     property bool dragging: false
-    signal dragMoved(real dx)
+    signal dragMoved(real dx, real dy)
     signal dropped
 
     // flat: sin fondo al pasar el mouse ni al estar activa (el dock de macOS solo usa un punto)
@@ -44,12 +44,14 @@ Rectangle {
         cursorShape: root.busy ? Qt.BusyCursor : Qt.PointingHandCursor
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
         property real startX: 0
-        onPressed: e => { startX = e.x; }
+        property real startY: 0
+        onPressed: e => { startX = e.x; startY = e.y; }
         onPositionChanged: e => {
             if (!root.draggable || !(e.buttons & Qt.LeftButton)) return;
             const dx = e.x - startX;
-            if (!root.dragging && Math.abs(dx) > 10) root.dragging = true;
-            if (root.dragging) root.dragMoved(dx);
+            const dy = e.y - startY;
+            if (!root.dragging && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) root.dragging = true;
+            if (root.dragging) root.dragMoved(dx, dy);
         }
         onReleased: e => {
             if (root.dragging) { root.dragging = false; root.dropped(); }

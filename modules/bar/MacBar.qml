@@ -147,7 +147,7 @@ Item {
             { text: I18n.t("Ocultar otras"), enabled: !!root.win, action: () => root.hyprEval(`cael_hide_others('${root.addr}')`) },
             { text: I18n.t("Mostrar todo"), action: () => root.hyprEval("cael_show_all()") },
             { separator: true },
-            { text: I18n.t("Salir de ") + root.appName, enabled: !!root.win, shortcut: "Super+C", action: () => root.hyprDispatch(`hl.dsp.window.close({ window = "${root.sel()}" })`) }
+            { text: I18n.t("Salir de ") + root.appName, enabled: !!root.win, shortcut: "Super+C", action: () => root.hyprEval(`cael_close('${root.addr}')`) }
         ]
     }
 
@@ -210,7 +210,7 @@ Item {
             { separator: true },
             { text: I18n.t("Mostrar todo"), action: () => root.hyprEval("cael_show_all()") },
             { separator: true },
-            { text: I18n.t("Cerrar ventana"), shortcut: "Super+C", action: () => root.hyprDispatch(`hl.dsp.window.close({ window = "${root.sel()}" })`) }
+            { text: I18n.t("Cerrar ventana"), shortcut: "Super+C", action: () => root.hyprEval(`cael_close('${root.addr}')`) }
         ]
     }
 

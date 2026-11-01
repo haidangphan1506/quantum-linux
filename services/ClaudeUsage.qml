@@ -22,7 +22,21 @@ Singleton {
     // Porcentaje que queda de un límite (0-100), o -1 si no se conoce
     function left(key: string): real {
         const l = limits?.[key];
-        return l ? Math.max(0, 100 - l.used) : -1;
+        return l && l.used != null ? Math.max(0, 100 - l.used) : -1;
+    }
+
+    // Porcentaje ya usado de un límite (0-100), o -1 si no se conoce
+    function used(key: string): real {
+        const l = limits?.[key];
+        return l && l.used != null ? Math.min(100, Math.max(0, l.used)) : -1;
+    }
+
+    // Hora (HH:mm) en que se leyó un límite, o "" si no se sabe
+    function readAt(key: string): string {
+        const r = limits?.[key]?.read ?? 0;
+        if (!r) return "";
+        const d = new Date(r * 1000);
+        return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
     }
 
     // Porcentaje de contexto usado de la sesión actual, o -1
