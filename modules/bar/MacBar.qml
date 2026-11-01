@@ -226,6 +226,7 @@ Item {
     }
 
     // ---------- derecha ----------
+
     component BarIcon: MouseArea {
         id: ib
         property string icon: ""
@@ -249,6 +250,9 @@ Item {
         spacing: 2
 
         Tray { window: root.window; visible: Settings.dock.showTray && items.length > 0 }
+        // Uso de Claude Code: contexto del chat y lo que queda de 5 h y de la semana (clic: detalle)
+        ClaudeMeter { window: root.window; visible: Settings.layout.topBar.showClaude }
+
         // Temperatura, CPU y RAM en tiempo real (clic: panel con el detalle)
         Loader {
             active: Settings.layout.topBar.showSysMon

@@ -113,6 +113,21 @@ Singleton {
         return !!win && (win.minimized || root.minimizedWins.indexOf(win) >= 0);
     }
 
+    // Como macOS: las ventanas minimizadas van a la derecha del divisor del dock,
+    // cada una con su propio icono (la app sigue en su sitio con el punto de «abierta»).
+    readonly property var minimizedItems: root.windows
+        .filter(w => root.isMinimized(w))
+        .map(w => ({ win: w, appId: w.appId, title: w.title,
+                     icon: DesktopEntries.heuristicLookup(w.appId)?.icon ?? root.iconFor(w.appId) }))
+
+    // Clic en un icono del dock (macOS): activa la app. Si ya esta al frente no hace nada;
+    // si solo tiene ventanas minimizadas, restaura una; no minimiza al hacer clic.
+    function activateGroup(g: var): void {
+        if (g.wins.some(w => w.activated && !root.isMinimized(w))) return;
+        const w = g.wins.find(x => !root.isMinimized(x)) ?? g.wins[0];
+        root.focus(w);
+    }
+
     // Minimizar / restaurar: se pide por wlr-foreign-toplevel y Hyprland (minimize.lua) lo hace.
     function minimize(win: Toplevel): void { win.minimized = true; }
     function restore(win: Toplevel): void { win.minimized = false; }

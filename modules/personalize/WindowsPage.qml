@@ -132,7 +132,7 @@ ColumnLayout {
             title: I18n.t("Al abrir una ventana")
             visible: Settings.ui.advanced && Settings.windows.animations !== "none"
             Segmented {
-                options: [{ v: "zoom", t: "Zoom", i: "zoom_in" }, { v: "fade", t: I18n.t("Aparecer"), i: "gradient" },
+                options: [{ v: "zoom", t: I18n.t("Zoom"), i: "zoom_in" }, { v: "fade", t: I18n.t("Aparecer"), i: "gradient" },
                           { v: "fire", t: I18n.t("Fuego"), i: "local_fire_department" }, { v: "spin", t: I18n.t("Girar"), i: "autorenew" }]
                 value: Settings.windows.openAnimation
                 onPicked: v => Settings.set("windows", "openAnimation", v)

@@ -58,20 +58,20 @@ echo "session=$XDG_SESSION_TYPE"`]
             function uptime(): string {
                 const s = Math.floor(Number(info.up || 0));
                 const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
-                return (d ? d + " d " : "") + (h ? h + " h " : "") + m + " min";
+                return (d ? d + " " + I18n.t("d") + " " : "") + (h ? h + " " + I18n.t("h") + " " : "") + m + " " + I18n.t("min");
             }
             function gb(v: real): string { return v.toFixed(1).replace(".", ",") + " GB"; }
 
             readonly property var rows: [
-                { k: "Equipo", v: info.model || info.host || "—" },
-                { k: "Nombre", v: info.host || "—" },
-                { k: "Procesador", v: (info.cpu || "—") + (info.cores ? " (" + info.cores + " hilos)" : "") },
-                { k: "Gráficos", v: info.gpu || "—" },
-                { k: "Memoria", v: SysInfo.ramTotalGb > 0 ? gb(SysInfo.ramUsedGb) + " usados de " + gb(SysInfo.ramTotalGb) : "—" },
-                { k: "Almacenamiento", v: SysInfo.diskTotalGb > 0 ? Math.round(SysInfo.diskUsedGb) + " GB usados de " + Math.round(SysInfo.diskTotalGb) + " GB" : "—" },
+                { k: I18n.t("Equipo"), v: info.model || info.host || "—" },
+                { k: I18n.t("Nombre"), v: info.host || "—" },
+                { k: I18n.t("Procesador"), v: (info.cpu || "—") + (info.cores ? " (" + info.cores + " " + I18n.t("hilos") + ")" : "") },
+                { k: I18n.t("Gráficos"), v: info.gpu || "—" },
+                { k: I18n.t("Memoria"), v: SysInfo.ramTotalGb > 0 ? gb(SysInfo.ramUsedGb) + " " + I18n.t("usados de") + " " + gb(SysInfo.ramTotalGb) : "—" },
+                { k: I18n.t("Almacenamiento"), v: SysInfo.diskTotalGb > 0 ? Math.round(SysInfo.diskUsedGb) + " GB " + I18n.t("usados de") + " " + Math.round(SysInfo.diskTotalGb) + " GB" : "—" },
                 { k: "Kernel", v: info.kernel || "—" },
-                { k: "Sesión", v: info.session ? (info.session === "wayland" ? "Wayland" : info.session) : "—" },
-                { k: "Encendido hace", v: info.up ? uptime() : "—" },
+                { k: I18n.t("Sesión"), v: info.session ? (info.session === "wayland" ? "Wayland" : info.session) : "—" },
+                { k: I18n.t("Encendido hace"), v: info.up ? uptime() : "—" },
             ]
 
             function copyText(): string {
@@ -153,7 +153,7 @@ echo "session=$XDG_SESSION_TYPE"`]
                     PillButton {
                         primary: true
                         icon: "content_copy"
-                        text: "Copiar información"
+                        text: I18n.t("Copiar información")
                         onClicked: Quickshell.execDetached(["wl-copy", win.copyText()])
                     }
                 }

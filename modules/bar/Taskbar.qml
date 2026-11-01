@@ -14,6 +14,8 @@ RowLayout {
     required property var dock
     spacing: 2
     function buttonAt(i: int): Item { return rep.itemAt(i); }
+    // posición del mouse en coordenadas de esta fila (para la magnificación según la distancia)
+    readonly property real pointerRow: dock.pointerX < 0 ? -1e6 : mapFromItem(dock.cardItem, dock.pointerX, 0).x
 
     // Arrastre para reordenar: índice que se arrastra, cuánto se movió y a qué posición caería
     property int dragFrom: -1
@@ -35,7 +37,21 @@ RowLayout {
             property bool launching: false
 
             active: focused
-            onRunningChanged: if (running) launching = false
+            flat: true
+            // divisor entre las apps fijadas y las que solo estan abiertas (como macOS)
+            readonly property bool firstUnpinned: index > 0 && !g.pinned && Wm.groups[index - 1].pinned
+            Layout.leftMargin: firstUnpinned ? 12 : 0
+            Rectangle {
+                visible: btn.firstUnpinned
+                x: -7; anchors.verticalCenter: parent.verticalCenter
+                width: 1; height: Math.round(34 * Theme.dockScale)
+                color: Theme.alpha(Theme.fg, 0.2)
+            }
+            // mientras la app abre, el puntero del mouse sobre el botón muestra la espera (como macOS)
+            busy: launching
+            // el rebote sigue hasta que haya una ventana visible (no solo una ventana oculta o en proceso de abrir)
+            readonly property bool shown: g.wins.some(w => !Wm.isMinimized(w))
+            onShownChanged: if (shown) launching = false
 
             // reordenar arrastrando: el que se arrastra sigue al mouse y los demás se corren
             draggable: true
@@ -68,18 +84,8 @@ RowLayout {
                         launchTimer.restart();
                         Apps.launch(g.entry);
                     }
-                } else if (g.wins.length === 1) {
-                    Wm.toggle(g.wins[0]);
                 } else {
-                    // varias ventanas: enfocar la siguiente
-                    let idx = -1;
-                    for (let i = 0; i < g.wins.length; i++) {
-                        if (g.wins[i].activated) { idx = i; break; }
-                    }
-                    if (idx >= 0)
-                        Wm.focus(g.wins[(idx + 1) % g.wins.length]);
-                    else
-                        Wm.focus(g.wins[0]);
+                    Wm.activateGroup(g);
                 }
             }
             onMiddleClicked: if (g.entry) {
@@ -103,41 +109,98 @@ RowLayout {
 
             AppIcon {
                 id: icon
-                anchors.centerIn: parent
-                anchors.verticalCenterOffset: -2
-                size: Math.round(28 * Theme.dockScale)
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: Math.round(8 * Theme.dockScale)
+                size: Math.round(38 * Theme.dockScale)
                 name: btn.g.icon
                 opacity: btn.running && btn.g.wins.every(w => Wm.isMinimized(w)) ? 0.6 : 1
-                // rebote mientras la app abre
-                SequentialAnimation on anchors.verticalCenterOffset {
+                // como macOS: el icono salta varias veces mientras la app abre, con una pausa entre saltos
+                SequentialAnimation on anchors.bottomMargin {
                     running: btn.launching
                     loops: Animation.Infinite
                     alwaysRunToEnd: true
-                    NumberAnimation { to: -9; duration: 260; easing.type: Easing.OutQuad }
-                    NumberAnimation { to: -2; duration: 300; easing.type: Easing.OutBounce }
+                    NumberAnimation { to: Math.round(24 * Theme.dockScale); duration: 220; easing.type: Easing.OutCubic }
+                    NumberAnimation { to: Math.round(8 * Theme.dockScale); duration: 260; easing.type: Easing.OutBounce }
+                    NumberAnimation { to: Math.round(16 * Theme.dockScale); duration: 160; easing.type: Easing.OutCubic }
+                    NumberAnimation { to: Math.round(8 * Theme.dockScale); duration: 200; easing.type: Easing.OutBounce }
+                    PauseAnimation { duration: 500 }
                 }
-                scale: btn.hovered && !btn.pressed ? 1.08 : 1
-                Behavior on scale { NumberAnimation { duration: Theme.animFast } }
+                // magnificación continua: cuanto más cerca del mouse, más grande (suavizado de Hermite),
+                // así el icono crece y se achica mientras el mouse pasa de una app a otra
+                readonly property real near: {
+                    const d = Math.abs(btn.x + btn.width / 2 - root.pointerRow);
+                    const t = Math.max(0, 1 - d / (Math.round(130 * Theme.dockScale)));
+                    return t * t * (3 - 2 * t);
+                }
+                transformOrigin: Item.Bottom
+                scale: (1 + 0.55 * near) * (btn.pressed ? 0.92 : 1)
+                Behavior on scale { NumberAnimation { duration: 90; easing.type: Easing.OutQuad } }
             }
 
-            // Indicador: punto si está abierta, raya con degradado si está activa
+            // Indicador como en macOS: un punto bajo el icono si la app está abierta
             Rectangle {
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 2
                 anchors.horizontalCenter: parent.horizontalCenter
-                visible: btn.running
-                width: btn.focused ? 18 : btn.g.wins.length > 1 ? 10 : 6
-                height: 3
-                radius: 1.5
-                color: Theme.fgMuted
-                gradient: btn.focused ? brand : null
-                Behavior on width { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
-                Gradient {
-                    id: brand
-                    orientation: Gradient.Horizontal
-                    GradientStop { position: 0; color: Theme.brandCyan }
-                    GradientStop { position: 0.5; color: Theme.brandIndigo }
-                    GradientStop { position: 1; color: Theme.brandViolet }
+                // mientras abre (aún sin ventana) el punto parpadea suave, como el de macOS
+                visible: btn.running || btn.launching
+                width: 5; height: 5
+                radius: 2.5
+                color: btn.focused ? Theme.fg : Theme.alpha(Theme.fg, 0.55)
+                SequentialAnimation on opacity {
+                    running: btn.launching && !btn.running
+                    loops: Animation.Infinite
+                    alwaysRunToEnd: true
+                    NumberAnimation { to: 0.15; duration: 450; easing.type: Easing.InOutQuad }
+                    NumberAnimation { to: 1; duration: 450; easing.type: Easing.InOutQuad }
+                }
+            }
+        }
+    }
+
+    // Ventanas minimizadas: a la derecha de un divisor, un icono por ventana (clic = restaurar)
+    Rectangle {
+        visible: Wm.minimizedItems.length > 0
+        Layout.leftMargin: 6
+        Layout.rightMargin: 4
+        implicitWidth: 1
+        implicitHeight: Math.round(34 * Theme.dockScale)
+        color: Theme.alpha(Theme.fg, 0.2)
+    }
+    Repeater {
+        model: Wm.minimizedItems
+
+        DockButton {
+            id: mbtn
+            required property var modelData
+            flat: true
+            implicitWidth: Math.round(46 * Theme.dockScale)
+            onClicked: { root.dock.closeMenu(); root.dock.hoverGroup = null; Wm.restore(modelData.win); }
+            onHoveredChanged: {
+                if (hovered) {
+                    root.dock.cancelHide();
+                    root.dock.hoverItem = mbtn;
+                    root.dock.hoverGroup = { name: modelData.title || I18n.t("Ventana minimizada"), wins: [], entry: null, pinned: false, icon: modelData.icon };
+                } else if (root.dock.hoverItem === mbtn) {
+                    root.dock.scheduleHide();
+                }
+            }
+            // miniatura de ventana con la insignia de la app, como en macOS
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: Math.round(8 * Theme.dockScale)
+                width: Math.round(38 * Theme.dockScale)
+                height: Math.round(30 * Theme.dockScale)
+                radius: 6
+                color: Theme.alpha(Theme.fg, 0.1)
+                border.width: 1
+                border.color: Theme.alpha(Theme.fg, 0.25)
+                AppIcon {
+                    anchors.centerIn: parent
+                    size: Math.round(22 * Theme.dockScale)
+                    name: mbtn.modelData.icon
                 }
             }
         }

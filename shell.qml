@@ -1,6 +1,6 @@
 //@ pragma UseQApplication
-// Íconos: QS_ICON_THEME (quantum-shell-start) si existe; si no, el pragma IconTheme (WhiteSur-dark, igual que GTK).
-//@ pragma IconTheme WhiteSur-dark
+// Íconos: QS_ICON_THEME (quantum-shell-start) si existe; si no, el pragma IconTheme (MacTahoe, igual que GTK).
+//@ pragma IconTheme MacTahoe
 //@ pragma DefaultEnv QSG_RENDER_LOOP=threaded
 
 import QtQuick

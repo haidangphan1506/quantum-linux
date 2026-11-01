@@ -25,8 +25,12 @@ Variants {
         readonly property bool single: !Serp.on && Settings.layout.style === "single"
         readonly property bool floating: Serp.on || Settings.dock.floating
         readonly property bool full: single || !floating          // ocupa todo el ancho
+        // Como el dock de macOS: barra alta en forma de píldora, con iconos grandes
         readonly property int barH: Math.round(56 * Theme.dockScale)
-        readonly property int gap: floating ? 10 : 0
+        // posición horizontal del mouse sobre la barra (-1 fuera): los iconos crecen según la distancia
+        readonly property real pointerX: cardHover.hovered ? cardHover.point.position.x : -1
+        readonly property Item cardItem: card
+        readonly property int gap: floating ? 8 : 0
         readonly property bool alignLeft: !Serp.on && Settings.dock.align === "left"
         // Ocultar automáticamente: se asoma al llevar el mouse al borde de abajo
         readonly property bool autohide: Settings.dock.autohide
@@ -114,9 +118,13 @@ Variants {
             x: dock.full ? dock.gap : (parent.width - width) / 2
             width: dock.full ? parent.width - 2 * dock.gap : row.implicitWidth + 16
             height: dock.barH
-            radius: dock.floating ? Math.round(20 * Theme.dockScale) * Theme.radius / 16 : 0
-            color: Theme.alpha(Theme.surface, Math.min(0.97, Theme.glassOpacity("dock") + 0.04))
+            radius: dock.floating ? height / 2 : 0
+            // Vidrio como Liquid Glass de macOS Tahoe: bastante transparente para que el blur
+            // de Hyprland (layer quantum-dock) se vea detrás. Con el slider de opacidad se ajusta.
+            color: Theme.alpha(Theme.surface, Math.max(0.25, Math.min(0.6, Theme.glassOpacity("dock") * 0.55)))
             border.width: dock.floating ? 1 : 0
+            // borde de luz: un reflejo blanco fino alrededor del vidrio
+            border.color: Theme.dark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.6)
             // Ẩn/hiện khi hover: một giá trị 0..1 điều khiển trượt + mờ + co.
             // Hiện: bật lên nhẹ (OutBack khi nổi) — Ẩn: nhanh hơn, tăng tốc dần (InCubic).
             property real reveal: dock.shown && dock.revealed ? 1 : 0
@@ -134,6 +142,7 @@ Variants {
             Behavior on width { enabled: !dock.full; NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
 
             HoverHandler {
+                id: cardHover
                 onHoveredChanged: {
                     if (hovered) { revealTimer.stop(); dock.hovering = true; }
                     else { revealTimer.interval = 250; revealTimer.restart(); }
@@ -172,7 +181,7 @@ Variants {
                 anchors.verticalCenter: parent.verticalCenter
                 x: !dock.full ? 8 : dock.alignLeft ? 8 : Math.max(8, (card.width - width) / 2)
                 Behavior on x { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
-                spacing: 2
+                spacing: 6
 
                 DockButton {
                     visible: Settings.dock.showStart && !Serp.on
@@ -220,8 +229,7 @@ Variants {
         Card {
             id: bubble
             readonly property var g: dock.hoverGroup
-            readonly property bool many: g !== null && g.wins.length > 1
-            visible: g !== null && dock.menuGroup === null && dock.hoverItem !== null
+                        visible: g !== null && dock.menuGroup === null && dock.hoverItem !== null
             x: dock.hoverItem ? Math.max(8, Math.min(dock.width - width - 8,
                    dock.hoverItem.mapToItem(dock.contentItem, dock.hoverItem.width / 2, 0).x - width / 2)) : 0
             anchors.bottom: card.top
@@ -238,46 +246,11 @@ Variants {
                 anchors.centerIn: parent
                 spacing: 2
                 Txt {
-                    visible: !bubble.many
-                    text: bubble.g ? (bubble.g.wins.length === 1 && bubble.g.wins[0].title ? bubble.g.wins[0].title : bubble.g.name) : ""
+                    // como macOS: solo el nombre de la app (las ventanas se listan en el menu)
+                    text: bubble.g ? bubble.g.name : ""
                     font.weight: Font.DemiBold
                     Layout.maximumWidth: 320
                     elide: Text.ElideRight
-                }
-                // varias ventanas: lista para elegir una, como en Windows
-                Repeater {
-                    model: bubble.many ? bubble.g.wins : []
-                    Rectangle {
-                        id: winRow
-                        required property var modelData
-                        Layout.fillWidth: true
-                        implicitWidth: Math.min(340, winTitle.implicitWidth + 60)
-                        implicitHeight: 36
-                        radius: Theme.radiusSmall
-                        color: winArea.containsMouse ? Theme.alpha(Theme.fg, 0.08) : "transparent"
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 8
-                            anchors.rightMargin: 8
-                            spacing: 8
-                            AppIcon { size: 18; name: Wm.iconFor(winRow.modelData.appId) }
-                            Txt {
-                                id: winTitle
-                                Layout.fillWidth: true
-                                text: winRow.modelData.title || bubble.g.name
-                                elide: Text.ElideRight
-                                font.weight: winRow.modelData.activated ? Font.Bold : Font.Normal
-                            }
-                        }
-                        MouseArea {
-                            id: winArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onEntered: hideTimer.stop()
-                            onExited: hideTimer.restart()
-                            onClicked: { Wm.focus(winRow.modelData); dock.hoverGroup = null; }
-                        }
-                    }
                 }
             }
             HoverHandler {
@@ -318,12 +291,48 @@ Variants {
                     AppIcon { size: 22; name: menu.g ? menu.g.icon : "" }
                     Txt { Layout.fillWidth: true; text: menu.g ? menu.g.name : ""; font.weight: Font.Bold; elide: Text.ElideRight }
                 }
+                // ventanas de la app (como macOS): clic para llevarla al frente
+                Repeater {
+                    model: menu.g ? menu.g.wins : []
+                    Rectangle {
+                        id: wrow
+                        required property var modelData
+                        Layout.fillWidth: true
+                        implicitHeight: 34
+                        radius: Theme.radiusSmall
+                        color: wArea.containsMouse ? Theme.alpha(Theme.fg, 0.08) : "transparent"
+                        Txt {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 10
+                            verticalAlignment: Text.AlignVCenter
+                            text: (Wm.isMinimized(wrow.modelData) ? "◦ " : wrow.modelData.activated ? "✓ " : "   ") + (wrow.modelData.title || menu.g.name)
+                            elide: Text.ElideRight
+                        }
+                        MouseArea {
+                            id: wArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: { Wm.focus(wrow.modelData); dock.closeMenu(); }
+                        }
+                    }
+                }
+                Rectangle {
+                    visible: menu.g !== null && menu.g.wins.length > 0
+                    Layout.fillWidth: true
+                    Layout.margins: 4
+                    implicitHeight: 1
+                    color: Theme.alpha(Theme.fg, 0.12)
+                }
                 Repeater {
                     model: menu.g ? [
                         { icon: "add", text: I18n.t("Nueva ventana"), show: !!menu.g.entry, run: () => Apps.launch(menu.g.entry) },
                         { icon: menu.g.pinned ? "keep_off" : "keep", text: menu.g.pinned ? I18n.t("Quitar de la barra") : I18n.t("Fijar en la barra"),
                           show: !!menu.g.entry, run: () => Wm.togglePin(menu.g.id) },
-                        { icon: "close", text: menu.g.wins.length > 1 ? I18n.t("Cerrar todas las ventanas") : I18n.t("Cerrar ventana"),
+                        { icon: "visibility_off", text: I18n.t("Ocultar"),
+                          show: menu.g.wins.some(w => !Wm.isMinimized(w)), run: () => menu.g.wins.forEach(w => Wm.minimize(w)) },
+                        { icon: "power_settings_new", text: I18n.t("Salir"),
                           show: menu.g.wins.length > 0, run: () => menu.g.wins.forEach(w => w.close()) },
                     ].filter(o => o.show) : []
                     Rectangle {

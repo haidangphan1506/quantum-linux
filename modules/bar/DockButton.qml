@@ -19,10 +19,15 @@ Rectangle {
     signal dragMoved(real dx)
     signal dropped
 
-    implicitWidth: Math.round(46 * Theme.dockScale)
-    implicitHeight: Math.round(44 * Theme.dockScale)
+    // flat: sin fondo al pasar el mouse ni al estar activa (el dock de macOS solo usa un punto)
+    property bool flat: false
+    // busy: la app esta abriendo; el puntero del mouse muestra la espera
+    property bool busy: false
+
+    implicitWidth: Math.round(50 * Theme.dockScale)
+    implicitHeight: Math.round(50 * Theme.dockScale)
     radius: Math.max(6, Theme.radiusSmall + 2)
-    color: active ? Theme.alpha(Theme.fg, 0.12) : area.containsMouse ? Theme.alpha(Theme.fg, 0.07) : "transparent"
+    color: flat ? "transparent" : active ? Theme.alpha(Theme.fg, 0.12) : area.containsMouse ? Theme.alpha(Theme.fg, 0.07) : "transparent"
     Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
     Item {
@@ -36,7 +41,7 @@ Rectangle {
         id: area
         anchors.fill: parent
         hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: root.busy ? Qt.BusyCursor : Qt.PointingHandCursor
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
         property real startX: 0
         onPressed: e => { startX = e.x; }

@@ -25,9 +25,9 @@ PanelWindow {
     readonly property var actions: [
         { icon: "lock", label: I18n.t("Bloquear"), hint: "Super + L", run: () => Shell.lock() },
         { icon: "logout", label: I18n.t("Cerrar sesión"), hint: "", run: () => Wm.logout() },
-        { icon: "bedtime", label: "Suspender", hint: "", run: () => Quickshell.execDetached(["systemctl", "suspend"]) },
-        { icon: "restart_alt", label: "Reiniciar", hint: "", run: () => Quickshell.execDetached(["systemctl", "reboot"]) },
-        { icon: "power_settings_new", label: "Apagar", hint: "", run: () => Quickshell.execDetached(["systemctl", "poweroff"]) },
+        { icon: "bedtime", label: I18n.t("Suspender"), hint: "", run: () => Quickshell.execDetached(["systemctl", "suspend"]) },
+        { icon: "restart_alt", label: I18n.t("Reiniciar"), hint: "", run: () => Quickshell.execDetached(["systemctl", "reboot"]) },
+        { icon: "power_settings_new", label: I18n.t("Apagar"), hint: "", run: () => Quickshell.execDetached(["systemctl", "poweroff"]) },
     ]
     property int current: 0
     // Los botones se achican en pantallas angostas

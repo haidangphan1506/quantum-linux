@@ -234,6 +234,11 @@ ColumnLayout {
             help: I18n.t("Temperatura, CPU y RAM en tiempo real. Haz clic para ver el detalle.")
             Toggle { checked: Settings.layout.topBar.showSysMon; onToggled: c => Settings.setPath("layout.topBar.showSysMon", c) }
         }
+        OptionRow {
+            title: I18n.t("Uso de Claude Code")
+            help: I18n.t("Tokens usados en la ventana de 5 h y en los últimos 7 días, según los registros locales.")
+            Toggle { checked: Settings.layout.topBar.showClaude; onToggled: c => Settings.setPath("layout.topBar.showClaude", c) }
+        }
     }
 
     Group {

@@ -205,7 +205,7 @@ Scope {
                                     "command -v ollama >/dev/null || sudo pacman -S --needed --noconfirm ollama; " +
                                     "sudo systemctl enable --now ollama && sleep 2 && ollama pull " + win.tier +
                                     " && echo -e '\\n\\e[1;32m¡Listo! Ya puedes cerrar esta ventana y usar el asistente (Super + H).\\e[0m'; " +
-                                    "read -rp 'Presiona Enter para cerrar…'"]);
+                                    "read -rp '" + I18n.t("Presiona Enter para cerrar…") + "'"]);
                                 Settings.ai.model = win.tier;
                             }
                         }
