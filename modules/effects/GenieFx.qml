@@ -40,12 +40,18 @@ PanelWindow {
     property int dur: 340
     readonly property int nBands: 48
 
-    // Captura de la pantalla; se recorta la region de la ventana con sourceRect
+    // true: se captura la propia ventana (toplevel) aunque este oculta (opacidad 0): la app nunca
+    // se ve a tamano completo antes del efecto. Solo para «open»; el resto captura la pantalla.
+    property bool fromWin: false
+    property var winSource: null     // toplevel de Wayland de la ventana (Hyprland.toplevels)
+
+    // Captura: la ventana (toplevel) o la pantalla; se recorta la region con sourceRect
     ScreencopyView {
         id: cap
         x: -30000; y: 0
-        width: fx.screen.width; height: fx.screen.height
-        captureSource: fx.screen
+        width: fx.fromWin ? fx.w0 : fx.screen.width
+        height: fx.fromWin ? fx.h0 : fx.screen.height
+        captureSource: fx.fromWin ? fx.winSource : fx.screen
         live: fx.pending
         onHasContentChanged: if (fx.pending && hasContent) fx.begin()
     }
@@ -70,7 +76,9 @@ PanelWindow {
             height: hRow
             opacity: 1 - Math.pow(s, 3)
             sourceItem: cap
-            sourceRect: Qt.rect(fx.x0, fx.y0 + index * fx.h0 / fx.nBands, fx.w0, fx.h0 / fx.nBands)
+            sourceRect: fx.fromWin
+                ? Qt.rect(0, index * fx.h0 / fx.nBands, fx.w0, fx.h0 / fx.nBands)
+                : Qt.rect(fx.x0, fx.y0 + index * fx.h0 / fx.nBands, fx.w0, fx.h0 / fx.nBands)
             live: true
         }
     }
@@ -121,14 +129,23 @@ PanelWindow {
     Timer {
         id: failT
         interval: 800
-        onTriggered: if (fx.pending) { fx.pending = false; console.log("GENIE sin captura; se omite el efecto"); }
+        onTriggered: if (fx.pending) {
+            // sin captura: la ventana no puede quedarse oculta
+            fx.pending = false;
+            if (fx.fromWin) fx.winSet("1.0");
+            console.log("GENIE sin captura; se omite el efecto");
+        }
+    }
+
+    // Toplevel de Hyprland de una ventana (por address)
+    function toplevelOf(addr: string): var {
+        const key = addr.replace(/^0x/, "");
+        return Hyprland.toplevels.values.find(t => (t.address ?? "").replace(/^0x/, "") === key) ?? null;
     }
 
     // Id del grupo del dock (id del .desktop) de una ventana de Hyprland
     function groupOf(addr: string): string {
-        const key = addr.replace(/^0x/, "");
-        const h = Hyprland.toplevels.values.find(t => (t.address ?? "").replace(/^0x/, "") === key);
-        const appId = h?.wayland?.appId ?? "";
+        const appId = fx.toplevelOf(addr)?.wayland?.appId ?? "";
         return appId ? (Wm.entryFor(appId)?.id ?? appId) : "";
     }
 
@@ -153,6 +170,10 @@ PanelWindow {
         fx.yd = dy;
         fx.dur = ms > 0 ? ms : 340;
         fx.p = fx.opening ? 1 : 0;
+        // «open»: captura de la ventana misma; si no se encuentra su toplevel, se usa la pantalla
+        const top = mode === "open" ? fx.toplevelOf(fx.addr) : null;
+        fx.winSource = top?.wayland ?? null;
+        fx.fromWin = !!fx.winSource;
         fx.pending = true;
         cap.captureFrame();
         beginT.restart();

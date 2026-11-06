@@ -1,0 +1,14 @@
+#!/bin/sh
+# Claude Agent Space (3D, Quickshell). Neu da mo: dua cua so len tren (khong mo them).
+TITLE="Claude Agent Space"
+APP="$(dirname "$(readlink -f "$0")")/shell.qml"
+addr=$(hyprctl clients -j 2>/dev/null | python3 -I -c "
+import json,sys
+for c in json.load(sys.stdin):
+    if c.get('title') == sys.argv[1] and c.get('class') == 'org.quickshell':
+        print(c['address']); break" "$TITLE")
+if [ -n "$addr" ]; then
+    [ "$1" = --quiet ] && exit 0
+    exec hyprctl eval "cael_activate('$addr')" >/dev/null
+fi
+exec setsid qs -p "$APP" -n -d >/dev/null 2>&1 </dev/null

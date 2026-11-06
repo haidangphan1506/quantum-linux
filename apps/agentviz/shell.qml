@@ -6,7 +6,7 @@ import Quickshell.Io
 // Claude Agent Viz: sơ đồ lead / swarm / advisor của Claude Code, vẽ trực tiếp.
 // Dữ liệu: collector.py (hook của Claude Code) ghi ~/.cache/claude-agentviz/state.json.
 // Cửa sổ thường (có thanh tiêu đề). Hook tự mở khi có subagent chạy (tác vụ phức tạp).
-// Mở: claude-agentviz   IPC: qs -p ~/dev/cael-src/apps/agentviz/shell.qml ipc call agentviz close|status
+// Mở: claude-agentviz  (nút 🏢 mở văn phòng 3D apps/agentoffice)   IPC: qs -p ~/dev/cael-src/apps/agentviz/shell.qml ipc call agentviz close|status
 ShellRoot {
     id: app
 
@@ -43,7 +43,7 @@ ShellRoot {
     property string defaultModel: "sonnet"
     readonly property string popupModel: cap(s?.model && s.model !== "?" ? s.model : defaultModel)
     readonly property size fullSize: Qt.size(800, 640)
-    readonly property size popupSize: Qt.size(300, 96)
+    readonly property size popupSize: Qt.size(400, 96)
 
     FileView {
         path: Quickshell.env("HOME") + "/.claude/settings.json"
@@ -130,6 +130,23 @@ ShellRoot {
             }
         }
     }
+    // nút mở Claude Agent Office (văn phòng 3D, apps/agentoffice) — launcher tự đưa cửa sổ lên nếu đã mở
+    readonly property string officeLauncher: Qt.resolvedUrl("../agentoffice/claude-agentoffice").toString().replace("file://", "")
+    component OfficeBtn: Rectangle {
+        implicitWidth: officeT.implicitWidth + 18
+        implicitHeight: 26
+        radius: 5
+        color: officeMa.containsMouse ? Qt.rgba(app.cLead.r, app.cLead.g, app.cLead.b, 0.22) : Qt.rgba(1, 1, 1, 0.05)
+        border.color: Qt.rgba(app.cLead.r, app.cLead.g, app.cLead.b, officeMa.containsMouse ? 0.9 : 0.45)
+        T { id: officeT; anchors.centerIn: parent; text: "🏢 Văn phòng"; color: app.cLead }
+        MouseArea {
+            id: officeMa
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: Quickshell.execDetached([app.officeLauncher])
+        }
+    }
     component Mark: RowLayout {
         property string label
         property bool on: false
@@ -174,6 +191,7 @@ ShellRoot {
                         color: app.muted
                     }
                 }
+                OfficeBtn {}
             }
         }
 
@@ -210,6 +228,7 @@ ShellRoot {
                         text: app.live ? "● live" : "○ idle"
                         color: app.live ? app.cFork : app.muted
                     }
+                    OfficeBtn {}
                 }
 
                 RowLayout {
