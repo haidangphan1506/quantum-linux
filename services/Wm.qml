@@ -20,14 +20,22 @@ Singleton {
     // Las ventanas propias del shell (Personalizar) llegan como «org.quickshell», pero el
     // sistema trae su propio org.quickshell.desktop (icono de Quickshell): hay que preferir
     // el de Personalizar, si no, la ventana y la barra muestran el icono equivocado.
-    function entryFor(appId: string): var {
-        if (appId === "org.quickshell")
+    // Dentro de org.quickshell, la ventana «Claude Agents City» (apps/agentoffice) es de otra app:
+    // se distingue por el título y usa el .desktop claude-agentoffice.
+    readonly property string officeTitle: "Claude Agents City"
+
+    // title (opcional): título de la ventana; hace falta para distinguir las ventanas org.quickshell.
+    function entryFor(appId: string, title): var {
+        if (appId === "org.quickshell") {
+            if (title === root.officeTitle)
+                return DesktopEntries.byId("claude-agentoffice") ?? DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
             return DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
+        }
         return DesktopEntries.heuristicLookup(appId);
     }
 
-    function iconFor(appId: string): string {
-        return root.entryFor(appId)?.icon ?? appId;
+    function iconFor(appId: string, title): string {
+        return root.entryFor(appId, title)?.icon ?? appId;
     }
 
     // Grupos de la barra de tareas: fijadas primero (en su orden) y luego las
@@ -57,7 +65,7 @@ Singleton {
         const nPinned = out.length;
         for (let i = 0; i < root.windows.length; i++) {
             const w = root.windows[i];
-            const e = root.entryFor(w.appId);
+            const e = root.entryFor(w.appId, w.title);
             const id = e?.id ?? w.appId;
             const g = byId[id] ?? add(id, e, false);
             if (g.wins.indexOf(w) === -1)
@@ -121,9 +129,9 @@ Singleton {
         root.updateGroups();
     }
 
-    function nameFor(appId: string): string {
-        if (appId === "org.quickshell") return I18n.t("Personalizar");
-        return root.entryFor(appId)?.name ?? appId;
+    function nameFor(appId: string, title): string {
+        if (appId === "org.quickshell" && title !== root.officeTitle) return I18n.t("Personalizar");
+        return root.entryFor(appId, title)?.name ?? appId;
     }
 
     // Hyprland no tiene "minimizado": hyprlands/minimize.lua mueve la ventana al workspace
@@ -142,7 +150,7 @@ Singleton {
     readonly property var minimizedItems: root.windows
         .filter(w => root.isMinimized(w))
         .map(w => ({ win: w, appId: w.appId, title: w.title,
-                     icon: root.iconFor(w.appId) }))
+                     icon: root.iconFor(w.appId, w.title) }))
 
     // Clic en un icono del dock: alterna mostrar/ocultar. Si la app esta al frente se
     // minimizan sus ventanas visibles; si no, se activa (o se restaura una minimizada).

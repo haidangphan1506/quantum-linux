@@ -18,7 +18,7 @@ Item {
 
     readonly property var win: Wm.active && !Wm.isMinimized(Wm.active) ? Wm.active : null
     readonly property string appId: win ? (win.appId ?? "") : ""
-    readonly property string appName: win ? Wm.nameFor(appId) : "Quantum"
+    readonly property string appName: win ? Wm.nameFor(appId, win.title ?? "") : "Quantum"
     readonly property bool isTerminal: ["kitty", "foot", "Alacritty", "alacritty", "org.wezfurlong.wezterm", "com.mitchellh.ghostty", "ghostty", "konsole", "org.gnome.Console", "xterm"].includes(appId)
 
     // dirección Hyprland de la ventana activa (se guarda al abrir un menú)

@@ -58,6 +58,16 @@ def transcript_model(path):
         return None
 
 
+def notify(title, body, urgent=False):
+    """Thông báo desktop (notify-send). Lỗi bị nuốt: không bao giờ chặn Claude."""
+    try:
+        subprocess.Popen(["notify-send", "-a", "Claude", "-u", "critical" if urgent else "normal",
+                          title, body[:200]], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+    except Exception:
+        pass
+
+
 def ensure_app():
     try:
         subprocess.Popen([HOME + "/.local/bin/claude-agentviz", "--quiet"], stdin=subprocess.DEVNULL,
@@ -86,9 +96,10 @@ def main():
             "id": sid, "cwd": ev.get("cwd", ""), "model": "?", "effort": "",
             "busy": False, "turns": 0, "tools": 0, "errors": {}, "repeatError": "",
             "subs": {}, "pending": [], "advisor": {"calls": 0, "last": "", "at": 0},
-            "promptAt": now, "phase": "idle",
+            "promptAt": now, "phase": "idle", "task": "", "waitMsg": "", "toolAt": now,
         })
         s["at"] = now
+        proj = os.path.basename((s["cwd"] or "").rstrip("/")) or "?"
         s["cwd"] = ev.get("cwd", s["cwd"])
         if ev.get("effort"):
             s["effort"] = ev["effort"].get("level", s["effort"])
@@ -99,20 +110,28 @@ def main():
             if ev.get("model"):
                 s["model"] = short(ev["model"])
         elif name == "UserPromptSubmit":
-            s.update(busy=True, promptAt=now, phase="lead", repeatError="", errors={})
+            first = next((l.strip() for l in (ev.get("prompt") or "").splitlines() if l.strip()), "")
+            s.update(busy=True, promptAt=now, phase="lead", repeatError="", errors={},
+                     task=first[:120], waitMsg="")
             s["turns"] += 1
             # lượt mới: chỉ giữ subagent còn chạy
             s["subs"] = {k: v for k, v in s["subs"].items() if v["status"] == "running"}
             m = transcript_model(ev.get("transcript_path", ""))
             if m:
                 s["model"] = short(m)
+        elif name == "Notification":
+            msg = (ev.get("message") or "Claude cần bạn xem").strip()
+            s.update(phase="waiting", waitMsg=msg[:160])
+            notify(f"Claude chờ bạn · {proj}", msg, urgent=True)
         elif name == "PreToolUse":
+            s["toolAt"] = now
             if sub is not None:
                 sub["tools"] += 1
                 sub["tool"] = ev.get("tool_name", "")
             else:
                 s["tools"] += 1
                 s["busy"] = True
+                s["tool"] = ev.get("tool_name", "")
                 if ev.get("tool_name") in ("Agent", "Task"):
                     ti = ev.get("tool_input") or {}
                     atype = ti.get("subagent_type") or "general-purpose"
@@ -123,6 +142,7 @@ def main():
                                          "bg": bool(ti.get("run_in_background"))})
                     s["pending"] = s["pending"][-20:]
         elif name in ("PostToolUse", "PostToolUseFailure"):
+            s["toolAt"] = now
             if sub is None and name == "PostToolUseFailure":
                 err = str(ev.get("error", ""))[:120]
                 key = f'{ev.get("tool_name")}:{err}'
@@ -159,10 +179,13 @@ def main():
             if not any(v["status"] == "running" for v in s["subs"].values()):
                 s["phase"] = "review" if s["subs"] else "lead"
         elif name == "Stop":
-            s.update(busy=False, phase="done" if s["subs"] else "idle", doneAt=now)
-            # lượt chính chỉ dừng khi subagent foreground đã xong (hoặc bị ngắt)
+            was_busy = s["busy"]
+            s.update(busy=False, phase="done" if s["subs"] else "idle", doneAt=now, waitMsg="", tool="")
+            if was_busy:
+                notify(f"Claude xong · {proj}", "Đã hoàn tất")
+            # lượt chính đã dừng: mọi subagent còn "running" coi như xong (kể cả bg, tránh kẹt trạng thái)
             for v in s["subs"].values():
-                if v["status"] == "running" and not v.get("bg"):
+                if v["status"] == "running":
                     v.update(status="done", end=now, tool="")
             m = transcript_model(ev.get("transcript_path", ""))
             if m:

@@ -28,6 +28,12 @@ MouseArea {
     Component.onCompleted: SysInfo.barUsers++
     Component.onDestruction: SysInfo.barUsers--
 
+    // %RAM của một app (top) → dung lượng: MB dưới 1 GB, GB từ 1 GB trở lên
+    function fmtProcMem(pct: real): string {
+        const gb = pct / 100 * SysInfo.ramTotalGb;
+        return gb >= 1 ? gb.toFixed(1) + " GB" : Math.round(gb * 1024) + " MB";
+    }
+
     function tempColor(t: real): color {
         const l = SysInfo.tempLevel(t);
         return l === 2 ? Theme.error : l === 1 ? Theme.tertiary : Theme.fg;
@@ -282,7 +288,7 @@ MouseArea {
                         spacing: 8
                         Txt { Layout.fillWidth: true; text: modelData.name; font.pixelSize: 13; elide: Text.ElideRight }
                         Txt { text: modelData.cpu.toFixed(1) + "%"; font.pixelSize: 12; font.features: { "tnum": 1 }; color: Theme.primary; Layout.minimumWidth: 44; horizontalAlignment: Text.AlignRight }
-                        Txt { text: modelData.mem.toFixed(1) + "% RAM"; font.pixelSize: 12; font.features: { "tnum": 1 }; color: Theme.fgMuted; Layout.minimumWidth: 70; horizontalAlignment: Text.AlignRight }
+                        Txt { text: root.fmtProcMem(modelData.mem); font.pixelSize: 12; font.features: { "tnum": 1 }; color: Theme.fgMuted; Layout.minimumWidth: 70; horizontalAlignment: Text.AlignRight }
                     }
                 }
                 Txt { visible: SysInfo.procs.length === 0; text: I18n.t("Midiendo…"); font.pixelSize: 12; color: Theme.fgMuted }

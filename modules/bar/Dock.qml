@@ -233,8 +233,8 @@ Variants {
             readonly property bool startShown: Settings.dock.showStart && !Serp.on
             readonly property bool searchShown: Settings.dock.showSearch && !Serp.on
             readonly property bool dividerShown: (Settings.dock.showStart || Settings.dock.showSearch) && !Serp.on
-            // elementos visibles de la fila (Inicio, Buscar, divisor y las apps): GridLayout necesita el conteo
-            readonly property int itemCount: Math.max(1, (startShown ? 1 : 0) + (searchShown ? 1 : 0) + (dividerShown ? 1 : 0) + 1)
+            // elementos visibles de la fila (Inicio, Buscar, divisor, las apps, divisor y papelera): GridLayout necesita el conteo
+            readonly property int itemCount: Math.max(1, (startShown ? 1 : 0) + (searchShown ? 1 : 0) + (dividerShown ? 1 : 0) + 1 + 2)
             GridLayout {
                 id: row
                 flow: dock.vertical ? GridLayout.TopToBottom : GridLayout.LeftToRight
@@ -270,7 +270,7 @@ Variants {
                     visible: Settings.dock.showSearch && !Serp.on
                     tip: I18n.t("Buscar")
                     onClicked: Shell.toggleLauncher(false)
-                    Icon { anchors.centerIn: parent; text: "search"; size: Math.round(24 * Theme.dockScale); color: Theme.fg }
+                    AppIcon { anchors.centerIn: parent; name: "system-search"; fallback: ""; glyph: "search"; size: Math.round(28 * Theme.dockScale) }
                 }
                 Rectangle {
                     visible: (Settings.dock.showStart || Settings.dock.showSearch) && !Serp.on
@@ -283,6 +283,17 @@ Variants {
                     color: Theme.alpha(Theme.fg, 0.14)
                 }
                 Taskbar { id: taskbar; dock: dock }
+                // divisor y papelera al final, como en macOS (mismo estilo que el divisor de la barra de tareas)
+                Rectangle {
+                    Layout.leftMargin: dock.vertical ? 0 : 6
+                    Layout.rightMargin: dock.vertical ? 0 : 4
+                    Layout.topMargin: dock.vertical ? 6 : 0
+                    Layout.bottomMargin: dock.vertical ? 4 : 0
+                    implicitWidth: dock.vertical ? Math.round(34 * Theme.dockScale) : 1
+                    implicitHeight: dock.vertical ? 1 : Math.round(34 * Theme.dockScale)
+                    color: Theme.alpha(Theme.fg, 0.2)
+                }
+                TrashButton {}
             }
 
             // Modo «una sola barra»: bandeja, estado, hora y apagado a la derecha

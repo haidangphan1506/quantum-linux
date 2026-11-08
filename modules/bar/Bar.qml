@@ -83,14 +83,14 @@ Variants {
                     anchors.fill: parent
                     visible: !!activeApp.win && bar.floating
                     size: 22
-                    name: activeApp.win ? Wm.iconFor(activeApp.win.appId) : ""
+                    name: activeApp.win ? Wm.iconFor(activeApp.win.appId, activeApp.win.title) : ""
                 }
             }
             Txt {
                 Layout.leftMargin: 4
                 Layout.rightMargin: 6
                 Layout.maximumWidth: bar.width * 0.3 - 40
-                text: activeApp.win ? Wm.nameFor(activeApp.win.appId) : "Quantum"
+                text: activeApp.win ? Wm.nameFor(activeApp.win.appId, activeApp.win.title) : "Quantum"
                 font.weight: Font.Bold
                 elide: Text.ElideRight
             }
