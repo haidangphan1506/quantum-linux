@@ -31,9 +31,9 @@ Singleton {
     // Valores de fábrica de todo lo visual (= estilo «Quantum»). Los estilos se
     // aplican encima de esto, así un estilo siempre se ve igual.
     readonly property var defaults: ({
-        appearance: { mode: "dark", dynamicColors: false, accent: "#6A5CFF", panelOpacity: 0.86, blur: true, textScale: 1.0,
+        appearance: { mode: "light", dynamicColors: false, accent: "#6A5CFF", panelOpacity: 0.86, blur: true, textScale: 1.0,
                       glass: { bar: true, dock: true, panels: true, windows: false }, windowOpacity: 0.9 },
-        layout: { style: "split", topBar: { floating: true, showApp: true, showSysMon: true } },
+        layout: { style: "split", topBar: { floating: true, showApp: true, showSysMon: true, showClaude: true } },
         dock: { floating: true, align: "center", size: "medium", autohide: false, showSearch: true, showStart: true, showTray: true, showUpdates: true },
         clock: { format24h: true, showDate: true, showSeconds: false },
         lock: { left: ["weather", "fetch", "media"], right: ["stats", "notifs"], showNotifContent: false, city: "" },
@@ -216,6 +216,10 @@ Singleton {
             let pins = adapter.dock.pinned ?? [];
             if (pins.join(",") === "org.gnome.Nautilus,firefox,foton,quantum-store,kitty,quantum-center")
                 pins = ["org.gnome.Nautilus", "firefox", "kitty", "quantum-center"];
+            // Personalizar se fija por su .desktop (quantum-personalize); antes se fijaba por la
+            // ventana (org.quickshell), que no tiene .desktop y nunca aparecía en la barra.
+            if (pins.includes("org.quickshell") && !pins.includes("quantum-personalize"))
+                pins = pins.map(p => p === "org.quickshell" ? "quantum-personalize" : p);
             // Archivos (quantum-files) reemplaza a Nautilus en la barra, una sola vez
             if (!adapter.ui.filesPinned && pins.includes("org.gnome.Nautilus") && !pins.includes("quantum-files"))
                 pins = pins.map(p => p === "org.gnome.Nautilus" ? "quantum-files" : p);
@@ -228,7 +232,7 @@ Singleton {
             id: adapter
 
             property JsonObject appearance: JsonObject {
-                property string mode: "dark"             // dark | light | auto (por horario)
+                property string mode: "light"            // dark | light | auto (por horario)
                 property string lightFrom: "07:00"       // modo auto: claro desde…
                 property string lightTo: "18:00"         // …hasta
                 property bool dynamicColors: false
@@ -305,7 +309,9 @@ Singleton {
             }
             property JsonObject dock: JsonObject {
                 // apps fijadas en la barra de tareas (ids de .desktop)
-                property var pinned: ["quantum-files", "firefox", "kitty", "quantum-center"]
+                property var pinned: ["quantum-files", "firefox", "kitty", "quantum-center", "quantum-personalize"]
+                property string position: "bottom"       // bottom | top | left | right
+                property string minimizeEffect: "genie"  // genie | scale | suck: cómo se oculta y muestra una app desde el dock (Hyprland, minimize.lua)
                 property bool floating: true
                 property string align: "center"          // center | left
                 property string size: "medium"           // small | medium | large
@@ -321,6 +327,7 @@ Singleton {
                     property bool floating: true
                     property bool showApp: true
                     property bool showSysMon: true   // temperatura, CPU y RAM en la barra
+                    property bool showClaude: true   // uso de Claude Code (5 h y 7 días)
                 }
             }
             property JsonObject clock: JsonObject {

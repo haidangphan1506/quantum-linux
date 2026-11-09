@@ -1,6 +1,6 @@
 //@ pragma UseQApplication
-// Íconos: QS_ICON_THEME (quantum-shell-start) si existe; si no, el pragma IconTheme (WhiteSur-dark, igual que GTK).
-//@ pragma IconTheme WhiteSur-dark
+// Íconos: QS_ICON_THEME (quantum-shell-start) si existe; si no, el pragma IconTheme (MacTahoe, igual que GTK).
+//@ pragma IconTheme MacTahoe
 //@ pragma DefaultEnv QSG_RENDER_LOOP=threaded
 
 import QtQuick
@@ -26,6 +26,7 @@ import "modules/overview"
 import "modules/switcher"
 import "modules/launchpad"
 import "modules/about"
+import "modules/effects"
 
 // Quantum Shell: el escritorio de Quantum Linux.
 // Primero aparece la pantalla de carga (liviana) y el resto se carga de fondo, sin
@@ -45,17 +46,19 @@ ShellRoot {
         activeAsync: true
         Scope {
             Background {}
+            // efecto genie curvo al ocultar/mostrar ventanas por el dock (minimize.lua)
+            GenieFx {}
             // La forma del shell: Caelestial (barra + dock) o Serpantium (píldoras arriba)
             LazyLoader {
                 active: !Serp.on
-                Scope { Bar {} Dock {} DashboardZone {} }
+                Scope { Bar {} DockHost {} DashboardZone {} }
             }
             LazyLoader {
                 active: Serp.on
                 Scope {
                     SerpBar {} SerpPanels {} SerpLauncher {}
                     // «Dock abajo»: el mismo dock de Caelestial, con los colores de Serpantium
-                    LazyLoader { active: Settings.ui.serpApps === "dock"; Dock {} }
+                    LazyLoader { active: Settings.ui.serpApps === "dock"; DockHost {} }
                 }
             }
             Lock {}

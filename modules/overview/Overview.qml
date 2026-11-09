@@ -260,7 +260,7 @@ Scope {
                                         visible: !mini.hasContent
                                         anchors.centerIn: parent
                                         size: 22   // FIJO: un tamaño ligado al marco hacía explotar la memoria (IconImage)
-                                        name: Wm.iconFor(modelData.wayland?.appId ?? "")
+                                        name: Wm.iconFor(modelData.wayland?.appId ?? "", modelData.wayland?.title ?? "")
                                     }
                                 }
                             }
@@ -382,7 +382,7 @@ Scope {
                             visible: !shot.hasContent
                             anchors.centerIn: parent
                             size: Math.max(32, Math.min(96, Math.round(Math.min(tile.dst.width, tile.dst.height) * 0.35)))   // fijo durante la animación
-                            name: Wm.iconFor(tile.t.wayland?.appId ?? "")
+                            name: Wm.iconFor(tile.t.wayland?.appId ?? "", tile.t.wayland?.title ?? "")
                         }
                     }
 
@@ -401,11 +401,11 @@ Scope {
                             id: nameRow
                             anchors.centerIn: parent
                             spacing: 6
-                            AppIcon { size: 16; name: Wm.iconFor(tile.t.wayland?.appId ?? ""); anchors.verticalCenter: parent.verticalCenter }
+                            AppIcon { size: 16; name: Wm.iconFor(tile.t.wayland?.appId ?? "", tile.t.wayland?.title ?? ""); anchors.verticalCenter: parent.verticalCenter }
                             Txt {
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: tileMouse.containsMouse ? (tile.t.title || Wm.nameFor(tile.t.wayland?.appId ?? ""))
-                                                              : Wm.nameFor(tile.t.wayland?.appId ?? "")
+                                text: tileMouse.containsMouse ? (tile.t.title || Wm.nameFor(tile.t.wayland?.appId ?? "", tile.t.wayland?.title ?? ""))
+                                                              : Wm.nameFor(tile.t.wayland?.appId ?? "", tile.t.wayland?.title ?? "")
                                 width: Math.min(implicitWidth, Math.max(120, tile.width - 30))
                                 elide: Text.ElideRight
                                 font.pixelSize: 12

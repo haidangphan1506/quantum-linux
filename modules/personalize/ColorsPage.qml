@@ -37,15 +37,15 @@ ColumnLayout {
 
     // ------------------------------------------------------------- modo
     Group {
-        title: I18n.t("Modo")
+        title: I18n.t("Apariencia")
         help: I18n.t("El color general de las ventanas, menús y paneles.")
         icon: "contrast"
         RowLayout {
             Layout.fillWidth: true
             spacing: 14
             Repeater {
-                model: [{ m: "dark", t: I18n.t("Oscuro"), h: I18n.t("Descansa la vista de noche") }, { m: "light", t: I18n.t("Claro"), h: I18n.t("Ideal con mucha luz") },
-                        { m: "auto", t: I18n.t("Automático"), h: I18n.t("Claro de día, oscuro de noche") }]
+                model: [{ m: "auto", t: I18n.t("Automático"), h: I18n.t("Claro de día, oscuro de noche") }, { m: "light", t: I18n.t("Claro"), h: I18n.t("Ideal con mucha luz") },
+                        { m: "dark", t: I18n.t("Oscuro"), h: I18n.t("Descansa la vista de noche") }]
                 ChoiceCard {
                     id: mc
                     required property var modelData
@@ -109,12 +109,13 @@ ColumnLayout {
         }
     }
 
-    // --------------------------------------------------------- acento
+    // ----------------------------------------------- tema (acento + íconos)
     Group {
-        title: I18n.t("Color de acento")
-        help: I18n.t("Se usa en botones, selecciones e indicadores de todo el sistema.")
+        title: I18n.t("Tema")
+        help: I18n.t("El color de acento se usa en botones, selecciones e indicadores de todo el sistema.")
         icon: "palette"
 
+        Txt { text: I18n.t("Color"); font.weight: Font.DemiBold }
         Flow {
             Layout.fillWidth: true
             spacing: 12
@@ -208,6 +209,36 @@ ColumnLayout {
                                 Settings.setMany({ appearance: { dynamicColors: false, accent: t.toUpperCase() } });
                         }
                         Txt { visible: !hexIn.text && !hexIn.activeFocus; text: "#Otro color"; color: Theme.fgMuted }
+                    }
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------ íconos
+    // (junto al tema, como «Icon & widget style» en macOS)
+    Group {
+        title: I18n.t("Íconos")
+        help: Icons.installing ? I18n.t("Descargando los íconos… el escritorio se recarga un segundo al terminar.")
+                               : I18n.t("Las carpetas toman el color de tu escritorio. Al cambiarlos, el escritorio se recarga un segundo.")
+        icon: "interests"
+        GridLayout {
+            Layout.fillWidth: true
+            columns: page.width > 760 ? 3 : 2
+            columnSpacing: 14; rowSpacing: 14
+            Repeater {
+                model: Icons.packs
+                ChoiceCard {
+                    id: icc
+                    required property var modelData
+                    title: modelData.name
+                    help: Icons.installing === modelData.id ? I18n.t("Descargando…") : Icons.installed[modelData.id] ? modelData.desc : modelData.desc + I18n.t(" Se descarga (") + modelData.size + ")."
+                    selected: Icons.current === modelData.id
+                    previewHeight: 86
+                    onClicked: Icons.choose(modelData.id)
+                    Rectangle {
+                        anchors.fill: parent; color: Theme.alpha(Theme.fg, 0.04)
+                        Image { anchors.fill: parent; anchors.margins: 10; fillMode: Image.PreserveAspectFit; source: Icons.preview(icc.modelData.id); sourceSize: Qt.size(600, 150); asynchronous: true }
                     }
                 }
             }
@@ -328,35 +359,6 @@ ColumnLayout {
         onAccepted: {
             page.setWallpaper(decodeURIComponent(selectedFile.toString().replace(/^file:\/\//, "")));
             lister.running = true;
-        }
-    }
-
-    // ------------------------------------------------------ íconos
-    Group {
-        title: I18n.t("Íconos")
-        help: Icons.installing ? I18n.t("Descargando los íconos… el escritorio se recarga un segundo al terminar.")
-                               : I18n.t("Las carpetas toman el color de tu escritorio. Al cambiarlos, el escritorio se recarga un segundo.")
-        icon: "interests"
-        GridLayout {
-            Layout.fillWidth: true
-            columns: page.width > 760 ? 3 : 2
-            columnSpacing: 14; rowSpacing: 14
-            Repeater {
-                model: Icons.packs
-                ChoiceCard {
-                    id: icc
-                    required property var modelData
-                    title: modelData.name
-                    help: Icons.installing === modelData.id ? I18n.t("Descargando…") : Icons.installed[modelData.id] ? modelData.desc : modelData.desc + I18n.t(" Se descarga (") + modelData.size + ")."
-                    selected: Icons.current === modelData.id
-                    previewHeight: 86
-                    onClicked: Icons.choose(modelData.id)
-                    Rectangle {
-                        anchors.fill: parent; color: Theme.alpha(Theme.fg, 0.04)
-                        Image { anchors.fill: parent; anchors.margins: 10; fillMode: Image.PreserveAspectFit; source: Icons.preview(icc.modelData.id); sourceSize: Qt.size(600, 150); asynchronous: true }
-                    }
-                }
-            }
         }
     }
 

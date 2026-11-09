@@ -1,11 +1,14 @@
 //@ pragma UseQApplication
-//@ pragma IconTheme WhiteSur-dark
+//@ pragma IconTheme MacTahoe
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
+
+// Idioma: el mismo diccionario que Quantum Shell (i18n/strings.js), según ui.lang de settings.json
+import "i18n/strings.js" as Strings
 
 // Quantum Task Manager: như Task Manager của Windows, viết bằng Quickshell.
 // Số liệu: collector.py (1 dòng JSON / giây). Mở: quantum-taskmgr  (Ctrl+Shift+Esc)
@@ -39,6 +42,20 @@ ShellRoot {
         watchChanges: true
         onFileChanged: reload()
         onLoaded: { try { app.c = JSON.parse(text()); } catch (e) {} }
+    }
+
+    // ------------------------------------------------------------------ idioma
+    property string lang: "vi"
+    // Texto en español (clave) → traducción según el idioma; sin traducción, el propio texto
+    function tr(s: string): string {
+        const d = app.lang === "en" ? Strings.en : Strings.vi;
+        return d[s] ?? s;
+    }
+    FileView {
+        path: Quickshell.env("HOME") + "/.config/quantum/settings.json"
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: { try { app.lang = JSON.parse(text()).ui?.lang === "en" ? "en" : "vi"; } catch (e) {} }
     }
 
     // ------------------------------------------------------------------ dữ liệu
@@ -117,17 +134,17 @@ ShellRoot {
         if (!d) return e;
         if (id === "cpu") return { t: "CPU", col: cCpu, h: hCpu, max: 100,
             s: Math.round(d.cpu.total) + "%  " + d.cpu.freq.toFixed(2) + " GHz" + (d.cpu.temp ? "  (" + Math.round(d.cpu.temp) + "°C)" : "") };
-        if (id === "mem") return { t: "Bộ nhớ", col: cMem, h: hMem, max: 100,
+        if (id === "mem") return { t: tr("Memoria"), col: cMem, h: hMem, max: 100,
             s: fmtBytes(d.mem.used, 1) + " / " + fmtBytes(d.mem.total, 1) + "  (" + Math.round(100 * d.mem.used / d.mem.total) + "%)" };
         if (id === "gpu" && d.gpu) return { t: "GPU", col: cGpu, h: hGpu, max: 100,
             s: d.gpu.busy + "%" + (d.gpu.temp ? "  (" + Math.round(d.gpu.temp) + "°C)" : "") };
         if (id.startsWith("disk:")) {
             const n = id.slice(5), k = d.disks.find(x => x.name === n) ?? { busy: 0 }, h = hDisk[n];
-            return { t: "Ổ đĩa (" + n + ")", col: cDisk, h: h ? h.busy : [], max: 100, s: "SSD  " + Math.round(k.busy) + "%" };
+            return { t: tr("Disco (") + n + ")", col: cDisk, h: h ? h.busy : [], max: 100, s: "SSD  " + Math.round(k.busy) + "%" };
         }
         if (id.startsWith("net:")) {
             const n = id.slice(4), x = d.net.find(v => v.name === n) ?? { rx: 0, tx: 0 }, h = hNet[n] ?? { rx: [], tx: [], info: null };
-            return { t: (h.info?.kind ?? "Mạng") + " (" + n + ")", col: cNet, h: h.rx.map((v, i) => v + (h.tx[i] ?? 0)), max: 0,
+            return { t: (h.info?.kind ?? tr("Red")) + " (" + n + ")", col: cNet, h: h.rx.map((v, i) => v + (h.tx[i] ?? 0)), max: 0,
                      s: "↓ " + fmtRate(x.rx) + "  ↑ " + fmtRate(x.tx) };
         }
         return e;
@@ -221,7 +238,7 @@ ShellRoot {
         property ListModel model: ListModel {}
 
         // ---- columnas: orden y ancho (kéo thả en el encabezado), guardados en ~/.config/quantum/taskmgr.json
-        readonly property var titles: ({ name: "Tên", pid: "PID", user: "Người dùng", threads: "Luồng", cpu: "CPU", mem: "Bộ nhớ" })
+        readonly property var titles: ({ name: tr("Nombre"), pid: "PID", user: tr("Usuario"), threads: tr("Hilos"), cpu: "CPU", mem: tr("Memoria") })
         readonly property var defaultW: ({ name: 0, pid: 80, user: 120, threads: 70, cpu: 90, mem: 110 })
         property var order: ["name", "pid", "user", "threads", "cpu", "mem"]
         property var widths: Object.assign({}, defaultW)
@@ -436,13 +453,13 @@ ShellRoot {
                         Layout.bottomMargin: 14
                         spacing: 10
                         IconImage { implicitSize: 26; source: Quickshell.iconPath("utilities-system-monitor", true) }
-                        T { text: "Quản lý tác vụ"; font.pixelSize: 15; font.weight: Font.DemiBold }
+                        T { text: tr("Administrador de tareas"); font.pixelSize: 15; font.weight: Font.DemiBold }
                     }
 
                     Repeater {
                         model: [
-                            { id: "procs", icon: "apps", text: "Tiến trình" },
-                            { id: "perf", icon: "monitoring", text: "Hiệu năng" }
+                            { id: "procs", icon: "apps", text: tr("Procesos") },
+                            { id: "perf", icon: "monitoring", text: tr("Rendimiento") }
                         ]
                         Rectangle {
                             id: nav
@@ -473,13 +490,13 @@ ShellRoot {
                     Item { Layout.fillHeight: true }
 
                     // tốc độ cập nhật
-                    T { text: "Tốc độ cập nhật"; color: app.muted; font.pixelSize: 12; Layout.leftMargin: 8 }
+                    T { text: tr("Velocidad de actualización"); color: app.muted; font.pixelSize: 12; Layout.leftMargin: 8 }
                     RowLayout {
                         Layout.fillWidth: true
                         Layout.leftMargin: 4
                         spacing: 4
                         Repeater {
-                            model: [{ t: "Nhanh", v: 500 }, { t: "Thường", v: 1000 }, { t: "Chậm", v: 3000 }]
+                            model: [{ t: tr("Rápido"), v: 500 }, { t: tr("Normal"), v: 1000 }, { t: tr("Lento"), v: 3000 }]
                             Rectangle {
                                 required property var modelData
                                 readonly property bool on: app.interval === modelData.v && !app.paused
@@ -502,7 +519,7 @@ ShellRoot {
                             anchors.centerIn: parent
                             spacing: 6
                             Ico { text: app.paused ? "play_arrow" : "pause"; size: 16; color: app.paused ? app.onAccent : app.fg }
-                            T { text: app.paused ? "Tiếp tục" : "Tạm dừng"; font.pixelSize: 12; color: app.paused ? app.onAccent : app.fg }
+                            T { text: app.paused ? tr("Reanudar") : tr("Pausar"); font.pixelSize: 12; color: app.paused ? app.onAccent : app.fg }
                         }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: app.paused = !app.paused }
                     }
@@ -511,7 +528,7 @@ ShellRoot {
                         Layout.topMargin: 6
                         color: app.muted
                         font.pixelSize: 11
-                        text: app.d ? ("Hoạt động " + app.fmtUptime(app.d.uptime)) : "Đang tải…"
+                        text: app.d ? (tr("Activo ") + app.fmtUptime(app.d.uptime)) : tr("Cargando…")
                     }
                 }
             }
@@ -531,8 +548,8 @@ ShellRoot {
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 10
-                        T { text: "Tiến trình"; font.pixelSize: 20; font.weight: Font.DemiBold }
-                        T { text: app.nproc ? (app.nproc + " tiến trình · " + app.nthreads + " luồng") : ""; color: app.muted }
+                        T { text: tr("Procesos"); font.pixelSize: 20; font.weight: Font.DemiBold }
+                        T { text: app.nproc ? (app.nproc + tr(" procesos · ") + app.nthreads + tr(" hilos")) : ""; color: app.muted }
                         Item { Layout.fillWidth: true }
                         // tìm kiếm
                         Rectangle {
@@ -558,7 +575,7 @@ ShellRoot {
                                     clip: true
                                     onTextChanged: { procs.filter = text; procs.rebuild(); }
                                     Keys.onEscapePressed: text = ""
-                                    T { visible: !search.text; text: "Tìm tên, PID, lệnh…  (Ctrl+F)"; color: app.muted; anchors.verticalCenter: parent.verticalCenter }
+                                    T { visible: !search.text; text: tr("Buscar nombre, PID, comando…  (Ctrl+F)"); color: app.muted; anchors.verticalCenter: parent.verticalCenter }
                                 }
                                 Ico { visible: search.text; text: "close"; size: 16; color: app.muted; MouseArea { anchors.fill: parent; onClicked: search.text = "" } }
                             }
@@ -576,7 +593,7 @@ ShellRoot {
                                 anchors.centerIn: parent
                                 spacing: 6
                                 Ico { text: procs.grouped ? "account_tree" : "list"; size: 18 }
-                                T { text: procs.grouped ? "Gộp theo app" : "Danh sách phẳng" }
+                                T { text: procs.grouped ? tr("Agrupar por app") : tr("Lista plana") }
                             }
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { procs.grouped = !procs.grouped; procs.rebuild(); } }
                         }
@@ -594,7 +611,7 @@ ShellRoot {
                                 anchors.centerIn: parent
                                 spacing: 6
                                 Ico { text: "block"; size: 18; color: endBtnRect.can ? app.onAccent : app.muted }
-                                T { text: "Kết thúc tác vụ"; color: endBtnRect.can ? app.onAccent : app.muted; font.weight: Font.Medium }
+                                T { text: tr("Terminar tarea"); color: endBtnRect.can ? app.onAccent : app.muted; font.weight: Font.Medium }
                             }
                             MouseArea {
                                 id: endMouse
@@ -1046,7 +1063,7 @@ ShellRoot {
                 Header { title: "CPU"; sub: app.st?.cpu?.model ?? "" }
                 RowLayout {
                     Layout.fillWidth: true
-                    T { text: win.perCore ? "Mức sử dụng từng luồng (" + app.d.cpu.cores.length + ")" : "% Mức sử dụng trong 60 giây"; color: app.muted; font.pixelSize: 12 }
+                    T { text: win.perCore ? tr("Uso por hilo (") + app.d.cpu.cores.length + ")" : tr("% Uso en 60 segundos"); color: app.muted; font.pixelSize: 12 }
                     Item { Layout.fillWidth: true }
                     Rectangle {
                         implicitWidth: pcRow.implicitWidth + 16
@@ -1057,7 +1074,7 @@ ShellRoot {
                         border.color: app.line
                         RowLayout { id: pcRow; anchors.centerIn: parent; spacing: 4
                             Ico { text: win.perCore ? "grid_view" : "show_chart"; size: 15 }
-                            T { text: win.perCore ? "Từng luồng" : "Tổng"; font.pixelSize: 12 } }
+                            T { text: win.perCore ? tr("Por hilo") : tr("Total"); font.pixelSize: 12 } }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: win.perCore = !win.perCore }
                     }
                     T { text: "100%"; color: app.muted; font.pixelSize: 12 }
@@ -1090,7 +1107,7 @@ ShellRoot {
                         }
                     }
                 }
-                Caption { ltext: "60 giây"; rtext: "0" }
+                Caption { ltext: tr("60 segundos"); rtext: "0" }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.topMargin: 8
@@ -1098,22 +1115,22 @@ ShellRoot {
                     ColumnLayout {
                         spacing: 10
                         RowLayout { spacing: 36
-                            Stat { label: "Mức sử dụng"; value: Math.round(app.d.cpu.total) + "%" }
-                            Stat { label: "Tốc độ"; value: app.d.cpu.freq.toFixed(2) + " GHz" } }
+                            Stat { label: tr("Uso"); value: Math.round(app.d.cpu.total) + "%" }
+                            Stat { label: tr("Velocidad"); value: app.d.cpu.freq.toFixed(2) + " GHz" } }
                         RowLayout { spacing: 36
-                            Stat { label: "Tiến trình"; value: app.nproc || "–" }
-                            Stat { label: "Luồng"; value: app.nthreads || "–" }
-                            Stat { label: "Nhiệt độ"; value: app.d.cpu.temp ? app.d.cpu.temp.toFixed(0) + " °C" : "–" } }
-                        Stat { label: "Thời gian hoạt động"; value: app.fmtUptime(app.d.uptime) }
+                            Stat { label: tr("Procesos"); value: app.nproc || "–" }
+                            Stat { label: tr("Hilos"); value: app.nthreads || "–" }
+                            Stat { label: tr("Temperatura"); value: app.d.cpu.temp ? app.d.cpu.temp.toFixed(0) + " °C" : "–" } }
+                        Stat { label: tr("Tiempo activo"); value: app.fmtUptime(app.d.uptime) }
                     }
                     ColumnLayout {
                         Layout.alignment: Qt.AlignTop
                         spacing: 4
-                        KV { k: "Tốc độ tối đa"; v: (app.st?.cpu?.maxGHz ?? 0) + " GHz" }
-                        KV { k: "Nhân"; v: app.st?.cpu?.cores ?? "" }
-                        KV { k: "Bộ xử lý logic"; v: app.st?.cpu?.threads ?? "" }
-                        KV { k: "Tải trung bình"; v: app.d.cpu.load.map(x => x.toFixed(2)).join("  ") }
-                        KV { k: "Nhân hệ điều hành"; v: app.st?.kernel ?? "" }
+                        KV { k: tr("Velocidad máx."); v: (app.st?.cpu?.maxGHz ?? 0) + " GHz" }
+                        KV { k: tr("Núcleos"); v: app.st?.cpu?.cores ?? "" }
+                        KV { k: tr("Procesadores lógicos"); v: app.st?.cpu?.threads ?? "" }
+                        KV { k: tr("Carga media"); v: app.d.cpu.load.map(x => x.toFixed(2)).join("  ") }
+                        KV { k: tr("Núcleos del SO"); v: app.st?.kernel ?? "" }
                     }
                 }
             }
@@ -1124,12 +1141,12 @@ ShellRoot {
             ColumnLayout {
                 spacing: 8
                 readonly property var m: app.d.mem
-                Header { title: "Bộ nhớ"; sub: app.fmtBytes(m.total, 1) + " RAM" }
-                Caption { ltext: "Mức sử dụng bộ nhớ"; rtext: app.fmtBytes(m.total, 1) }
+                Header { title: tr("Memoria"); sub: app.fmtBytes(m.total, 1) + " RAM" }
+                Caption { ltext: tr("Uso de memoria"); rtext: app.fmtBytes(m.total, 1) }
                 Graph { Layout.fillWidth: true; Layout.fillHeight: true; values: app.hMem; color: app.cMem }
-                Caption { ltext: "60 giây"; rtext: "0" }
+                Caption { ltext: tr("60 segundos"); rtext: "0" }
                 // thanh thành phần: đang dùng / cache / trống
-                T { text: "Thành phần bộ nhớ"; color: app.muted; font.pixelSize: 12; Layout.topMargin: 6 }
+                T { text: tr("Componentes de memoria"); color: app.muted; font.pixelSize: 12; Layout.topMargin: 6 }
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: 34
@@ -1151,19 +1168,19 @@ ShellRoot {
                     ColumnLayout {
                         spacing: 10
                         RowLayout { spacing: 36
-                            Stat { label: "Đang dùng"; value: app.fmtBytes(m.used, 1) }
-                            Stat { label: "Còn trống"; value: app.fmtBytes(m.avail, 1) } }
+                            Stat { label: tr("En uso"); value: app.fmtBytes(m.used, 1) }
+                            Stat { label: tr("Libre"); value: app.fmtBytes(m.avail, 1) } }
                         RowLayout { spacing: 36
-                            Stat { label: "Đã cam kết"; value: app.fmtBytes(m.committed, 1) + " / " + app.fmtBytes(m.commitLimit, 0) }
-                            Stat { label: "Bộ nhớ đệm"; value: app.fmtBytes(m.cached, 1) } }
+                            Stat { label: tr("Comprometida"); value: app.fmtBytes(m.committed, 1) + " / " + app.fmtBytes(m.commitLimit, 0) }
+                            Stat { label: tr("Caché"); value: app.fmtBytes(m.cached, 1) } }
                     }
                     ColumnLayout {
                         Layout.alignment: Qt.AlignTop
                         spacing: 4
                         KV { k: "Swap (zram)"; v: app.fmtBytes(m.swapUsed, 1) + " / " + app.fmtBytes(m.swapTotal, 1) }
-                        KV { k: "Bộ nhớ dùng chung"; v: app.fmtBytes(m.shared, 1) }
+                        KV { k: tr("Memoria compartida"); v: app.fmtBytes(m.shared, 1) }
                         KV { k: "Buffers"; v: app.fmtBytes(m.buffers, 1) }
-                        KV { k: "Chờ ghi (dirty)"; v: app.fmtBytes(m.dirty, 1) }
+                        KV { k: tr("En espera de escritura (dirty)"); v: app.fmtBytes(m.dirty, 1) }
                     }
                 }
             }
@@ -1178,12 +1195,12 @@ ShellRoot {
                 readonly property var cur: app.d.disks.find(x => x.name === dn) ?? { busy: 0, read: 0, write: 0 }
                 readonly property var h: app.hDisk[dn] ?? { busy: [], read: [], write: [] }
                 readonly property var parts: app.d.mounts.filter(x => x.dev.startsWith(dn))
-                Header { title: "Ổ đĩa (" + dn + ")"; sub: info.model ?? "" }
-                Caption { ltext: "Thời gian hoạt động"; rtext: "100%" }
+                Header { title: tr("Disco (") + dn + ")"; sub: info.model ?? "" }
+                Caption { ltext: tr("Tiempo activo"); rtext: "100%" }
                 Graph { Layout.fillWidth: true; Layout.fillHeight: true; Layout.preferredHeight: 3; values: h.busy; color: app.cDisk }
-                Caption { ltext: "Tốc độ đọc (liền) / ghi (đứt)"; rtext: app.fmtDiskRate(Math.max(...h.read, ...h.write, 1) * 1.15) }
+                Caption { ltext: tr("Velocidad de lectura (continua) / escritura (discontinua)"); rtext: app.fmtDiskRate(Math.max(...h.read, ...h.write, 1) * 1.15) }
                 Graph { Layout.fillWidth: true; Layout.fillHeight: true; Layout.preferredHeight: 2; values: h.read; values2: h.write; max: 0; color: app.cDisk; fillArea: true }
-                Caption { ltext: "60 giây"; rtext: "0" }
+                Caption { ltext: tr("60 segundos"); rtext: "0" }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.topMargin: 8
@@ -1191,17 +1208,17 @@ ShellRoot {
                     ColumnLayout {
                         spacing: 10
                         RowLayout { spacing: 36
-                            Stat { label: "Thời gian hoạt động"; value: Math.round(cur.busy) + "%" }
-                            Stat { label: "Nhiệt độ"; value: app.d.nvmeTemp ? app.d.nvmeTemp.toFixed(0) + " °C" : "–" } }
+                            Stat { label: tr("Tiempo activo"); value: Math.round(cur.busy) + "%" }
+                            Stat { label: tr("Temperatura"); value: app.d.nvmeTemp ? app.d.nvmeTemp.toFixed(0) + " °C" : "–" } }
                         RowLayout { spacing: 36
-                            Stat { label: "Tốc độ đọc"; value: app.fmtDiskRate(cur.read) }
-                            Stat { label: "Tốc độ ghi"; value: app.fmtDiskRate(cur.write) } }
+                            Stat { label: tr("Velocidad de lectura"); value: app.fmtDiskRate(cur.read) }
+                            Stat { label: tr("Velocidad de escritura"); value: app.fmtDiskRate(cur.write) } }
                     }
                     ColumnLayout {
                         Layout.alignment: Qt.AlignTop
                         spacing: 4
-                        KV { k: "Dung lượng"; v: app.fmtBytes(info.size ?? 0, 0) }
-                        KV { k: "Loại"; v: info.ssd ? "SSD (NVMe)" : "HDD" }
+                        KV { k: tr("Capacidad"); v: app.fmtBytes(info.size ?? 0, 0) }
+                        KV { k: tr("Tipo"); v: info.ssd ? "SSD (NVMe)" : "HDD" }
                         Repeater {
                             model: parts.length          // número: no recrea las filas cada segundo
                             KV {
@@ -1223,10 +1240,10 @@ ShellRoot {
                 readonly property string nn: win.perfSel.slice(4)
                 readonly property var cur: app.d.net.find(x => x.name === nn) ?? { rx: 0, tx: 0, rxTotal: 0, txTotal: 0 }
                 readonly property var h: app.hNet[nn] ?? { rx: [], tx: [], info: null }
-                Header { title: h.info?.kind ?? "Mạng"; sub: nn }
-                Caption { ltext: "Thông lượng: nhận (liền) / gửi (đứt)"; rtext: app.fmtRate(Math.max(...h.rx, ...h.tx, 1) * 1.15) }
+                Header { title: h.info?.kind ?? tr("Red"); sub: nn }
+                Caption { ltext: tr("Tráfico: recibido (continuo) / enviado (discontinuo)"); rtext: app.fmtRate(Math.max(...h.rx, ...h.tx, 1) * 1.15) }
                 Graph { Layout.fillWidth: true; Layout.fillHeight: true; values: h.rx; values2: h.tx; max: 0; color: app.cNet }
-                Caption { ltext: "60 giây"; rtext: "0" }
+                Caption { ltext: tr("60 segundos"); rtext: "0" }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.topMargin: 8
@@ -1234,19 +1251,19 @@ ShellRoot {
                     ColumnLayout {
                         spacing: 10
                         RowLayout { spacing: 36
-                            Stat { label: "Nhận"; value: app.fmtRate(cur.rx) }
-                            Stat { label: "Gửi"; value: app.fmtRate(cur.tx) } }
+                            Stat { label: tr("Recibidos"); value: app.fmtRate(cur.rx) }
+                            Stat { label: tr("Enviados"); value: app.fmtRate(cur.tx) } }
                         RowLayout { spacing: 36
-                            Stat { label: "Đã nhận (từ lúc bật)"; value: app.fmtBytes(cur.rxTotal, 1); big: false }
-                            Stat { label: "Đã gửi (từ lúc bật)"; value: app.fmtBytes(cur.txTotal, 1); big: false } }
+                            Stat { label: tr("Recibido (desde el encendido)"); value: app.fmtBytes(cur.rxTotal, 1); big: false }
+                            Stat { label: tr("Enviado (desde el encendido)"); value: app.fmtBytes(cur.txTotal, 1); big: false } }
                     }
                     ColumnLayout {
                         Layout.alignment: Qt.AlignTop
                         spacing: 4
-                        KV { k: "Bộ điều hợp"; v: nn }
-                        KV { k: "Loại kết nối"; v: h.info?.kind ?? "" }
-                        KV { k: "Địa chỉ IPv4"; v: h.info?.ip || "–" }
-                        KV { k: "Tốc độ liên kết"; v: (h.info?.speed ?? 0) > 0 ? h.info.speed + " Mbps" : "–" }
+                        KV { k: tr("Adaptador"); v: nn }
+                        KV { k: tr("Tipo de conexión"); v: h.info?.kind ?? "" }
+                        KV { k: tr("Dirección IPv4"); v: h.info?.ip || "–" }
+                        KV { k: tr("Velocidad del enlace"); v: (h.info?.speed ?? 0) > 0 ? h.info.speed + " Mbps" : "–" }
                     }
                 }
             }
@@ -1258,10 +1275,10 @@ ShellRoot {
                 spacing: 8
                 readonly property var g: app.d.gpu
                 Header { title: "GPU"; sub: g?.name ?? "" }
-                Caption { ltext: "% Mức sử dụng 3D/tính toán"; rtext: "100%" }
+                Caption { ltext: tr("% Uso 3D/cómputo"); rtext: "100%" }
                 Graph { Layout.fillWidth: true; Layout.fillHeight: true; values: app.hGpu; color: app.cGpu }
-                Caption { ltext: "60 giây"; rtext: "0" }
-                T { text: "Bộ nhớ GPU riêng (VRAM)"; color: app.muted; font.pixelSize: 12; Layout.topMargin: 6 }
+                Caption { ltext: tr("60 segundos"); rtext: "0" }
+                T { text: tr("Memoria GPU dedicada (VRAM)"); color: app.muted; font.pixelSize: 12; Layout.topMargin: 6 }
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: 22
@@ -1278,18 +1295,18 @@ ShellRoot {
                     ColumnLayout {
                         spacing: 10
                         RowLayout { spacing: 36
-                            Stat { label: "Mức sử dụng"; value: (g?.busy ?? 0) + "%" }
-                            Stat { label: "Nhiệt độ"; value: g?.temp ? g.temp.toFixed(0) + " °C" : "–" }
-                            Stat { label: "Điện năng"; value: (g?.power ?? 0) + " W" } }
+                            Stat { label: tr("Uso"); value: (g?.busy ?? 0) + "%" }
+                            Stat { label: tr("Temperatura"); value: g?.temp ? g.temp.toFixed(0) + " °C" : "–" }
+                            Stat { label: tr("Potencia"); value: (g?.power ?? 0) + " W" } }
                         RowLayout { spacing: 36
                             Stat { label: "VRAM"; value: app.fmtBytes(g?.vramUsed ?? 0, 1) + " / " + app.fmtBytes(g?.vramTotal ?? 0, 1) }
-                            Stat { label: "Bộ nhớ dùng chung (GTT)"; value: app.fmtBytes(g?.gttUsed ?? 0, 1) + " / " + app.fmtBytes(g?.gttTotal ?? 0, 1) } }
+                            Stat { label: tr("Memoria compartida (GTT)"); value: app.fmtBytes(g?.gttUsed ?? 0, 1) + " / " + app.fmtBytes(g?.gttTotal ?? 0, 1) } }
                     }
                     ColumnLayout {
                         Layout.alignment: Qt.AlignTop
                         spacing: 4
                         KV { k: "Pin"; v: app.d.bat ? app.d.bat.percent + "%  ·  " + app.d.bat.status : "–" }
-                        KV { k: "Công suất pin"; v: app.d.bat && app.d.bat.power > 0 ? app.d.bat.power + " W" : "–" }
+                        KV { k: tr("Capacidad de la batería"); v: app.d.bat && app.d.bat.power > 0 ? app.d.bat.power + " W" : "–" }
                     }
                 }
             }
@@ -1327,11 +1344,11 @@ ShellRoot {
                 spacing: 0
                 Repeater {
                     model: ctx.r ? [
-                        { i: "block", t: ctx.r.group && ctx.r.count > 1 ? "Kết thúc tất cả (" + ctx.r.count + ")" : "Kết thúc tác vụ", a: () => app.killPids(ctx.r.pids, false) },
-                        { i: "dangerous", t: "Buộc dừng (SIGKILL)", a: () => app.killPids(ctx.r.pids, true) },
-                        { i: "content_copy", t: "Sao chép PID", a: () => app.copy(ctx.r.pids) },
-                        { i: "terminal", t: "Sao chép dòng lệnh", a: () => app.copy(ctx.r.cmd) },
-                        { i: "folder_open", t: "Mở vị trí tệp", a: () => Quickshell.execDetached(["sh", "-c", "d=$(dirname \"$(readlink -f /proc/" + ctx.r.pid + "/exe)\") && xdg-open \"$d\""]) }
+                        { i: "block", t: ctx.r.group && ctx.r.count > 1 ? tr("Terminar todo (") + ctx.r.count + ")" : tr("Terminar tarea"), a: () => app.killPids(ctx.r.pids, false) },
+                        { i: "dangerous", t: tr("Forzar parada (SIGKILL)"), a: () => app.killPids(ctx.r.pids, true) },
+                        { i: "content_copy", t: tr("Copiar PID"), a: () => app.copy(ctx.r.pids) },
+                        { i: "terminal", t: tr("Copiar línea de comando"), a: () => app.copy(ctx.r.cmd) },
+                        { i: "folder_open", t: tr("Abrir ubicación del archivo"), a: () => Quickshell.execDetached(["sh", "-c", "d=$(dirname \"$(readlink -f /proc/" + ctx.r.pid + "/exe)\") && xdg-open \"$d\""]) }
                     ] : []
                     Rectangle {
                         required property var modelData

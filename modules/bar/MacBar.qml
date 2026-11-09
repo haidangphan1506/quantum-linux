@@ -18,7 +18,7 @@ Item {
 
     readonly property var win: Wm.active && !Wm.isMinimized(Wm.active) ? Wm.active : null
     readonly property string appId: win ? (win.appId ?? "") : ""
-    readonly property string appName: win ? Wm.nameFor(appId) : "Quantum"
+    readonly property string appName: win ? Wm.nameFor(appId, win.title ?? "") : "Quantum"
     readonly property bool isTerminal: ["kitty", "foot", "Alacritty", "alacritty", "org.wezfurlong.wezterm", "com.mitchellh.ghostty", "ghostty", "konsole", "org.gnome.Console", "xterm"].includes(appId)
 
     // dirección Hyprland de la ventana activa (se guarda al abrir un menú)
@@ -147,7 +147,7 @@ Item {
             { text: I18n.t("Ocultar otras"), enabled: !!root.win, action: () => root.hyprEval(`cael_hide_others('${root.addr}')`) },
             { text: I18n.t("Mostrar todo"), action: () => root.hyprEval("cael_show_all()") },
             { separator: true },
-            { text: I18n.t("Salir de ") + root.appName, enabled: !!root.win, shortcut: "Super+C", action: () => root.hyprDispatch(`hl.dsp.window.close({ window = "${root.sel()}" })`) }
+            { text: I18n.t("Salir de ") + root.appName, enabled: !!root.win, shortcut: "Super+C", action: () => root.hyprEval(`cael_close('${root.addr}')`) }
         ]
     }
 
@@ -210,7 +210,7 @@ Item {
             { separator: true },
             { text: I18n.t("Mostrar todo"), action: () => root.hyprEval("cael_show_all()") },
             { separator: true },
-            { text: I18n.t("Cerrar ventana"), shortcut: "Super+C", action: () => root.hyprDispatch(`hl.dsp.window.close({ window = "${root.sel()}" })`) }
+            { text: I18n.t("Cerrar ventana"), shortcut: "Super+C", action: () => root.hyprEval(`cael_close('${root.addr}')`) }
         ]
     }
 
@@ -226,6 +226,7 @@ Item {
     }
 
     // ---------- derecha ----------
+
     component BarIcon: MouseArea {
         id: ib
         property string icon: ""
@@ -249,6 +250,9 @@ Item {
         spacing: 2
 
         Tray { window: root.window; visible: Settings.dock.showTray && items.length > 0 }
+        // Uso de Claude Code: contexto del chat y lo que queda de 5 h y de la semana (clic: detalle)
+        ClaudeMeter { window: root.window; visible: Settings.layout.topBar.showClaude }
+
         // Temperatura, CPU y RAM en tiempo real (clic: panel con el detalle)
         Loader {
             active: Settings.layout.topBar.showSysMon

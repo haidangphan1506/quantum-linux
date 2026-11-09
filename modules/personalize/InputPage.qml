@@ -117,7 +117,7 @@ ColumnLayout {
 
     // ---------------------------------------------------------------- touchpad
     Group {
-        title: "Touchpad"
+        title: I18n.t("Touchpad")
         help: I18n.t("El panel táctil de tu laptop.")
         icon: "touchpad_mouse"
         visible: page.hasTouchpad || !!Quickshell.env("QUANTUM_DEMO_TOUCHPAD")

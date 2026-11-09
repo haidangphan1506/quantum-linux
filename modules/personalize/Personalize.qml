@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import qs.services
 import qs.components
 
@@ -17,26 +18,33 @@ Scope {
             id: win
 
             title: I18n.t("Personalizar")
-            implicitWidth: 1100
-            implicitHeight: 740
-            minimumSize: Qt.size(860, 580)
+            // 3/4 de la pantalla por defecto (la del monitor enfocado), como las demás ventanas
+            readonly property var scr: Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0]
+            implicitWidth: Math.round((scr?.width ?? 1920) * 0.75)
+            implicitHeight: Math.round((scr?.height ?? 1080) * 0.75)
+            width: implicitWidth
+            height: implicitHeight
+            minimumSize: Qt.size(860, 480)
             color: Theme.surface
             visible: true
             onVisibleChanged: if (!visible) Shell.personalizeOpen = false
 
+            // Orden y grupos como la barra lateral de Ajustes del Sistema de macOS.
+            // g: grupo (se separan con espacio); k: color del ícono (estilo macOS).
             readonly property var pages: [
-                { id: "language", t: I18n.t("Idioma"), h: I18n.t("El idioma de la barra, los menús, los paneles y esta ventana."), i: "translate", c: languagePage },
-                { id: "apps", t: I18n.t("Aplicaciones"), h: I18n.t("Muestra u oculta apps del menú y mira de qué paquete vienen."), i: "apps", c: appsPage },
-                { id: "styles", t: I18n.t("Estilos"), h: I18n.t("Cambia todo el escritorio con un clic."), i: "auto_awesome", c: stylesPage },
-                { id: "colors", t: I18n.t("Colores y fondo"), h: I18n.t("Modo claro u oscuro, color de acento y fondo de pantalla."), i: "palette", c: colorsPage },
-                { id: "bar", t: I18n.t("Barra y dock"), h: I18n.t("Dónde van tus apps, la hora y el estado del sistema."), i: "dock_to_bottom", c: barPage },
-                { id: "windows", t: I18n.t("Ventanas"), h: I18n.t("Esquinas, botones y animaciones de las ventanas."), i: "web_asset", c: windowsPage },
-                { id: "lock", t: I18n.t("Bloqueo"), h: I18n.t("Qué tarjetas se ven en la pantalla de bloqueo y en qué orden."), i: "lock", c: lockPage },
-                { id: "sounds", t: I18n.t("Sonidos"), h: I18n.t("Los sonidos del sistema y su volumen."), i: "music_note", c: soundsPage },
-                { id: "display", t: I18n.t("Pantalla"), h: I18n.t("Luz nocturna, brillo, contraste, gamma y saturación."), i: "desktop_windows", c: displayPage },
-                { id: "input", t: I18n.t("Mouse y touchpad"), h: I18n.t("Velocidad, aceleración, desplazamiento y clics."), i: "mouse", c: inputPage },
-                { id: "bluetooth", t: "Bluetooth", h: I18n.t("Empareja auriculares, teclados y otros dispositivos."), i: "bluetooth", c: bluetoothPage },
+                { id: "bluetooth", g: 0, t: "Bluetooth", h: I18n.t("Empareja auriculares, teclados y otros dispositivos."), i: "bluetooth", k: "#0089FF", c: bluetoothPage },
+                { id: "input", g: 0, t: I18n.t("Mouse y touchpad"), h: I18n.t("Velocidad, aceleración, desplazamiento y clics."), i: "mouse", k: "#8E8E93", c: inputPage },
+                { id: "sounds", g: 0, t: I18n.t("Sonidos"), h: I18n.t("Los sonidos del sistema y su volumen."), i: "music_note", k: "#FF2D55", c: soundsPage },
+                { id: "display", g: 0, t: I18n.t("Pantalla"), h: I18n.t("Luz nocturna, brillo, contraste, gamma y saturación."), i: "desktop_windows", k: "#0089FF", c: displayPage },
+                { id: "language", g: 1, t: I18n.t("Idioma"), h: I18n.t("El idioma de la barra, los menús, los paneles y esta ventana."), i: "translate", k: "#8E8E93", c: languagePage },
+                { id: "apps", g: 1, t: I18n.t("Aplicaciones"), h: I18n.t("Muestra u oculta apps del menú y mira de qué paquete vienen."), i: "apps", k: "#FF9500", c: appsPage },
+                { id: "lock", g: 1, t: I18n.t("Bloqueo"), h: I18n.t("Qué tarjetas se ven en la pantalla de bloqueo y en qué orden."), i: "lock", k: "#000000", c: lockPage },
+                { id: "styles", g: 2, t: I18n.t("Estilos"), h: I18n.t("Cambia todo el escritorio con un clic."), i: "auto_awesome", k: "#000000", c: stylesPage },
+                { id: "colors", g: 2, t: I18n.t("Colores y fondo"), h: I18n.t("Modo claro u oscuro, color de acento y fondo de pantalla."), i: "palette", k: "#32ADE6", c: colorsPage },
+                { id: "windows", g: 2, t: I18n.t("Ventanas"), h: I18n.t("Esquinas, botones y animaciones de las ventanas."), i: "web_asset", k: "#5856D6", c: windowsPage },
+                { id: "bar", g: 3, t: I18n.t("Barra y dock"), h: I18n.t("Dónde van tus apps, la hora y el estado del sistema."), i: "dock_to_bottom", k: "#000000", c: barPage },
             ]
+            property string query: ""
             property string current: pages.some(p => p.id === Settings.ui.page) ? Settings.ui.page : "styles"
             readonly property var page: pages.find(p => p.id === current)
             property bool confirmReset: false
@@ -80,19 +88,58 @@ Scope {
                         anchors.margins: 18
                         spacing: 6
 
-                        RowLayout {
-                            Layout.bottomMargin: 14
-                            spacing: 12
-                            Image {
-                                Layout.preferredWidth: 46; Layout.preferredHeight: 46
-                                source: Quickshell.shellDir + "/assets/quantum-personalize.svg"
-                                sourceSize: Qt.size(92, 92)
-                                smooth: true
+                        // tarjeta de perfil (como el Apple Account de macOS)
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.bottomMargin: 10
+                            implicitHeight: profRow.implicitHeight + 16
+                            radius: 12
+                            color: profArea.containsMouse ? Theme.alpha(Theme.fg, 0.06) : "transparent"
+                            RowLayout {
+                                id: profRow
+                                anchors.left: parent.left; anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.leftMargin: 8; anchors.rightMargin: 8
+                                spacing: 12
+                                Image {
+                                    Layout.preferredWidth: 46; Layout.preferredHeight: 46
+                                    source: Quickshell.shellDir + "/assets/quantum-personalize.svg"
+                                    sourceSize: Qt.size(92, 92)
+                                    smooth: true
+                                }
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 0
+                                    Txt { text: I18n.t("Personalizar"); font.pixelSize: Theme.textLarge; font.weight: Font.Bold }
+                                    Txt { text: I18n.t("Tu escritorio, a tu manera"); color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
+                                }
                             }
-                            ColumnLayout {
-                                spacing: 0
-                                Txt { text: I18n.t("Personalizar"); font.pixelSize: Theme.textLarge + 2; font.weight: Font.Bold }
-                                Txt { text: I18n.t("Tu escritorio, a tu manera"); color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
+                            MouseArea { id: profArea; anchors.fill: parent; hoverEnabled: true }
+                        }
+
+                        // buscador (como «Buscar» en Ajustes del Sistema)
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.bottomMargin: 8
+                            implicitHeight: 34
+                            radius: 17
+                            color: Theme.alpha(Theme.fg, 0.07)
+                            Icon { id: searchIcon; anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: "search"; size: 18; color: Theme.fgMuted }
+                            TextInput {
+                                id: searchIn
+                                anchors.left: searchIcon.right; anchors.leftMargin: 8
+                                anchors.right: parent.right; anchors.rightMargin: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                font.family: Theme.font
+                                font.pixelSize: Theme.textNormal
+                                color: Theme.fg
+                                clip: true
+                                onTextChanged: win.query = text.trim()
+                                Txt {
+                                    visible: !searchIn.text && !searchIn.activeFocus
+                                    text: I18n.t("Buscar")
+                                    color: Theme.fgMuted
+                                }
                             }
                         }
 
@@ -101,27 +148,35 @@ Scope {
                             Rectangle {
                                 id: nav
                                 required property var modelData
+                                required property int index
                                 readonly property bool on: win.current === modelData.id
+                                readonly property bool matches: win.query === "" || modelData.t.toLowerCase().indexOf(win.query.toLowerCase()) >= 0
+                                // espacio entre grupos
+                                readonly property bool newGroup: index > 0 && win.pages[index - 1].g !== modelData.g
+                                visible: matches
                                 Layout.fillWidth: true
-                                implicitHeight: 46
-                                radius: 23
-                                color: on ? Theme.primaryContainer : navArea.containsMouse ? Theme.alpha(Theme.fg, 0.06) : "transparent"
+                                Layout.topMargin: newGroup ? 14 : 0
+                                implicitHeight: 36
+                                radius: 9
+                                color: on ? Theme.primary : navArea.containsMouse ? Theme.alpha(Theme.fg, 0.06) : "transparent"
                                 Behavior on color { ColorAnimation { duration: Theme.animFast } }
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.leftMargin: 16
-                                    spacing: 12
-                                    Icon {
-                                        text: nav.modelData.i
-                                        size: 21
-                                        fill: nav.on ? 1 : 0
-                                        color: nav.on ? Theme.primaryContainerFg : Theme.fg
+                                    anchors.leftMargin: 8
+                                    anchors.rightMargin: 10
+                                    spacing: 10
+                                    // ícono en cuadro de color redondeado, como en macOS
+                                    Rectangle {
+                                        Layout.preferredWidth: 26; Layout.preferredHeight: 26
+                                        radius: 7
+                                        color: nav.modelData.k
+                                        Icon { anchors.centerIn: parent; text: nav.modelData.i; size: 16; fill: 1; color: "white" }
                                     }
                                     Txt {
                                         Layout.fillWidth: true
                                         text: nav.modelData.t
-                                        font.weight: nav.on ? Font.Bold : Font.Medium
-                                        color: nav.on ? Theme.primaryContainerFg : Theme.fg
+                                        font.weight: nav.on ? Font.DemiBold : Font.Normal
+                                        color: nav.on ? Theme.primaryFg : Theme.fg
                                     }
                                 }
                                 MouseArea {

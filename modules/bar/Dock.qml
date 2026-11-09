@@ -6,11 +6,10 @@ import Quickshell.Wayland
 import qs.services
 import qs.components
 
-// Barra de tareas abajo, al estilo de Windows 11 con el toque de Quantum:
-// Inicio y Buscar, apps fijadas y abiertas. Encima se dibujan el nombre de la app
-// al pasar el mouse y el menú del clic derecho (en la misma superficie).
-// Personalizar elige: flotante o pegada, apps centradas o a la izquierda, tamaño,
-// ocultar automáticamente y el modo «una sola barra» (con bandeja, hora y apagado).
+// Barra de tareas con el toque de Quantum: Inicio y Buscar, apps fijadas y abiertas.
+// Puede ir en cualquier borde (abajo, arriba, izquierda o derecha; Personalizar).
+// Encima se dibujan el nombre de la app al pasar el mouse y el menú del clic derecho
+// (en la misma superficie).
 Variants {
     model: Quickshell.screens
 
@@ -21,14 +20,26 @@ Variants {
         // se esconde con juegos o videos a pantalla completa
         readonly property bool shown: !(Wm.active?.fullscreen ?? false)
 
+        // Borde donde está el dock (Personalizar)
+        readonly property string pos: ["bottom", "top", "left", "right"].includes(Settings.dock.position) ? Settings.dock.position : "bottom"
+        readonly property bool vertical: pos === "left" || pos === "right"
+
         // Aspecto (Personalizar)
-        readonly property bool single: !Serp.on && Settings.layout.style === "single"
+        // «una sola barra» (bandeja y reloj dentro del dock) solo existe abajo
+        readonly property bool single: !Serp.on && Settings.layout.style === "single" && pos === "bottom"
         readonly property bool floating: Serp.on || Settings.dock.floating
-        readonly property bool full: single || !floating          // ocupa todo el ancho
+        readonly property bool full: single || !floating          // ocupa todo el borde
+        // Como el dock de macOS: barra alta en forma de píldora, con iconos grandes
         readonly property int barH: Math.round(56 * Theme.dockScale)
-        readonly property int gap: floating ? 10 : 0
+        // posición del mouse sobre la barra (-1 fuera) a lo largo de la barra: los iconos crecen según la distancia
+        readonly property real pointerPos: cardHover.hovered ? (vertical ? cardHover.point.position.y : cardHover.point.position.x) : -1
+        readonly property Item cardItem: card
+        readonly property int gap: floating ? 8 : 0
+        // «A la izquierda» (en vertical: arriba): las apps se alinean al principio de la barra
         readonly property bool alignLeft: !Serp.on && Settings.dock.align === "left"
-        // Ocultar automáticamente: se asoma al llevar el mouse al borde de abajo
+        // lado de la pantalla hacia el que se dibuja el icono al crecer (el lado del borde)
+        readonly property int edgeOrigin: pos === "top" ? Item.Top : pos === "left" ? Item.Left : pos === "right" ? Item.Right : Item.Bottom
+        // Ocultar automáticamente: se asoma al llevar el mouse al borde
         readonly property bool autohide: Settings.dock.autohide
         property bool hovering: false
         readonly property bool revealed: !autohide || hovering || popup || Shell.launcherOpen
@@ -42,17 +53,49 @@ Variants {
         function scheduleHide(): void { hideTimer.restart(); }
         function cancelHide(): void { hideTimer.stop(); }
 
+        // Posición de un globo o menú junto a un icono: al lado del borde (vertical) o
+        // encima / debajo de la barra (horizontal). Siempre dentro de la pantalla.
+        function popupX(item: Item, w: real): real {
+            if (vertical) return pos === "left" ? card.x + card.width + 8 : card.x - w - 8;
+            const c = item.mapToItem(contentItem, item.width / 2, item.height / 2);
+            return Math.max(8, Math.min(width - w - 8, c.x - w / 2));
+        }
+        function popupY(item: Item, h: real): real {
+            if (!vertical) return pos === "top" ? card.y + card.height + 8 : card.y - h - 8;
+            const c = item.mapToItem(contentItem, item.width / 2, item.height / 2);
+            return Math.max(8, Math.min(height - h - 8, c.y - h / 2));
+        }
+
+        // Alto de la barra de arriba (el dock arriba/izquierda/derecha queda debajo de ella)
+        readonly property int topInset: !Serp.on && (Settings.layout.style !== "single" || pos !== "bottom")
+                                        ? (Settings.layout.topBar.floating ? 54 : 30) : 0
+        // Punto de un item del dock en coordenadas de pantalla, como si el dock estuviera visible
+        // (para el efecto genie: DockTargets). Se mide respecto a la tarjeta sin su transform.
+        function screenPoint(item: Item, px: real, py: real): point {
+            const q = item.mapToItem(card, px, py);
+            const ox = pos === "right" ? dock.screen.width - dock.width : 0;
+            const oy = pos === "bottom" ? dock.screen.height - dock.height : topInset;
+            return Qt.point(ox + card.x + q.x, oy + card.y + q.y);
+        }
+        Component.onCompleted: if (modelData === Quickshell.screens[0]) { DockTargets.dock = dock; DockTargets.taskbar = taskbar; }
+        Component.onDestruction: if (DockTargets.dock === dock) { DockTargets.dock = null; DockTargets.taskbar = null; }
+
         screen: modelData
         visible: shown || card.opacity > 0.01
         WlrLayershell.namespace: "quantum-dock"
         WlrLayershell.layer: WlrLayer.Top
-        anchors { bottom: true; left: true; right: true }
-        // La ventana tiene SIEMPRE el mismo alto (cambiarlo hacía que la barra saltara
-        // un instante hacia arriba al mostrar el globo). Lo transparente no se come
-        // los clics: la máscara de abajo solo deja pasar el mouse a la barra, el globo
-        // y el menú.
+        anchors {
+            top: pos !== "bottom"
+            bottom: pos !== "top"
+            left: pos !== "right"
+            right: pos !== "left"
+        }
+        // La ventana tiene SIEMPRE el mismo tamaño en el eje perpendicular al borde (cambiarlo
+        // hacía que la barra saltara un instante al mostrar el globo). Lo transparente no se come
+        // los clics: la máscara de abajo solo deja pasar el mouse a la barra, el globo y el menú.
         readonly property bool popup: (hoverGroup !== null && hoverItem !== null) || menuGroup !== null
-        implicitHeight: 360
+        implicitWidth: vertical ? 360 : 0
+        implicitHeight: vertical ? 0 : 360
         exclusiveZone: shown && !autohide ? barH + gap + (floating ? 4 : 0) : 0
         color: "transparent"
         mask: Region {
@@ -62,8 +105,8 @@ Variants {
 
         // Zona de clics de la barra: la misma caja que la tarjeta pero SIN su animación.
         // La máscara no se recalcula cuando cambia un transform: si usara la tarjeta,
-        // al desactivar «Ocultar automáticamente» quedaba calculada con la barra abajo,
-        // fuera de la pantalla, y los clics no llegaban a las apps.
+        // al desactivar «Ocultar automáticamente» quedaba calculada con la barra fuera de
+        // la pantalla, y los clics no llegaban a las apps.
         Item {
             id: cardArea
             x: card.x
@@ -75,10 +118,10 @@ Variants {
         // franja invisible de 3 px para asomar la barra oculta
         Item {
             id: peek
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: 3
+            x: dock.pos === "right" ? dock.width - 3 : 0
+            y: dock.pos === "bottom" ? dock.height - 3 : 0
+            width: dock.vertical ? 3 : dock.width
+            height: dock.vertical ? dock.height : 3
             // al asomarse, se vuelve a esconder sola salvo que el mouse suba a la barra
             HoverHandler { onHoveredChanged: if (hovered) { dock.hovering = true; revealTimer.interval = 1500; revealTimer.restart(); } }
         }
@@ -109,17 +152,24 @@ Variants {
 
         Card {
             id: card
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: dock.gap
-            x: dock.full ? dock.gap : (parent.width - width) / 2
-            width: dock.full ? parent.width - 2 * dock.gap : row.implicitWidth + 16
-            height: dock.barH
-            radius: dock.floating ? Math.round(20 * Theme.dockScale) * Theme.radius / 16 : 0
-            color: Theme.alpha(Theme.surface, Math.min(0.97, Theme.glassOpacity("dock") + 0.04))
+            width: dock.vertical ? dock.barH : (dock.full ? parent.width - 2 * dock.gap : row.implicitWidth + 16)
+            height: dock.vertical ? (dock.full ? parent.height - 2 * dock.gap : row.implicitHeight + 16) : dock.barH
+            x: dock.vertical ? (dock.pos === "left" ? dock.gap : parent.width - width - dock.gap)
+                             : (dock.full ? dock.gap : (parent.width - width) / 2)
+            y: dock.vertical ? (dock.full ? dock.gap : (parent.height - height) / 2)
+                             : (dock.pos === "top" ? dock.gap : parent.height - height - dock.gap)
+            radius: dock.floating ? Math.min(width, height) / 2 : 0
+            // Vidrio como Liquid Glass de macOS Tahoe: bastante transparente para que el blur
+            // de Hyprland (layer quantum-dock) se vea detrás. Con el slider de opacidad se ajusta.
+            color: Theme.alpha(Theme.surface, Math.max(0.25, Math.min(0.6, Theme.glassOpacity("dock") * 0.55)))
             border.width: dock.floating ? 1 : 0
-            // Ẩn/hiện khi hover: một giá trị 0..1 điều khiển trượt + mờ + co.
-            // Hiện: bật lên nhẹ (OutBack khi nổi) — Ẩn: nhanh hơn, tăng tốc dần (InCubic).
+            // borde de luz: un reflejo blanco fino alrededor del vidrio
+            border.color: Theme.dark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.6)
+            // Ẩn/hiện al pasar el mouse: un valor 0..1 controla deslizar + opacidad + escala.
+            // Hiện: bulle un poco (OutBack cuando flota). Ocultar: más rápido, acelerando (InCubic).
             property real reveal: dock.shown && dock.revealed ? 1 : 0
+            // distancia que se desliza hacia su borde mientras está escondida
+            readonly property real hideShift: (1 - reveal) * (dock.barH + dock.gap + 6)
             Behavior on reveal {
                 NumberAnimation {
                     duration: dock.revealed ? Theme.animSlow : Theme.anim
@@ -129,36 +179,48 @@ Variants {
             }
             opacity: (dock.shown ? 1 : 0) * Math.max(0, Math.min(1, 0.15 + reveal * 1.2))
             scale: dock.floating ? 0.94 + 0.06 * reveal : 1
-            transformOrigin: Item.Bottom
-            transform: Translate { y: (1 - card.reveal) * (dock.barH + dock.gap + 6) }
+            transformOrigin: dock.edgeOrigin
+            transform: Translate {
+                x: dock.pos === "left" ? -card.hideShift : dock.pos === "right" ? card.hideShift : 0
+                y: dock.pos === "bottom" ? card.hideShift : dock.pos === "top" ? -card.hideShift : 0
+            }
             Behavior on width { enabled: !dock.full; NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
+            Behavior on height { enabled: !dock.full; NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
 
             HoverHandler {
+                id: cardHover
                 onHoveredChanged: {
                     if (hovered) { revealTimer.stop(); dock.hovering = true; }
                     else { revealTimer.interval = 250; revealTimer.restart(); }
                 }
             }
 
-            // línea superior cuando está pegada
+            // línea del lado de adentro cuando está pegada
             Rectangle {
                 visible: !dock.floating
-                anchors.top: parent.top
-                width: parent.width
-                height: 1
+                anchors.top: dock.pos === "bottom" ? parent.top : undefined
+                anchors.bottom: dock.pos === "top" ? parent.bottom : undefined
+                anchors.left: dock.pos === "right" ? parent.left : undefined
+                anchors.right: dock.pos === "left" ? parent.right : undefined
+                width: dock.vertical ? 1 : parent.width
+                height: dock.vertical ? parent.height : 1
                 color: Theme.alpha(Theme.fg, 0.08)
             }
 
-            // brillo superior con los colores de Quantum
+            // brillo con los colores de Quantum (del lado de adentro)
             Rectangle {
                 visible: dock.floating
-                anchors.top: parent.top
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: parent.width - 2 * parent.radius
-                height: 1
+                anchors.top: dock.pos === "bottom" ? parent.top : undefined
+                anchors.bottom: dock.pos === "top" ? parent.bottom : undefined
+                anchors.left: dock.pos === "right" ? parent.left : undefined
+                anchors.right: dock.pos === "left" ? parent.right : undefined
+                anchors.horizontalCenter: dock.vertical ? undefined : parent.horizontalCenter
+                anchors.verticalCenter: dock.vertical ? parent.verticalCenter : undefined
+                width: dock.vertical ? 1 : parent.width - 2 * parent.radius
+                height: dock.vertical ? parent.height - 2 * parent.radius : 1
                 opacity: 0.55
                 gradient: Gradient {
-                    orientation: Gradient.Horizontal
+                    orientation: dock.vertical ? Gradient.Vertical : Gradient.Horizontal
                     GradientStop { position: 0; color: "transparent" }
                     GradientStop { position: 0.25; color: Theme.brandCyan }
                     GradientStop { position: 0.5; color: Theme.brandIndigo }
@@ -167,12 +229,28 @@ Variants {
                 }
             }
 
-            RowLayout {
+            // Apps en fila (horizontal) o en columna (vertical)
+            readonly property bool startShown: Settings.dock.showStart && !Serp.on
+            readonly property bool searchShown: Settings.dock.showSearch && !Serp.on
+            readonly property bool dividerShown: (Settings.dock.showStart || Settings.dock.showSearch) && !Serp.on
+            // elementos visibles de la fila (Inicio, Buscar, divisor, las apps, divisor y papelera): GridLayout necesita el conteo
+            readonly property int itemCount: Math.max(1, (startShown ? 1 : 0) + (searchShown ? 1 : 0) + (dividerShown ? 1 : 0) + 1 + 2)
+            GridLayout {
                 id: row
-                anchors.verticalCenter: parent.verticalCenter
-                x: !dock.full ? 8 : dock.alignLeft ? 8 : Math.max(8, (card.width - width) / 2)
+                flow: dock.vertical ? GridLayout.TopToBottom : GridLayout.LeftToRight
+                // en vertical (TopToBottom) «rows» es cuántos elementos caben en la columna: los visibles
+                rows: dock.vertical ? card.itemCount : 1
+                columns: dock.vertical ? 0 : card.itemCount
+                x: dock.vertical
+                    ? (card.width - width) / 2
+                    : (!dock.full ? 8 : dock.alignLeft ? 8 : Math.max(8, (card.width - width) / 2))
+                y: dock.vertical
+                    ? (!dock.full ? 8 : dock.alignLeft ? 8 : Math.max(8, (card.height - height) / 2))
+                    : (card.height - height) / 2
                 Behavior on x { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
-                spacing: 2
+                Behavior on y { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
+                rowSpacing: 6
+                columnSpacing: 6
 
                 DockButton {
                     visible: Settings.dock.showStart && !Serp.on
@@ -192,17 +270,30 @@ Variants {
                     visible: Settings.dock.showSearch && !Serp.on
                     tip: I18n.t("Buscar")
                     onClicked: Shell.toggleLauncher(false)
-                    Icon { anchors.centerIn: parent; text: "search"; size: Math.round(24 * Theme.dockScale); color: Theme.fg }
+                    AppIcon { anchors.centerIn: parent; name: "system-search"; fallback: ""; glyph: "search"; size: Math.round(28 * Theme.dockScale) }
                 }
                 Rectangle {
                     visible: (Settings.dock.showStart || Settings.dock.showSearch) && !Serp.on
-                    Layout.leftMargin: 4
-                    Layout.rightMargin: 4
-                    implicitWidth: 1
-                    implicitHeight: 28
+                    Layout.leftMargin: dock.vertical ? 0 : 4
+                    Layout.rightMargin: dock.vertical ? 0 : 4
+                    Layout.topMargin: dock.vertical ? 4 : 0
+                    Layout.bottomMargin: dock.vertical ? 4 : 0
+                    implicitWidth: dock.vertical ? 28 : 1
+                    implicitHeight: dock.vertical ? 1 : 28
                     color: Theme.alpha(Theme.fg, 0.14)
                 }
                 Taskbar { id: taskbar; dock: dock }
+                // divisor y papelera al final, como en macOS (mismo estilo que el divisor de la barra de tareas)
+                Rectangle {
+                    Layout.leftMargin: dock.vertical ? 0 : 6
+                    Layout.rightMargin: dock.vertical ? 0 : 4
+                    Layout.topMargin: dock.vertical ? 6 : 0
+                    Layout.bottomMargin: dock.vertical ? 4 : 0
+                    implicitWidth: dock.vertical ? Math.round(34 * Theme.dockScale) : 1
+                    implicitHeight: dock.vertical ? 1 : Math.round(34 * Theme.dockScale)
+                    color: Theme.alpha(Theme.fg, 0.2)
+                }
+                TrashButton {}
             }
 
             // Modo «una sola barra»: bandeja, estado, hora y apagado a la derecha
@@ -220,12 +311,9 @@ Variants {
         Card {
             id: bubble
             readonly property var g: dock.hoverGroup
-            readonly property bool many: g !== null && g.wins.length > 1
-            visible: g !== null && dock.menuGroup === null && dock.hoverItem !== null
-            x: dock.hoverItem ? Math.max(8, Math.min(dock.width - width - 8,
-                   dock.hoverItem.mapToItem(dock.contentItem, dock.hoverItem.width / 2, 0).x - width / 2)) : 0
-            anchors.bottom: card.top
-            anchors.bottomMargin: 8
+                        visible: g !== null && dock.menuGroup === null && dock.hoverItem !== null
+            x: dock.hoverItem ? dock.popupX(dock.hoverItem, width) : 0
+            y: dock.hoverItem ? dock.popupY(dock.hoverItem, height) : 0
             radius: Theme.radius
             color: Theme.alpha(Theme.surfaceHigh, 0.97)
             implicitWidth: bubbleCol.implicitWidth + 20
@@ -238,46 +326,11 @@ Variants {
                 anchors.centerIn: parent
                 spacing: 2
                 Txt {
-                    visible: !bubble.many
-                    text: bubble.g ? (bubble.g.wins.length === 1 && bubble.g.wins[0].title ? bubble.g.wins[0].title : bubble.g.name) : ""
+                    // como macOS: solo el nombre de la app (las ventanas se listan en el menu)
+                    text: bubble.g ? bubble.g.name : ""
                     font.weight: Font.DemiBold
                     Layout.maximumWidth: 320
                     elide: Text.ElideRight
-                }
-                // varias ventanas: lista para elegir una, como en Windows
-                Repeater {
-                    model: bubble.many ? bubble.g.wins : []
-                    Rectangle {
-                        id: winRow
-                        required property var modelData
-                        Layout.fillWidth: true
-                        implicitWidth: Math.min(340, winTitle.implicitWidth + 60)
-                        implicitHeight: 36
-                        radius: Theme.radiusSmall
-                        color: winArea.containsMouse ? Theme.alpha(Theme.fg, 0.08) : "transparent"
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 8
-                            anchors.rightMargin: 8
-                            spacing: 8
-                            AppIcon { size: 18; name: Wm.iconFor(winRow.modelData.appId) }
-                            Txt {
-                                id: winTitle
-                                Layout.fillWidth: true
-                                text: winRow.modelData.title || bubble.g.name
-                                elide: Text.ElideRight
-                                font.weight: winRow.modelData.activated ? Font.Bold : Font.Normal
-                            }
-                        }
-                        MouseArea {
-                            id: winArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onEntered: hideTimer.stop()
-                            onExited: hideTimer.restart()
-                            onClicked: { Wm.focus(winRow.modelData); dock.hoverGroup = null; }
-                        }
-                    }
                 }
             }
             HoverHandler {
@@ -295,10 +348,8 @@ Variants {
             id: menu
             readonly property var g: dock.menuGroup
             visible: g !== null && dock.menuItem !== null
-            x: dock.menuItem ? Math.max(8, Math.min(dock.width - width - 8,
-                   dock.menuItem.mapToItem(dock.contentItem, dock.menuItem.width / 2, 0).x - width / 2)) : 0
-            anchors.bottom: card.top
-            anchors.bottomMargin: 8
+            x: dock.menuItem ? dock.popupX(dock.menuItem, width) : 0
+            y: dock.menuItem ? dock.popupY(dock.menuItem, height) : 0
             radius: Theme.radius
             color: Theme.alpha(Theme.surfaceHigh, 0.98)
             implicitWidth: 240
@@ -318,12 +369,48 @@ Variants {
                     AppIcon { size: 22; name: menu.g ? menu.g.icon : "" }
                     Txt { Layout.fillWidth: true; text: menu.g ? menu.g.name : ""; font.weight: Font.Bold; elide: Text.ElideRight }
                 }
+                // ventanas de la app (como macOS): clic para llevarla al frente
+                Repeater {
+                    model: menu.g ? menu.g.wins : []
+                    Rectangle {
+                        id: wrow
+                        required property var modelData
+                        Layout.fillWidth: true
+                        implicitHeight: 34
+                        radius: Theme.radiusSmall
+                        color: wArea.containsMouse ? Theme.alpha(Theme.fg, 0.08) : "transparent"
+                        Txt {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 10
+                            verticalAlignment: Text.AlignVCenter
+                            text: (Wm.isMinimized(wrow.modelData) ? "◦ " : wrow.modelData.activated ? "✓ " : "   ") + (wrow.modelData.title || menu.g.name)
+                            elide: Text.ElideRight
+                        }
+                        MouseArea {
+                            id: wArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: { Wm.focus(wrow.modelData); dock.closeMenu(); }
+                        }
+                    }
+                }
+                Rectangle {
+                    visible: menu.g !== null && menu.g.wins.length > 0
+                    Layout.fillWidth: true
+                    Layout.margins: 4
+                    implicitHeight: 1
+                    color: Theme.alpha(Theme.fg, 0.12)
+                }
                 Repeater {
                     model: menu.g ? [
                         { icon: "add", text: I18n.t("Nueva ventana"), show: !!menu.g.entry, run: () => Apps.launch(menu.g.entry) },
                         { icon: menu.g.pinned ? "keep_off" : "keep", text: menu.g.pinned ? I18n.t("Quitar de la barra") : I18n.t("Fijar en la barra"),
                           show: !!menu.g.entry, run: () => Wm.togglePin(menu.g.id) },
-                        { icon: "close", text: menu.g.wins.length > 1 ? I18n.t("Cerrar todas las ventanas") : I18n.t("Cerrar ventana"),
+                        { icon: "visibility_off", text: I18n.t("Ocultar"),
+                          show: menu.g.wins.some(w => !Wm.isMinimized(w)), run: () => menu.g.wins.forEach(w => Wm.minimize(w)) },
+                        { icon: "power_settings_new", text: I18n.t("Salir"),
                           show: menu.g.wins.length > 0, run: () => menu.g.wins.forEach(w => w.close()) },
                     ].filter(o => o.show) : []
                     Rectangle {

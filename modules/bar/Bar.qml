@@ -19,7 +19,8 @@ Variants {
         readonly property bool floating: Settings.layout.topBar.floating
 
         screen: modelData
-        visible: Settings.layout.style !== "single"
+        // en «una sola barra» el dock trae la bandeja y la hora; si el dock se mueve a otro borde, esta barra vuelve
+        visible: Settings.layout.style !== "single" || Settings.dock.position !== "bottom"
         WlrLayershell.namespace: "quantum-bar"
         anchors { top: true; left: true; right: true }
         // pegada = barra de menús estilo macOS (MacBar.qml), fina
@@ -82,14 +83,14 @@ Variants {
                     anchors.fill: parent
                     visible: !!activeApp.win && bar.floating
                     size: 22
-                    name: activeApp.win ? Wm.iconFor(activeApp.win.appId) : ""
+                    name: activeApp.win ? Wm.iconFor(activeApp.win.appId, activeApp.win.title) : ""
                 }
             }
             Txt {
                 Layout.leftMargin: 4
                 Layout.rightMargin: 6
                 Layout.maximumWidth: bar.width * 0.3 - 40
-                text: activeApp.win ? Wm.nameFor(activeApp.win.appId) : "Quantum"
+                text: activeApp.win ? Wm.nameFor(activeApp.win.appId, activeApp.win.title) : "Quantum"
                 font.weight: Font.Bold
                 elide: Text.ElideRight
             }

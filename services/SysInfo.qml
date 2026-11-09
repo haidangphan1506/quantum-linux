@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.services
 
 // Uso del sistema en tiempo real: CPU, RAM, disco, temperaturas (CPU/GPU/SSD),
 // red, carga y tiempo encendido. Solo mide mientras alguien lo usa:
@@ -56,7 +57,7 @@ Singleton {
 
     function fmtUptime(s: real): string {
         const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
-        return (d > 0 ? d + "d " : "") + (d > 0 || h > 0 ? h + "h " : "") + m + "m";
+        return (d > 0 ? d + " " + I18n.t("d") + " " : "") + (d > 0 || h > 0 ? h + " " + I18n.t("h") + " " : "") + m + " " + I18n.t("min");
     }
 
     // Nivel según la temperatura: 0 normal, 1 caliente, 2 muy caliente

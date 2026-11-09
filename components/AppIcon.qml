@@ -10,10 +10,14 @@ Item {
 
     property string name: ""
     property int size: 24
+    // respaldo del tema si «name» no existe (vacío = sin respaldo: se ve el glifo)
+    property string fallback: "application-x-executable"
+    // glifo de Material Symbols si no hay ningún archivo de ícono
+    property string glyph: "apps"
 
     readonly property string path: {
         const own = root.name ? Quickshell.iconPath(root.name, true) : "";
-        return own || Quickshell.iconPath("application-x-executable", true);
+        return own || (root.fallback ? Quickshell.iconPath(root.fallback, true) : "");
     }
 
     implicitWidth: size
@@ -29,7 +33,7 @@ Item {
     Icon {
         anchors.centerIn: parent
         visible: !img.visible
-        text: "apps"
+        text: root.glyph
         size: root.size
         color: Theme.fgMuted
     }

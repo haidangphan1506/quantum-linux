@@ -17,10 +17,25 @@ Singleton {
     // Los paneles se abren en la pantalla de la ventana activa (o en la primera).
     readonly property var screen: active?.screens?.[0] ?? Quickshell.screens[0]
 
-    // Las ventanas propias del shell (Personalizar) llegan como «org.quickshell».
-    function iconFor(appId: string): string {
-        if (appId === "org.quickshell") return "quantum-personalize";
-        return DesktopEntries.heuristicLookup(appId)?.icon ?? appId;
+    // Las ventanas propias del shell (Personalizar) llegan como «org.quickshell», pero el
+    // sistema trae su propio org.quickshell.desktop (icono de Quickshell): hay que preferir
+    // el de Personalizar, si no, la ventana y la barra muestran el icono equivocado.
+    // Dentro de org.quickshell, la ventana «Claude Agents City» (apps/agentoffice) es de otra app:
+    // se distingue por el título y usa el .desktop claude-agentoffice.
+    readonly property string officeTitle: "Claude Agents City"
+
+    // title (opcional): título de la ventana; hace falta para distinguir las ventanas org.quickshell.
+    function entryFor(appId: string, title): var {
+        if (appId === "org.quickshell") {
+            if (title === root.officeTitle)
+                return DesktopEntries.byId("claude-agentoffice") ?? DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
+            return DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
+        }
+        return DesktopEntries.heuristicLookup(appId);
+    }
+
+    function iconFor(appId: string, title): string {
+        return root.entryFor(appId, title)?.icon ?? appId;
     }
 
     // Grupos de la barra de tareas: fijadas primero (en su orden) y luego las
@@ -47,16 +62,25 @@ Singleton {
             if (e && !byId[e.id])
                 add(e.id, e, true);
         }
+        const nPinned = out.length;
         for (let i = 0; i < root.windows.length; i++) {
             const w = root.windows[i];
-            const e = DesktopEntries.heuristicLookup(w.appId);
+            const e = root.entryFor(w.appId, w.title);
             const id = e?.id ?? w.appId;
             const g = byId[id] ?? add(id, e, false);
             if (g.wins.indexOf(w) === -1)
                 g.wins.push(w);
         }
-        groups = out;
+        // las abiertas sin fijar siguen el orden que les diste al arrastrarlas (en memoria);
+        // las nuevas van al final, en el orden en que llegaron
+        const open = out.slice(nPinned);
+        const rank = id => { const k = root.openOrder.indexOf(id); return k >= 0 ? k : 1e6; };
+        open.sort((a, b) => rank(a.id) - rank(b.id));
+        groups = out.slice(0, nPinned).concat(open);
     }
+
+    // Orden de las apps abiertas sin fijar (solo en memoria; se pierde al reiniciar el shell)
+    property var openOrder: []
 
     Component.onCompleted: updateGroups()
     onWindowsChanged: updateGroups()
@@ -81,25 +105,33 @@ Singleton {
         Settings.setPinned(list);
     }
 
-    // Mueve una app de la barra a la posición «to» (índice entre todos los íconos).
-    // Las fijadas van primero: si se suelta una app no fijada entre las fijadas, queda fijada ahí.
+    // Mueve una app de la barra a la posición «to» (índice entre todos los íconos, como se ve).
+    // Las fijadas van primero: si cae dentro del bloque de fijadas queda fijada; si cae después,
+    // se desfija (abierta sin fijar). Así arrastrar una app abierta (brave, herdr…) a la zona
+    // fijada la fija, y arrastrar una fijada a la zona de abiertas la quita.
     function moveGroup(id: string, to: int): void {
-        const list = (Settings.dock.pinned ?? []).slice();
-        const from = list.indexOf(id);
-        if (from >= 0) {
-            list.splice(from, 1);
-            list.splice(Math.max(0, Math.min(list.length, to)), 0, id);
-        } else if (to <= list.length) {
-            list.splice(Math.max(0, to), 0, id);
-        } else {
-            return;
+        const moved = root.groups.find(g => g.id === id);
+        if (!moved) return;
+        const others = root.groups.filter(g => g.id !== id);
+        const pinnedOthers = others.filter(g => g.pinned).length;
+        const t = Math.max(0, Math.min(others.length, to));
+        // solo se puede fijar una app que tenga .desktop (si no, no sobreviviría al recalcular)
+        const pinnedNow = t <= pinnedOthers && !!moved.entry;
+        const ids = others.map(g => g.id);
+        ids.splice(t, 0, id);
+        const pinnedIds = [], openIds = [];
+        for (const x of ids) {
+            const isPinned = x === id ? pinnedNow : others.find(g => g.id === x).pinned;
+            (isPinned ? pinnedIds : openIds).push(x);
         }
-        Settings.setPinned(list);
+        root.openOrder = openIds;
+        Settings.setPinned(pinnedIds);
+        root.updateGroups();
     }
 
-    function nameFor(appId: string): string {
-        if (appId === "org.quickshell") return I18n.t("Personalizar");
-        return DesktopEntries.heuristicLookup(appId)?.name ?? appId;
+    function nameFor(appId: string, title): string {
+        if (appId === "org.quickshell" && title !== root.officeTitle) return I18n.t("Personalizar");
+        return root.entryFor(appId, title)?.name ?? appId;
     }
 
     // Hyprland no tiene "minimizado": hyprlands/minimize.lua mueve la ventana al workspace
@@ -111,6 +143,24 @@ Singleton {
 
     function isMinimized(win: var): bool {
         return !!win && (win.minimized || root.minimizedWins.indexOf(win) >= 0);
+    }
+
+    // Como macOS: las ventanas minimizadas van a la derecha del divisor del dock,
+    // cada una con su propio icono (la app sigue en su sitio con el punto de «abierta»).
+    readonly property var minimizedItems: root.windows
+        .filter(w => root.isMinimized(w))
+        .map(w => ({ win: w, appId: w.appId, title: w.title,
+                     icon: root.iconFor(w.appId, w.title) }))
+
+    // Clic en un icono del dock: alterna mostrar/ocultar. Si la app esta al frente se
+    // minimizan sus ventanas visibles; si no, se activa (o se restaura una minimizada).
+    function activateGroup(g: var): void {
+        if (g.wins.some(w => w.activated && !root.isMinimized(w))) {
+            g.wins.filter(w => !root.isMinimized(w)).forEach(w => root.minimize(w));
+            return;
+        }
+        const w = g.wins.find(x => !root.isMinimized(x)) ?? g.wins[0];
+        root.focus(w);
     }
 
     // Minimizar / restaurar: se pide por wlr-foreign-toplevel y Hyprland (minimize.lua) lo hace.

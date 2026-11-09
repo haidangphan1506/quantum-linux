@@ -85,7 +85,7 @@ ColumnLayout {
             help: I18n.t("Después se oculta solo.")
             icon: "timer"
             Segmented {
-                options: [{ v: 120, t: "2 min" }, { v: 300, t: "5 min" }, { v: 0, t: I18n.t("Siempre") }]
+                options: [{ v: 120, t: "2 " + I18n.t("min") }, { v: 300, t: "5 " + I18n.t("min") }, { v: 0, t: I18n.t("Siempre") }]
                 value: page.ad?.discoverableTimeout ?? 0
                 onPicked: v => page.ad.discoverableTimeout = v
             }

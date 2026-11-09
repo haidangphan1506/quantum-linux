@@ -191,7 +191,7 @@ Scope {
                                     visible: !shot.hasContent
                                     anchors.centerIn: parent
                                     size: 48     // fijo (tamaños ligados al marco hacían explotar la memoria)
-                                    name: Wm.iconFor(cell.modelData.wayland?.appId ?? "")
+                                    name: Wm.iconFor(cell.modelData.wayland?.appId ?? "", cell.modelData.wayland?.title ?? "")
                                 }
                             }
                             // icono de la app en la esquina, como macOS
@@ -199,7 +199,7 @@ Scope {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.verticalCenter: parent.bottom
                                 size: 36
-                                name: Wm.iconFor(cell.modelData.wayland?.appId ?? "")
+                                name: Wm.iconFor(cell.modelData.wayland?.appId ?? "", cell.modelData.wayland?.title ?? "")
                             }
                             MouseArea {
                                 anchors.fill: parent
@@ -223,7 +223,7 @@ Scope {
                     font.pixelSize: 13
                     font.weight: Font.DemiBold
                     readonly property var t: root.wins[root.index]
-                    text: t ? (t.title || Wm.nameFor(t.wayland?.appId ?? "")) : ""
+                    text: t ? (t.title || Wm.nameFor(t.wayland?.appId ?? "", t.wayland?.title ?? "")) : ""
                 }
             }
         }
