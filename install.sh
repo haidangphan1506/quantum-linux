@@ -61,28 +61,32 @@ PKGS=(
   pacman-contrib fastfetch ffmpeg xdg-utils
   # ứng dụng + font
   fish eza starship zoxide direnv swappy thunar exo xdg-user-dirs
+  # thiếu trước đây: XWayland (app X11), ssh-agent (fish dùng), driver GPU/vulkan, Thunar (mount/ảnh thu nhỏ/nén), font có icon cho eza
+  xorg-xwayland openssh pciutils mesa gvfs gvfs-mtp tumbler thunar-volman thunar-archive-plugin file-roller
+  ttf-jetbrains-mono-nerd ripgrep base-devel less man-db bluez-obex
   nautilus firefox ttf-inter ttf-jetbrains-mono noto-fonts noto-fonts-emoji
 )
 c "Cài gói từ repo chính thức (${#PKGS[@]} gói)"
 run "${PAC[@]}" "${PKGS[@]}"
 
 # ---------- gói AUR ----------
-# Material Symbols Rounded: font icon bắt buộc (Theme.iconFont). MacTahoe là icon theme tuỳ chọn.
+# Dùng paru. Material Symbols Rounded: font icon bắt buộc (Theme.iconFont).
+# hyprlauncher (Super+R) và hyprshutdown (Super+M) nếu chưa có trong repo chính.
 AUR_PKGS=(ttf-material-symbols-variable-git)
-aur_helper() { for h in paru yay; do command -v "$h" >/dev/null && { echo "$h"; return; }; done; }
+aur_helper() { command -v paru >/dev/null && echo paru; }
 if ((AUR)); then
   H="$(aur_helper || true)"
   if [[ -z "$H" ]]; then
-    c "Chưa có AUR helper - cài yay-bin"
-    if ((DRY)); then echo "  (dry-run) git clone https://aur.archlinux.org/yay-bin.git && makepkg -si"
+    c "Chưa có paru - cài paru-bin từ AUR"
+    if ((DRY)); then echo "  (dry-run) git clone https://aur.archlinux.org/paru-bin.git && makepkg -si"
     else
       sudo pacman -S --needed --noconfirm base-devel git
-      tmp="$(mktemp -d)"; git clone --depth 1 https://aur.archlinux.org/yay-bin.git "$tmp/yay-bin"
-      (cd "$tmp/yay-bin" && makepkg -si --noconfirm); rm -rf "$tmp"; H=yay
+      tmp="$(mktemp -d)"; git clone --depth 1 https://aur.archlinux.org/paru-bin.git "$tmp/paru-bin"
+      (cd "$tmp/paru-bin" && makepkg -si --noconfirm); rm -rf "$tmp"; H=paru
     fi
   fi
   c "Cài gói AUR: ${AUR_PKGS[*]}"
-  A=("${H:-yay}" -S --needed); ((YES)) && A+=(--noconfirm)
+  A=("${H:-paru}" -S --needed); ((YES)) && A+=(--noconfirm)
   run "${A[@]}" "${AUR_PKGS[@]}" || w "Cài AUR thất bại - icon trên shell sẽ hiện ô vuông cho tới khi có font 'Material Symbols Rounded'."
 else
   w "Bỏ qua AUR: tự cài font 'Material Symbols Rounded' (ttf-material-symbols-variable-git)."
@@ -130,6 +134,7 @@ EXTRA_PKGS=(
   htop btop pavucontrol networkmanager unzip
   docker docker-compose                    # nmcli nằm trong networkmanager
   lazygit lazydocker
+  hyprlauncher hyprshutdown                # Super+R / Super+M trong config (repo hoặc AUR)
 )
 install_extras() {
   local missing=() aur=() p
@@ -167,6 +172,18 @@ install_extras() {
   fi
 }
 ((EXTRAS)) && install_extras
+
+# ---------- driver GPU (phát hiện bằng lspci) ----------
+gpu_drivers() {
+  command -v lspci >/dev/null || return 0
+  local g; g="$(lspci -nn 2>/dev/null | grep -Ei 'vga|3d|display')"; local d=()
+  grep -qi 'intel'  <<<"$g" && d+=(vulkan-intel intel-media-driver)
+  grep -qiE 'amd|ati|radeon' <<<"$g" && d+=(vulkan-radeon libva-mesa-driver)
+  grep -qi 'nvidia' <<<"$g" && d+=(nvidia-open-dkms nvidia-utils linux-headers) && w "NVIDIA: cần thêm 'nvidia_drm.modeset=1' vào kernel cmdline và env LIBVA_DRIVER_NAME/GBM_BACKEND theo wiki Hyprland."
+  ((${#d[@]})) && { c "Driver GPU: ${d[*]}"; run "${PAC[@]}" "${d[@]}" || w "Cài driver GPU thất bại"; }
+  return 0
+}
+gpu_drivers
 
 # ---------- chép cấu hình vào hệ thống ----------
 # Chép (không symlink) để bạn sửa tự do; bản cũ được sao lưu thành <tên>.bak-<ngày>.

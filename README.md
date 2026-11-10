@@ -17,11 +17,12 @@ cd quantum-linux
 `install.sh` (chạy bằng user thường, tự gọi `sudo`):
 
 1. cài ~55 gói từ repo chính thức (hyprland, quickshell, Qt6, pipewire, NetworkManager, bluez, kitty, **fish**, eza, starship, zoxide, cliphist, grim…);
-2. cài font **Material Symbols Rounded** từ AUR (`ttf-material-symbols-variable-git`; tự cài `yay-bin` nếu chưa có AUR helper; bỏ qua bằng `--no-aur`);
-3. **gói bổ sung (chỉ cài cái còn thiếu)**: `blueman`, nhóm `fcitx5-im` + `fcitx5-unikey`, `htop`, `btop`, `pavucontrol`, `networkmanager` (có `nmcli`), `unzip`, `docker` + `docker-compose` (bật dịch vụ, thêm user vào nhóm `docker`), `lazygit`, `lazydocker`, `bun` (repo → AUR `bun-bin` → bun.sh), `opencode-ai` (qua `bun install -g`). Gói không có trong repo chính sẽ thử AUR. Bỏ qua cả nhóm bằng `--no-extras`;
-4. bật dịch vụ NetworkManager, bluetooth, upower, power-profiles-daemon, pipewire;
-5. liên kết repo vào `~/.config/quickshell/caelestia` (và bí danh `quantum`), launcher vào `~/.local/bin`, `.desktop` + icon vào `~/.local/share`;
-6. **chép cấu hình vào hệ thống** (từ `config/`): `~/.config/hypr` (Hyprland Lua), `fish`, `Thunar`, `pavucontrol.ini`, `kitty/kitty.conf` (`shell /usr/bin/fish`), `xfce4/helpers.rc` (terminal = kitty). Thư mục/file đã tồn tại và khác sẽ được sao lưu thành `<tên>.bak-<ngày>`. Cuối cùng đặt **fish làm shell mặc định** (`chsh`).
+2. cài font **Material Symbols Rounded** từ AUR (`ttf-material-symbols-variable-git`; dùng **paru**, tự cài `paru-bin` nếu chưa có; bỏ qua bằng `--no-aur`);
+3. **gói còn thiếu cho Arch**: XWayland, openssh, mesa + driver GPU tự phát hiện (Intel/AMD/NVIDIA), gvfs/tumbler/thunar-volman/archive cho Thunar, font Nerd cho `eza --icons`, ripgrep, base-devel, `hyprlauncher`/`hyprshutdown` (Super+R / Super+M).
+4. **gói bổ sung (chỉ cài cái còn thiếu)**: `blueman`, nhóm `fcitx5-im` + `fcitx5-unikey`, `htop`, `btop`, `pavucontrol`, `networkmanager` (có `nmcli`), `unzip`, `docker` + `docker-compose` (bật dịch vụ, thêm user vào nhóm `docker`), `lazygit`, `lazydocker`, `bun` (repo → AUR `bun-bin` → bun.sh), `opencode-ai` (qua `bun install -g`). Gói không có trong repo chính sẽ thử AUR. Bỏ qua cả nhóm bằng `--no-extras`;
+5. bật dịch vụ NetworkManager, bluetooth, upower, power-profiles-daemon, pipewire;
+6. liên kết repo vào `~/.config/quickshell/caelestia` (và bí danh `quantum`), launcher vào `~/.local/bin`, `.desktop` + icon vào `~/.local/share`;
+7. **chép cấu hình vào hệ thống** (từ `config/`): `~/.config/hypr` (Hyprland Lua), `fish`, `Thunar`, `pavucontrol.ini`, `kitty/kitty.conf` (`shell /usr/bin/fish`), `xfce4/helpers.rc` (terminal = kitty). Thư mục/file đã tồn tại và khác sẽ được sao lưu thành `<tên>.bak-<ngày>`. Cuối cùng đặt **fish làm shell mặc định** (`chsh`).
 
 Tuỳ chọn: `--yes`, `--dry-run`, `--no-aur`, `--no-hypr` (không đụng `~/.config/hypr`), `--no-dotfiles` (không chép fish/Thunar/kitty…), `--no-extras`.
 
@@ -40,8 +41,8 @@ Cấu hình Hyprland nằm ở `config/hypr/` (`hyprland.lua` nạp các module 
 
 ### Phím tắt chính (`config/hypr/variable.lua`)
 
-**Terminal (kitty chạy fish): `Super+Enter`, `Ctrl+Alt+T`**; `Super+Shift+Enter` mở terminal chạy btop · `Super+Q` đóng cửa sổ ·
-`Super+C/V` copy/paste kiểu macOS · `Super+E` file manager · `Super+R` hyprlauncher · `Super+Space`/tap `Super` launcher ·
+**Terminal (kitty chạy fish): `Super+Enter`, `Super+Q`, `Ctrl+Alt+T`**; `Super+Shift+Enter` mở terminal chạy btop · `Super+Q` mở terminal · `Super+C` kill app đang focus (đã bỏ copy/paste kiểu macOS) ·
+ `Super+E` file manager · `Super+R` hyprlauncher · `Super+Space`/tap `Super` launcher ·
 `Super+A` control center · `Super+D` dashboard · `Super+X` menu phiên · `Super+L` khoá · `Super+W` hình nền ·
 `Super+I` Personalize · `Super+Shift+V` clipboard · `Super+S` chụp vùng · `Alt+Tab` chuyển cửa sổ ·
 `Ctrl+Shift+Esc` Task Manager · `Super+1..0` workspace · cử chỉ 3/4 ngón (touchpad).

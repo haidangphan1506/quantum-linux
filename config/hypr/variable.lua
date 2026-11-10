@@ -42,11 +42,10 @@ vars.keybinds = {
     { key = mainMod .. " + RETURN",         action = hl.dsp.exec_cmd(vars.terminal) },
     { key = "CTRL + ALT + T",               action = hl.dsp.exec_cmd(vars.terminal) },
     { key = mainMod .. " + SHIFT + RETURN", action = hl.dsp.exec_cmd(vars.terminal .. " -e btop") }, -- terminal chay btop
-    { key = mainMod .. " + Q", action = hl.dsp.window.close() },
-    -- Copy/Paste kieu macOS: SUPER+C / SUPER+V gui Ctrl+C / Ctrl+V cho cua so dang focus.
-    -- Terminal (kitty, herdr) dung Ctrl+Shift+C/V de Ctrl+C van la ngat tien trinh.
-    { key = mainMod .. " + C", action = function() cael_clip("c") end },
-    { key = mainMod .. " + V", action = function() cael_clip("v") end },
+    { key = mainMod .. " + Q", action = hl.dsp.exec_cmd(vars.terminal) },   -- SUPER+Q: mo terminal
+    { key = mainMod .. " + C", action = hl.dsp.window.kill() },              -- SUPER+C: kill app dang focus
+    -- (Da bo copy/paste kieu macOS SUPER+C/V; ham cael_clip() ben tren van con de gan phim khac neu can,
+    --  vd: { key = mainMod .. " + SHIFT + C", action = function() cael_clip("c") end })
     { key = mainMod .. " + M", action = hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'") },
     { key = mainMod .. " + E", action = hl.dsp.exec_cmd(vars.fileManager) },
     { key = "CTRL + SHIFT + Escape", action = hl.dsp.exec_cmd(HOME .. "/.local/bin/quantum-taskmgr") }, -- Task Manager (nhu Windows)
