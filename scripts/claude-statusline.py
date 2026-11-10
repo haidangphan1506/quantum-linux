@@ -87,9 +87,9 @@ def main():
         parts.append(f"{L['ctx']} {used:.0f}%")
     lim = rec["limits"] or {}
     if "five_hour" in lim and lim["five_hour"]["used"] is not None:
-        parts.append(f"{L['5h']} {100 - lim['five_hour']['used']:.0f}%")
+        parts.append(f"{L['5h']} {lim['five_hour']['used']:.0f}%")
     if "seven_day" in lim and lim["seven_day"]["used"] is not None:
-        parts.append(f"{L['7d']} {100 - lim['seven_day']['used']:.0f}%")
+        parts.append(f"{L['7d']} {lim['seven_day']['used']:.0f}%")
     if rec["cost_usd"] is not None:
         parts.append(f"${rec['cost_usd']:.2f}")
     print("  ·  ".join(parts))

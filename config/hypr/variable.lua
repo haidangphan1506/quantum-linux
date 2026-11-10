@@ -75,8 +75,8 @@ vars.keybinds = {
     { key = mainMod .. " + SPACE",   action = hl.dsp.global("caelestia:utilities") }, -- Utilities popup (toggles, incl. wallpaper)
     { key = mainMod .. " + W",       action = hl.dsp.global("caelestia:wallpaperToggle") }, -- Toggle wallpaper on/off
     { key = mainMod .. " + SHIFT + W", action = hl.dsp.exec_cmd("caelestia wallpaper -r") }, -- Random wallpaper
-    { key = mainMod .. " + I",       action = hl.dsp.global("caelestia:nexus") },
-    { key = mainMod .. " + SHIFT + E", action = hl.dsp.global("caelestia:settings") }, -- Settings popup (giong nut Mo cai dat trong popup bar)
+    { key = mainMod .. " + I",       action = hl.dsp.global("caelestia:settings") }, -- SUPER+I: popup Settings (giong nut Mo cai dat trong popup bar)
+    { key = mainMod .. " + SHIFT + E", action = hl.dsp.global("caelestia:nexus") },
     { key = mainMod .. " + D",       action = hl.dsp.global("caelestia:dashboard") },
     { key = mainMod .. " + TAB",         action = hl.dsp.global("caelestia:spaceSwitcher") }, -- Switch workspace (island)
     { key = mainMod .. " + SHIFT + TAB", action = hl.dsp.global("caelestia:appSwitcher") },

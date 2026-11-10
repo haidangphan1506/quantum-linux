@@ -64,10 +64,16 @@ PKGS=(
   # thiếu trước đây: XWayland (app X11), ssh-agent (fish dùng), driver GPU/vulkan, Thunar (mount/ảnh thu nhỏ/nén), font có icon cho eza
   xorg-xwayland openssh pciutils mesa gvfs gvfs-mtp tumbler thunar-volman thunar-archive-plugin file-roller
   ttf-jetbrains-mono-nerd ripgrep base-devel less man-db bluez-obex
-  nautilus firefox ttf-inter ttf-jetbrains-mono noto-fonts noto-fonts-emoji
+  nautilus firefox inter-font ttf-jetbrains-mono noto-fonts noto-fonts-emoji
 )
-c "Cài gói từ repo chính thức (${#PKGS[@]} gói)"
-run "${PAC[@]}" "${PKGS[@]}"
+# bỏ qua tên gói không còn trong repo (Arch hay đổi tên/gộp gói) thay vì để pacman huỷ cả lượt cài
+OK_PKGS=() BAD_PKGS=()
+for p in "${PKGS[@]}"; do
+  if pacman -Si "$p" >/dev/null 2>&1 || pacman -Sg "$p" >/dev/null 2>&1; then OK_PKGS+=("$p"); else BAD_PKGS+=("$p"); fi
+done
+((${#BAD_PKGS[@]})) && w "Không có trong repo (bỏ qua): ${BAD_PKGS[*]}"
+c "Cài gói từ repo chính thức (${#OK_PKGS[@]} gói)"
+run "${PAC[@]}" "${OK_PKGS[@]}"
 
 # ---------- gói AUR ----------
 # Dùng paru. Material Symbols Rounded: font icon bắt buộc (Theme.iconFont).
@@ -121,6 +127,20 @@ for d in quantum-personalize quantum-assistant; do
   run install -Dm644 "$REPO/assets/$d.svg" "$HOME/.local/share/icons/hicolor/scalable/apps/$d.svg"
 done
 run gtk-update-icon-cache -qf "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+# statusLine của Claude Code: ghi % giới hạn 5 h / 7 ngày để ClaudeMeter trên thanh hiển thị (không ghi đè statusLine có sẵn)
+if ! ((DRY)) && command -v python3 >/dev/null 2>&1; then
+  python3 - "$REPO/scripts/claude-statusline.py" <<'PY' || w "Không cấu hình được statusLine cho Claude Code"
+import json, os, sys
+p = os.path.expanduser("~/.claude/settings.json")
+os.makedirs(os.path.dirname(p), exist_ok=True)
+try:
+    d = json.load(open(p))
+except (OSError, ValueError):
+    d = {}
+d.setdefault("statusLine", {"type": "command", "command": "python3 " + sys.argv[1]})
+json.dump(d, open(p, "w"), indent=2, ensure_ascii=False)
+PY
+fi
 case ":$PATH:" in *":$BIN:"*) ;; *) w "$BIN chưa nằm trong PATH - thêm: export PATH=\"\$HOME/.local/bin:\$PATH\"" ;; esac
 
 # ---------- gói bổ sung (chỉ cài cái còn thiếu) ----------
@@ -156,7 +176,7 @@ install_extras() {
   if ! cmd_or_pkg bun bun && ! command -v "$HOME/.bun/bin/bun" >/dev/null; then
     c "Cài bun"
     if in_repo bun; then run "${PAC[@]}" bun
-    elif ((AUR)) && [[ -n "$(aur_helper || true)" ]]; then run "$(aur_helper)" -S --needed ${YES:+--noconfirm} bun-bin
+    elif ((AUR)) && [[ -n "$(aur_helper || true)" ]]; then local A3=("$(aur_helper)" -S --needed); ((YES)) && A3+=(--noconfirm); run "${A3[@]}" bun-bin
     else run bash -c 'curl -fsSL https://bun.sh/install | bash' || w "Cài bun thất bại"; fi
   fi
   # opencode-ai (npm package) qua bun
@@ -178,7 +198,7 @@ gpu_drivers() {
   command -v lspci >/dev/null || return 0
   local g; g="$(lspci -nn 2>/dev/null | grep -Ei 'vga|3d|display')"; local d=()
   grep -qi 'intel'  <<<"$g" && d+=(vulkan-intel intel-media-driver)
-  grep -qiE 'amd|ati|radeon' <<<"$g" && d+=(vulkan-radeon libva-mesa-driver)
+  grep -qiE 'amd|ati|radeon' <<<"$g" && d+=(vulkan-radeon)   # VA-API cho AMD đã nằm trong mesa
   grep -qi 'nvidia' <<<"$g" && d+=(nvidia-open-dkms nvidia-utils linux-headers) && w "NVIDIA: cần thêm 'nvidia_drm.modeset=1' vào kernel cmdline và env LIBVA_DRIVER_NAME/GBM_BACKEND theo wiki Hyprland."
   ((${#d[@]})) && { c "Driver GPU: ${d[*]}"; run "${PAC[@]}" "${d[@]}" || w "Cài driver GPU thất bại"; }
   return 0

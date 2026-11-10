@@ -3,16 +3,21 @@
 #  - session: la sesión más reciente (contexto, coste, líneas…), según claude-statusline.py
 #  - limits:  % usado de la ventana de 5 h y de 7 días (solo suscriptores; viene del statusLine)
 #  - block / week: tokens sumados de los registros locales (~/.claude/projects), de respaldo
-#    (ventana de 5 h como ccusage y 7 días). tokens = input + output + creación de caché.
+#    (ventana de 5 h como ccusage y 7 días). tokens = input + output + creación de caché;
+#    además desglose (entrada/salida/caché), tokens por modelo, por día y ritmo (tokens/h).
 import glob
 import json
 import os
 import sys
 import time
+import urllib.request
 from datetime import datetime
 
 PROJECTS = os.path.expanduser("~/.claude/projects")
 STATE = os.path.expanduser("~/.local/state/quantum/claude")
+API_CACHE = os.path.join(STATE, "api-usage.cache")
+API_TTL = 600  # s: cada cuánto se consulta la API cuando no hay sesión de Claude Code activa
+CREDS = os.path.expanduser("~/.claude/.credentials.json")
 BLOCK = 5 * 3600
 WEEK = 7 * 24 * 3600
 
@@ -24,9 +29,20 @@ def parse_ts(s):
         return None
 
 
+def _blank():
+    return {"tokens": 0, "msgs": 0, "input": 0, "output": 0, "cache_write": 0, "cache_read": 0}
+
+
+def _add(acc, e):
+    acc["tokens"] += e["tok"]
+    acc["msgs"] += 1
+    for k in ("input", "output", "cache_write", "cache_read"):
+        acc[k] += e[k]
+
+
 def log_usage(now):
     since = now - WEEK
-    # id de mensaje -> (ts, tokens); las entradas en streaming repiten el id, gana la última
+    # id de mensaje -> entrada; las entradas en streaming repiten el id, gana la última
     msgs = {}
     for path in glob.glob(os.path.join(PROJECTS, "**", "*.jsonl"), recursive=True):
         try:
@@ -45,34 +61,103 @@ def log_usage(now):
                     ts = parse_ts(o.get("timestamp", ""))
                     if not u or ts is None or ts < since:
                         continue
-                    tok = (u.get("input_tokens") or 0) + (u.get("output_tokens") or 0) \
-                        + (u.get("cache_creation_input_tokens") or 0)
+                    e = {
+                        "ts": ts,
+                        "model": m.get("model") or "",
+                        "input": u.get("input_tokens") or 0,
+                        "output": u.get("output_tokens") or 0,
+                        "cache_write": u.get("cache_creation_input_tokens") or 0,
+                        "cache_read": u.get("cache_read_input_tokens") or 0,
+                    }
+                    e["tok"] = e["input"] + e["output"] + e["cache_write"]
                     key = m.get("id") or o.get("uuid") or f"{path}:{ts}"
-                    msgs[key] = (ts, tok)
+                    msgs[key] = e
         except OSError:
             continue
 
-    entries = sorted(msgs.values())
+    entries = sorted(msgs.values(), key=lambda e: e["ts"])
     blocks = []
-    for ts, tok in entries:
-        if blocks and ts < blocks[-1]["end"]:
+    for e in entries:
+        if blocks and e["ts"] < blocks[-1]["end"]:
             b = blocks[-1]
         else:
-            start = ts - (ts % 3600)
-            b = {"start": start, "end": start + BLOCK, "tokens": 0, "msgs": 0}
+            start = e["ts"] - (e["ts"] % 3600)
+            b = {"start": start, "end": start + BLOCK, "first": e["ts"], **_blank()}
             blocks.append(b)
-        b["tokens"] += tok
-        b["msgs"] += 1
+        _add(b, e)
+        b["last"] = e["ts"]
     cur = blocks[-1] if blocks and now < blocks[-1]["end"] else None
-    return {
-        "block": {
-            "active": cur is not None,
-            "reset": int(cur["end"]) if cur else 0,
-            "tokens": cur["tokens"] if cur else 0,
-            "msgs": cur["msgs"] if cur else 0,
-        },
-        "week": {"tokens": sum(t for _, t in entries), "msgs": len(entries)},
-    }
+
+    block = {"active": cur is not None, "reset": 0, "start": 0, "burn_per_h": 0, **_blank()}
+    if cur:
+        block.update({k: cur[k] for k in _blank()})
+        block["reset"] = int(cur["end"])
+        block["start"] = int(cur["start"])
+        hours = max((now - cur["first"]) / 3600, 1 / 6)  # mínimo 10 min para no disparar la tasa
+        block["burn_per_h"] = int(cur["tokens"] / hours)
+
+    week = _blank()
+    models = {}
+    # tokens por día (local), del más antiguo (hace 6 días) a hoy
+    today = datetime.fromtimestamp(now).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+    daily = [0] * 7
+    for e in entries:
+        _add(week, e)
+        name = e["model"] or "?"
+        if name.startswith("<"):  # mensajes sintéticos
+            continue
+        mm = models.setdefault(name, {"model": name, "tokens": 0, "msgs": 0})
+        mm["tokens"] += e["tok"]
+        mm["msgs"] += 1
+        ago = 0 if e["ts"] >= today else int((today - e["ts"]) // 86400) + 1
+        d = 6 - ago
+        if 0 <= d < 7:
+            daily[d] += e["tok"]
+    week["daily"] = daily
+    week["models"] = sorted(models.values(), key=lambda m: m["tokens"], reverse=True)
+
+    return {"block": block, "week": week}
+
+
+def api_limits(now):
+    """% de las ventanas 5 h / 7 d leído de la API de Anthropic (con el token de Claude Code),
+    como mucho cada API_TTL s. Sirve cuando no hay ninguna sesión escribiendo el statusLine.
+    Si falla (sin red, token caducado, 429) se devuelve la última lectura guardada."""
+    cache = {}
+    try:
+        with open(API_CACHE, encoding="utf-8") as f:
+            cache = json.load(f)
+    except (OSError, ValueError):
+        pass
+    if now - cache.get("tried", 0) >= API_TTL:
+        cache["tried"] = now  # también si falla: no insistir antes de API_TTL
+        try:
+            with open(CREDS, encoding="utf-8") as f:
+                tok = json.load(f)["claudeAiOauth"]["accessToken"]
+            req = urllib.request.Request(
+                "https://api.anthropic.com/api/oauth/usage",
+                headers={"Authorization": "Bearer " + tok, "anthropic-beta": "oauth-2025-04-20", "User-Agent": "quantum-bar"},
+            )
+            with urllib.request.urlopen(req, timeout=8) as r:
+                d = json.load(r)
+            lim = {}
+            for k in ("five_hour", "seven_day"):
+                v = d.get(k) or {}
+                if v.get("utilization") is not None and v.get("resets_at"):
+                    lim[k] = {"used": v["utilization"], "resets": int(parse_ts(v["resets_at"]) or 0), "read": int(now)}
+            if lim:
+                cache["limits"] = lim
+        except Exception:
+            pass
+        try:
+            os.makedirs(STATE, exist_ok=True)
+            tmp = API_CACHE + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(cache, f)
+            os.replace(tmp, API_CACHE)
+        except OSError:
+            pass
+    return cache.get("limits") or {}
 
 
 def statusline_state(now):
@@ -104,6 +189,11 @@ def statusline_state(now):
                     "read": s.get("updated") or 0,
                 }
                 break
+    # Lectura de la API: se usa si es más reciente que la del statusLine (o si no hay ninguna)
+    for k, v in api_limits(now).items():
+        cur = limits.get(k)
+        if not cur or v["read"] > cur["read"]:
+            limits[k] = {"used": v["used"] if v["resets"] > now else None, "resets": v["resets"], "read": v["read"]}
     limits = limits or None
 
     # Coste de las sesiones activas en la última ventana de 5 h (aproximado)
