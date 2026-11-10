@@ -1,0 +1,5 @@
+#!/bin/sh
+# Mở Quantum Task Manager (apps/taskmgr). Nếu đã mở thì thoát (không mở thêm).
+APP="$(dirname "$(readlink -f "$0")")/../apps/taskmgr/shell.qml"
+pgrep -f "qs.*apps/taskmgr" >/dev/null && exit 0
+exec setsid qs -p "$APP" -n -d >/dev/null 2>&1 </dev/null
