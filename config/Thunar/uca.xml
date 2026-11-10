@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+<action>
+	<icon>utilities-terminal</icon>
+	<name>Open Terminal Here</name>
+	<submenu></submenu>
+	<unique-id>1793434793893520-1</unique-id>
+	<command>exo-open --working-directory %f --launch TerminalEmulator</command>
+	<description>Example for a custom action</description>
+	<range></range>
+	<patterns>*</patterns>
+	<startup-notify/>
+	<directories/>
+</action>
+<action>
+	<icon>image-x-generic</icon>
+	<name>Quick Look</name>
+	<submenu></submenu>
+	<unique-id>1793434793893521-2</unique-id>
+	<command>qs -c caelestia ipc call preview open %f</command>
+	<description>Preview image/video (Space)</description>
+	<range>*</range>
+	<patterns>*</patterns>
+	<image-files/>
+	<video-files/>
+	<text-files/>
+	<other-files/>
+</action>
+<action>
+	<icon>system-software-install</icon>
+	<name>Install package</name>
+	<submenu></submenu>
+	<unique-id>1793434793893522-3</unique-id>
+	<command>kitty --title "Install package" -e $HOME/.local/bin/cael-install %f</command>
+	<description>Install .deb / .tar.gz</description>
+	<range>*</range>
+	<patterns>*.deb;*.tar.gz;*.tgz;*.tar.xz;*.tar.zst;*.tar.bz2</patterns>
+	<other-files/>
+</action>
+</actions>

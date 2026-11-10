@@ -16,13 +16,16 @@ cd quantum-linux
 
 `install.sh` (chạy bằng user thường, tự gọi `sudo`):
 
-1. cài ~46 gói từ repo chính thức (hyprland, quickshell, Qt6, pipewire, NetworkManager, bluez, kitty, cliphist, grim…);
+1. cài ~55 gói từ repo chính thức (hyprland, quickshell, Qt6, pipewire, NetworkManager, bluez, kitty, **fish**, eza, starship, zoxide, cliphist, grim…);
 2. cài font **Material Symbols Rounded** từ AUR (`ttf-material-symbols-variable-git`; tự cài `yay-bin` nếu chưa có AUR helper; bỏ qua bằng `--no-aur`);
-3. bật dịch vụ NetworkManager, bluetooth, upower, power-profiles-daemon, pipewire;
-4. liên kết repo vào `~/.config/quickshell/caelestia` (và bí danh `quantum`), đặt launcher vào `~/.local/bin`, `.desktop` + icon vào `~/.local/share`;
-5. chép cấu hình Hyprland Lua vào `~/.config/hypr/` (`quantum.lua`, `minimize.lua`; `hyprland.lua` chỉ tạo nếu bạn chưa có — file cũ không bị ghi đè, file trùng tên được sao lưu `.bak-<ngày>`).
+3. **gói bổ sung (chỉ cài cái còn thiếu)**: `blueman`, nhóm `fcitx5-im` + `fcitx5-unikey`, `htop`, `btop`, `pavucontrol`, `networkmanager` (có `nmcli`), `unzip`, `docker` + `docker-compose` (bật dịch vụ, thêm user vào nhóm `docker`), `lazygit`, `lazydocker`, `bun` (repo → AUR `bun-bin` → bun.sh), `opencode-ai` (qua `bun install -g`). Gói không có trong repo chính sẽ thử AUR. Bỏ qua cả nhóm bằng `--no-extras`;
+4. bật dịch vụ NetworkManager, bluetooth, upower, power-profiles-daemon, pipewire;
+5. liên kết repo vào `~/.config/quickshell/caelestia` (và bí danh `quantum`), launcher vào `~/.local/bin`, `.desktop` + icon vào `~/.local/share`;
+6. **chép cấu hình vào hệ thống** (từ `config/`): `~/.config/hypr` (Hyprland Lua), `fish`, `Thunar`, `pavucontrol.ini`, `kitty/kitty.conf` (`shell /usr/bin/fish`), `xfce4/helpers.rc` (terminal = kitty). Thư mục/file đã tồn tại và khác sẽ được sao lưu thành `<tên>.bak-<ngày>`. Cuối cùng đặt **fish làm shell mặc định** (`chsh`).
 
-Thêm `--no-hypr` nếu muốn tự quản lý cấu hình Hyprland.
+Tuỳ chọn: `--yes`, `--dry-run`, `--no-aur`, `--no-hypr` (không đụng `~/.config/hypr`), `--no-dotfiles` (không chép fish/Thunar/kitty…), `--no-extras`.
+
+Sau khi cài: đăng xuất/đăng nhập lại (nhóm `docker`, shell fish), chạy `fcitx5-configtool` để thêm bộ gõ Unikey.
 
 ## Chạy
 
@@ -33,13 +36,15 @@ Thêm `--no-hypr` nếu muốn tự quản lý cấu hình Hyprland.
 | Chạy thử không cần cài | `qs -p /đường/dẫn/quantum-linux` |
 | Nạp lại sau khi sửa | tự hot-reload; hoặc `pkill qs; qs -c caelestia -d` |
 
-Nếu đã có `hyprland.lua` riêng, thêm vào cuối file: `require("quantum")`.
+Cấu hình Hyprland nằm ở `config/hypr/` (`hyprland.lua` nạp các module trong `hyprlands/`; phím tắt trong `variable.lua`).
 
-### Phím tắt mặc định (`hypr/quantum.lua`)
+### Phím tắt chính (`config/hypr/variable.lua`)
 
-`Super+Space` launcher · `Super+V` clipboard · `Super+A` control center · `Super+D` dashboard · `Super+W` hình nền ·
-`Super+,` Personalize · `Super+L` khoá · `Super+Esc` menu phiên · `Super+Tab` overview · `Super+G` Launchpad ·
-`Alt+Tab` chuyển cửa sổ · `Super+C` đóng cửa sổ · `Super+Q` terminal · `Super+E` file · `Ctrl+Shift+Esc` Task Manager.
+**Terminal (kitty chạy fish): `Super+Enter`, `Ctrl+Alt+T`**; `Super+Shift+Enter` mở terminal chạy btop · `Super+Q` đóng cửa sổ ·
+`Super+C/V` copy/paste kiểu macOS · `Super+E` file manager · `Super+R` hyprlauncher · `Super+Space`/tap `Super` launcher ·
+`Super+A` control center · `Super+D` dashboard · `Super+X` menu phiên · `Super+L` khoá · `Super+W` hình nền ·
+`Super+I` Personalize · `Super+Shift+V` clipboard · `Super+S` chụp vùng · `Alt+Tab` chuyển cửa sổ ·
+`Ctrl+Shift+Esc` Task Manager · `Super+1..0` workspace · cử chỉ 3/4 ngón (touchpad).
 Mọi thứ đều đi qua IPC: `qs -c caelestia ipc call <target> <hàm>` (xem `grep -rn IpcHandler .`).
 
 ## Cấu trúc
@@ -51,7 +56,7 @@ Mọi thứ đều đi qua IPC: `qs -c caelestia ipc call <target> <hàm>` (xem 
 | `services/` | singleton: Settings, Theme, Audio, Net, Bt, Wm (cửa sổ), Updates, Weather, I18n… |
 | `components/` | widget dùng chung |
 | `apps/` | app Quickshell độc lập (`taskmgr`, `agentoffice`, `agentviz`, `agentviz3d`) |
-| `hypr/` | cấu hình Hyprland Lua + hàm `cael_*` (minimize, activate, close…) |
+| `config/` | cấu hình chép vào `~/.config`: `hypr/` (Lua + hàm `cael_*` trong `hyprlands/minimize.lua`), `fish/`, `Thunar/`, `pavucontrol.ini` |
 | `pam/` | cấu hình PAM cho màn hình khoá |
 | `scripts/`, `tools/idle` | thu thập mức dùng Claude Code, phát hiện idle → screensaver |
 
@@ -70,8 +75,17 @@ Chúng *không* có ở đây nên khi chạy riêng, các tính năng liên qua
 
 Mặc định dock ghim `quantum-files`, `quantum-center` nên các ô này sẽ trống cho tới khi bạn đổi ghim trong Personalize → Dock (hoặc sửa `dock.pinned` trong `settings.json`).
 
-**Hàm Lua `cael_*`.** Shell gọi `hyprctl eval "cael_activate(...)"` v.v. (`services/Wm.qml`, `Shell.qml`, `MacBar.qml`). Source gốc để chúng trong `minimize.lua` riêng
-không có trong repo; bản `hypr/minimize.lua` ở đây là cài đặt lại tối thiểu. **Chưa kiểm thử trên Hyprland thật** (môi trường review không có Arch/Hyprland): `activate / minimize / close / hide_others / show_all` dùng `hl.dispatch` + `hyprctl clients -j | jq`; hiệu ứng genie (`ipc call genie play`) **chưa** được nối. Nếu lệnh nào lỗi, báo qua `notify-send`.
+**Cấu hình Hyprland (`config/hypr`).** Lấy từ repo `ARCH-LINUX-SYSTEM/hyprland` và đã review/sửa:
+- đường dẫn cứng `/home/haidangphan/...` → `$HOME` (file manager tự rơi về `thunar` nếu không có `thunar-themed`; `CAELESTIA_WALLPAPERS_DIR`);
+- `Super+E` bị gán trùng (file manager *và* `caelestia:settings`) → settings chuyển sang `Super+Shift+E`;
+- `caelth` (bộ đổi profile) và CLI `caelestia` không bắt buộc: thiếu thì gọi thẳng `qs -c caelestia ipc call …` / `qs -c caelestia -d`;
+- thêm `monitor` mặc định cho màn hình ngoài (trước chỉ có `eDP-1`), bỏ rule `epic-mouse-v1` mẫu thừa; autostart thêm `cliphist`, `blueman-applet`, polkit agent;
+- các plugin `hyprbars.so` / `cael-minimize.so` là tuỳ chọn (không có thì bỏ qua, nhưng nút "_" của app như Brave sẽ không thu nhỏ được).
+- Cú pháp Lua của mọi file đã được nạp thử với Hyprland API giả; **chưa chạy trên Hyprland thật**.
+
+**fish.** Sửa: `ssh-agent` chỉ khởi động ở shell tương tác (trước đây sinh agent thừa mỗi lần chạy script), bỏ cờ `--apple-use-keychain` (chỉ macOS), `alias gc 'git commitm'`/`gpd 'git pulld…'` (lệnh không tồn tại) → `git commit`/`git pull`, bỏ `alias ps "podman ps"` (đè lệnh `ps`; thay bằng `dps` = docker ps), `TERMINAL` = `kitty` (trước là `fish`, vốn là shell chứ không phải terminal). Thêm alias `lg`, `lzd`.
+
+Không đưa vào repo: `herdr-app/` (có telemetry id cá nhân), `mimeapps.list` (trỏ tới Brave và `cael-quicklook` chưa có), `fish_variables` (trạng thái máy, chứa đường dẫn user cũ) và các file `.bak`.
 
 **Yêu cầu Hyprland ≥ 0.55.** Cú pháp `hl.dsp.*` / `hyprctl eval` chỉ có từ khi Hyprland chuyển sang cấu hình Lua. `hyprland.conf` kiểu cũ không dùng được.
 
@@ -82,7 +96,7 @@ không có trong repo; bản `hypr/minimize.lua` ở đây là cài đặt lại
 - `apps/agentviz/__pycache__/*.pyc` từng bị commit → đã gỡ khỏi git và thêm `.gitignore`.
 - Weather gọi `ipapi.co` / `open-meteo.com` (xác định vị trí theo IP khi chưa chọn thành phố) — lưu ý riêng tư.
 - Python (`scripts/*.py`, `collector.py`) và `keybinds.sh` qua kiểm tra cú pháp; chưa có test tự động nào trong repo.
-- `scripts/keybinds.sh` đọc `~/.config/hypr/variable.lua`; file này không có trong cấu hình mặc định ở đây nên mục "Phím tắt" trong menu Help sẽ trống.
+- `scripts/keybinds.sh` đọc `~/.config/hypr/variable.lua` — nay đã khớp vì installer chép file này.
 
 ## Xử lý sự cố
 

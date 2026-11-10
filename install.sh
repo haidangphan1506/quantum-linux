@@ -7,22 +7,27 @@
 #   ./install.sh --no-aur     bỏ qua gói AUR (font Material Symbols sẽ phải tự cài)
 #   ./install.sh --dry-run    chỉ in ra việc sẽ làm
 #   ./install.sh --no-hypr    không đụng tới ~/.config/hypr
+#   ./install.sh --no-extras  bỏ qua gói dev (docker, lazygit, bun, opencode...)
+#   ./install.sh --no-dotfiles không chép config fish/Thunar/pavucontrol/kitty
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 CFG="${XDG_CONFIG_HOME:-$HOME/.config}"
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}/quantum"
 BIN="$HOME/.local/bin"
+USER="${USER:-$(id -un)}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
-YES=0 AUR=1 DRY=0 HYPR=1
+YES=0 AUR=1 DRY=0 HYPR=1 EXTRAS=1 DOTS=1
 for a in "$@"; do
   case "$a" in
     -y|--yes) YES=1 ;;
     --no-aur) AUR=0 ;;
     --dry-run) DRY=1 ;;
     --no-hypr) HYPR=0 ;;
-    -h|--help) sed -n '2,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --no-extras) EXTRAS=0 ;;
+    --no-dotfiles) DOTS=0 ;;
+    -h|--help) sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Tuỳ chọn không hợp lệ: $a" >&2; exit 2 ;;
   esac
 done
@@ -55,6 +60,7 @@ PKGS=(
   kitty cliphist wl-clipboard grim slurp playerctl libnotify jq curl git python
   pacman-contrib fastfetch ffmpeg xdg-utils
   # ứng dụng + font
+  fish eza starship zoxide direnv swappy thunar exo xdg-user-dirs
   nautilus firefox ttf-inter ttf-jetbrains-mono noto-fonts noto-fonts-emoji
 )
 c "Cài gói từ repo chính thức (${#PKGS[@]} gói)"
@@ -113,22 +119,87 @@ done
 run gtk-update-icon-cache -qf "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
 case ":$PATH:" in *":$BIN:"*) ;; *) w "$BIN chưa nằm trong PATH - thêm: export PATH=\"\$HOME/.local/bin:\$PATH\"" ;; esac
 
-# ---------- cấu hình Hyprland (Lua) ----------
-if ((HYPR)); then
-  HC="$CFG/hypr"
-  c "Cấu hình Hyprland: $HC"
-  run mkdir -p "$HC"
-  for f in quantum.lua minimize.lua; do
-    [[ -f "$HC/$f" ]] && ! cmp -s "$REPO/hypr/$f" "$HC/$f" && { w "Sao lưu $HC/$f"; run cp "$HC/$f" "$HC/$f.bak-$STAMP"; }
-    run install -Dm644 "$REPO/hypr/$f" "$HC/$f"
+# ---------- gói bổ sung (chỉ cài cái còn thiếu) ----------
+# Dùng `pacman -S --needed` nên gói đã có sẽ bị bỏ qua; gói không có trong repo thì thử AUR.
+have() { pacman -Qq "$1" >/dev/null 2>&1; }
+in_repo() { pacman -Si "$1" >/dev/null 2>&1; }
+cmd_or_pkg() { command -v "$1" >/dev/null 2>&1 || have "$2"; }
+EXTRA_PKGS=(
+  blueman                                  # bluetooth GUI (đã nằm trong gói chính, giữ để chắc chắn)
+  fcitx5-im fcitx5-unikey                  # nhóm fcitx5 (fcitx5, configtool, gtk, qt) + bộ gõ Telex/VNI
+  htop btop pavucontrol networkmanager unzip
+  docker docker-compose                    # nmcli nằm trong networkmanager
+  lazygit lazydocker
+)
+install_extras() {
+  local missing=() aur=() p
+  for p in "${EXTRA_PKGS[@]}"; do
+    # nhóm gói (fcitx5-im) -> pacman -Sg; còn lại kiểm tra đã cài chưa
+    if pacman -Sg "$p" >/dev/null 2>&1; then missing+=("$p"); continue; fi
+    have "$p" && continue
+    if in_repo "$p"; then missing+=("$p"); else aur+=("$p"); fi
   done
-  if [[ -f "$HC/hyprland.lua" ]]; then
-    grep -q 'require("quantum")' "$HC/hyprland.lua" ||
-      w "Bạn đã có hyprland.lua - thêm dòng này vào cuối file: require(\"quantum\")"
-  elif [[ -f "$HC/hyprland.conf" ]]; then
-    w "Bạn đang dùng hyprland.conf (cú pháp cũ). Quantum cần cấu hình Lua (Hyprland >= 0.55): tạo $HC/hyprland.lua từ $REPO/hypr/hyprland.lua"
-  else
-    run install -Dm644 "$REPO/hypr/hyprland.lua" "$HC/hyprland.lua"
+  ((${#missing[@]})) && { c "Cài thêm: ${missing[*]}"; run "${PAC[@]}" "${missing[@]}"; } || c "Gói bổ sung (repo): đã đủ"
+  if ((${#aur[@]})); then
+    if ((AUR)) && [[ -n "$(aur_helper || true)" ]]; then
+      local H2; H2="$(aur_helper)"; local A2=("$H2" -S --needed); ((YES)) && A2+=(--noconfirm)
+      c "Không có trong repo chính, cài từ AUR: ${aur[*]}"; run "${A2[@]}" "${aur[@]}" || w "AUR thất bại: ${aur[*]}"
+    else w "Không cài được (không có trong repo, AUR bị tắt/không có helper): ${aur[*]}"; fi
+  fi
+
+  # bun: repo -> AUR (bun-bin) -> script chính thức
+  if ! cmd_or_pkg bun bun && ! command -v "$HOME/.bun/bin/bun" >/dev/null; then
+    c "Cài bun"
+    if in_repo bun; then run "${PAC[@]}" bun
+    elif ((AUR)) && [[ -n "$(aur_helper || true)" ]]; then run "$(aur_helper)" -S --needed ${YES:+--noconfirm} bun-bin
+    else run bash -c 'curl -fsSL https://bun.sh/install | bash' || w "Cài bun thất bại"; fi
+  fi
+  # opencode-ai (npm package) qua bun
+  local B; B="$(command -v bun || echo "$HOME/.bun/bin/bun")"
+  if command -v opencode >/dev/null || [[ -x "$HOME/.bun/bin/opencode" ]]; then c "opencode-ai: đã có"
+  elif ((DRY)) || [[ -x "$B" ]]; then c "Cài opencode-ai (bun)"; run "$B" install -g opencode-ai || w "Cài opencode-ai thất bại"
+  else w "Bỏ qua opencode-ai vì chưa có bun"; fi
+
+  # docker: bật dịch vụ + thêm user vào nhóm docker (cần đăng nhập lại)
+  if have docker || ((DRY)); then
+    run sudo systemctl enable --now docker.service || w "Không bật được docker.service"
+    id -nG "$USER" | tr ' ' '\n' | grep -qx docker || { run sudo usermod -aG docker "$USER"; w "Đã thêm $USER vào nhóm docker - đăng xuất/đăng nhập lại để dùng docker không cần sudo."; }
+  fi
+}
+((EXTRAS)) && install_extras
+
+# ---------- chép cấu hình vào hệ thống ----------
+# Chép (không symlink) để bạn sửa tự do; bản cũ được sao lưu thành <tên>.bak-<ngày>.
+put() { # put <nguồn> <đích>  (file hoặc thư mục)
+  local src="$1" dst="$2"
+  if [[ -e "$dst" || -L "$dst" ]]; then
+    if [[ -d "$src" && -d "$dst" ]] && diff -rq "$src" "$dst" >/dev/null 2>&1; then return; fi
+    if [[ -f "$src" && -f "$dst" ]] && cmp -s "$src" "$dst"; then return; fi
+    w "Sao lưu $dst -> $dst.bak-$STAMP"; run mv "$dst" "$dst.bak-$STAMP"
+  fi
+  run mkdir -p "$(dirname "$dst")"; run cp -a "$src" "$dst"
+}
+if ((HYPR)); then
+  c "Cấu hình Hyprland (Lua, cần Hyprland >= 0.55): $CFG/hypr"
+  put "$REPO/config/hypr" "$CFG/hypr"
+  run chmod +x "$CFG/hypr/scripts/"*.sh 2>/dev/null || true
+fi
+if ((DOTS)); then
+  c "Cấu hình fish, Thunar, pavucontrol, kitty"
+  put "$REPO/config/fish"    "$CFG/fish"
+  put "$REPO/config/Thunar"  "$CFG/Thunar"
+  put "$REPO/config/pavucontrol.ini" "$CFG/pavucontrol.ini"
+  # kitty chạy fish; Thunar "Open Terminal Here" (exo-open) dùng kitty
+  if [[ ! -e "$CFG/kitty/kitty.conf" ]]; then
+    run mkdir -p "$CFG/kitty"; ((DRY)) || printf 'shell /usr/bin/fish\nconfirm_os_window_close 0\n' > "$CFG/kitty/kitty.conf"
+  else grep -q '^shell ' "$CFG/kitty/kitty.conf" || { ((DRY)) || printf '\nshell /usr/bin/fish\n' >> "$CFG/kitty/kitty.conf"; }; fi
+  if [[ ! -e "$CFG/xfce4/helpers.rc" ]]; then
+    run mkdir -p "$CFG/xfce4"; ((DRY)) || printf 'TerminalEmulator=kitty\n' > "$CFG/xfce4/helpers.rc"
+  fi
+  # fish là shell đăng nhập mặc định
+  if [[ "$(getent passwd "$USER" | cut -d: -f7)" != */fish ]]; then
+    c "Đặt fish làm shell mặc định"
+    run sudo chsh -s /usr/bin/fish "$USER" || w "chsh thất bại - chạy tay: chsh -s /usr/bin/fish"
   fi
 fi
 
@@ -151,5 +222,6 @@ Hoàn tất. Cách chạy:
   • Từ TTY (đăng nhập bằng user thường):   Hyprland
   • Đang trong một phiên Hyprland:          qs -c caelestia      (xem log: qs -c caelestia log)
   • Phím tắt mặc định: Super+Space (launcher), Super+A (control center), Super+Tab (overview),
-    Super+L (khoá), Super+, (Personalize), Super+Q (terminal). Xem hypr/quantum.lua.
+    Super+L (khoá), Super+I (Personalize), Super+Enter hoặc Ctrl+Alt+T (terminal kitty + fish).
+    Xem config/hypr/variable.lua. Bộ gõ Việt: chạy fcitx5-configtool để thêm Unikey.
 MSG
