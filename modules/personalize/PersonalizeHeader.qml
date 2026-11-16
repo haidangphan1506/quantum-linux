@@ -1,42 +1,43 @@
-// Encabezado de página: título, ayuda e interruptor de opciones avanzadas.
+// Barra de herramientas de la página (estilo Ajustes del Sistema de macOS):
+// flechas atrás / adelante y el título en negrita. Sin botones a la derecha (Deshacer,
+// Restablecer y Avanzado están al pie de la barra lateral); la línea inferior solo
+// aparece cuando el contenido se desplaza por debajo.
 import QtQuick
 import QtQuick.Layouts
-import Quickshell
 import qs.services
 import qs.components
 
-RowLayout {
+Rectangle {
     id: head
     required property var host
     Layout.fillWidth: true
-    Layout.margins: 28
-    Layout.bottomMargin: 14
-    spacing: 16
-    ColumnLayout {
-        Layout.fillWidth: true
+    implicitHeight: 52
+    color: "transparent"
+
+    RowLayout {
+        anchors.fill: parent
+        anchors.leftMargin: 14
+        anchors.rightMargin: 20
         spacing: 2
-        Txt { text: head.host.page.t; font.pixelSize: Theme.textTitle + 6; font.weight: Font.Bold }
-        Txt { Layout.fillWidth: true; text: head.host.page.h; color: Theme.fgMuted }
-    }
-    // interruptor de opciones avanzadas
-    Rectangle {
-        implicitWidth: advRow.implicitWidth + 24
-        implicitHeight: 44
-        radius: 22
-        color: Settings.ui.advanced ? Theme.alpha(Theme.primary, 0.14) : Theme.surfaceContainer
-        border.width: 1
-        border.color: Theme.alpha(Theme.fg, 0.08)
-        RowLayout {
-            id: advRow
-            anchors.centerIn: parent
-            spacing: 10
-            Icon { text: "tune"; size: 19; color: Settings.ui.advanced ? Theme.primary : Theme.fg }
-            Txt { text: I18n.t("Opciones avanzadas"); font.weight: Font.DemiBold }
-            Toggle {
-                implicitWidth: 44; implicitHeight: 26
-                checked: Settings.ui.advanced
-                onToggled: c => Settings.setUi("advanced", c)
-            }
+
+        ToolBtn { icon: "chevron_left"; enabled_: head.host.canBack; onClicked: head.host.back() }
+        ToolBtn { icon: "chevron_right"; enabled_: head.host.histPos < head.host.history.length - 1; onClicked: head.host.forward() }
+        Txt {
+            Layout.fillWidth: true
+            Layout.leftMargin: 10
+            text: head.host.page.t
+            font.pixelSize: Theme.textNormal + 3
+            font.weight: Font.Bold
+            elide: Text.ElideRight
         }
+    }
+
+    Rectangle {
+        anchors.bottom: parent.bottom
+        width: parent.width
+        height: 1
+        color: Theme.alpha(Theme.fg, 0.1)
+        opacity: head.host.scrolled ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: Theme.animFast } }
     }
 }

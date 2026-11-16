@@ -90,9 +90,33 @@ local function genie_to(sel, x0, y0, w0, h0, x1, y1, w1, h1, done)
     step()
 end
 
-local function minimize(w)
+local minimize
+local function minimize_impl(w)
     if not w or in_min(w) or busy[w.address] then return end
     local sel = "address:" .. w.address
+    -- Dang fullscreen (vd video): thoat fullscreen truoc, doi cua so ve kich thuoc cu roi moi thu nho.
+    -- Neu khong, hieu ung/vi tri luu la cua man hinh day va cua so van giu trang thai fullscreen trong workspace an.
+    if w.fullscreen and w.fullscreen ~= 0 then
+        local addr = w.address
+        local mode = (w.fullscreen == 1) and "maximized" or "fullscreen"
+        busy[addr] = true
+        dsp(hl.dsp.window.fullscreen({ mode = mode, action = "toggle", window = sel }))
+        hl.timer(function()
+            busy[addr] = nil
+            for _, v in ipairs(hl.get_windows()) do
+                if v.address == addr then
+                    if v.fullscreen and v.fullscreen ~= 0 then
+                        -- phong ho: van con fullscreen -> an luon khong hieu ung
+                        no_warp(function() dsp(hl.dsp.window.move({ workspace = MIN_WS, follow = false, window = sel })) end)
+                    else
+                        minimize(v)
+                    end
+                    return
+                end
+            end
+        end, { timeout = 250, type = "oneshot" })
+        return
+    end
     if not w.floating then
         no_warp(function() dsp(hl.dsp.window.move({ workspace = MIN_WS, follow = false, window = sel })) end)
         return
@@ -108,11 +132,22 @@ local function minimize(w)
     end)
 end
 
+minimize = minimize_impl
+
 local function restore(w)
     if not in_min(w) or busy[w.address] then return end
     local ws = hl.get_active_workspace()
     local sel = "address:" .. w.address
     local g = saved[w.address]
+    if ws then
+        for _, v in ipairs(hl.get_windows()) do
+            if v.address ~= w.address and v.fullscreen and v.fullscreen ~= 0 and not in_min(v)
+                and v.workspace and v.workspace.id == ws.id then
+                local mode = (v.fullscreen == 1) and "maximized" or "fullscreen"
+                dsp(hl.dsp.window.fullscreen({ mode = mode, action = "toggle", window = "address:" .. v.address }))
+            end
+        end
+    end
     no_warp(function()
         dsp(hl.dsp.window.move({ workspace = (ws and ws.id) or 1, follow = false, window = sel }))
         dsp(hl.dsp.focus({ window = sel }))
@@ -200,9 +235,7 @@ end
 -- Chieu cao thanh hyprbars ve PHIA TREN cua so (khong tinh vao w.at/w.size), 0 neu cua so khong co bar
 local function deco_top(w)
     if not (hl.plugin and hl.plugin.hyprbars) or not CAEL_BAR_HEIGHT then return 0 end
-    for _, cls in ipairs(CAEL_OWN_HEADER or {}) do
-        if w.class == cls then return 0 end
-    end
+    if cael_own_header and cael_own_header(w.class) then return 0 end   -- titlebar.lua
     return CAEL_BAR_HEIGHT
 end
 
@@ -293,22 +326,18 @@ function cael_toggle_size(addr)
     end
 end
 
--- 3/4 man hinh, can giua vung lam viec (giong nhanh 3/4 cua cael_toggle_size)
-local function set_34(w)
+-- Full vung lam viec (giong nhanh full cua cael_toggle_size; nut xanh / bam dup van ve 3/4 duoc)
+local function set_full(w)
     local sel = "address:" .. w.address
     local x, y, ww, hh = work_area(w)
     local top = deco_top(w)
-    local m = w.monitor
-    local scale = (m and m.scale and m.scale > 0) and m.scale or 1
-    local tw = math.floor((m and m.width or 1920) / scale * 0.75)
-    local th = math.floor((m and m.height or 1080) / scale * 0.75)
     maxed[w.address] = nil
-    set_geom(sel, math.floor(x + (ww - tw) / 2), math.floor(y + (hh - th) / 2 + top / 2), tw, th - top)
+    set_geom(sel, x, y + top, ww, hh - top)
 end
 
 -- Phim Esc (bind non_consuming trong variable.lua, app van nhan Esc):
--- chi khi cua so dang fullscreen -> thoat fullscreen roi dua ve 3/4 o giua de keo/doi kich thuoc.
--- Cua so khong fullscreen: khong lam gi.
+-- chi khi cua so dang fullscreen (vd video YouTube) -> thoat fullscreen roi dua ve kich thuoc
+-- full vung lam viec cua browser/app (khong ve 3/4). Cua so khong fullscreen: khong lam gi.
 function cael_esc()
     local w = hl.get_active_window()
     if not w or in_min(w) or busy[w.address] then return end
@@ -316,10 +345,10 @@ function cael_esc()
     local addr = w.address
     local mode = (w.fullscreen == 1) and "maximized" or "fullscreen"
     dsp(hl.dsp.window.fullscreen({ mode = mode, action = "toggle", window = "address:" .. addr }))
-    -- doi Hyprland tra cua so ve kich thuoc cu roi moi dat 3/4
+    -- doi Hyprland tra cua so ve kich thuoc cu roi moi dat full vung lam viec
     hl.timer(function()
         local v = find_window(addr)
-        if v and v.floating and (v.fullscreen or 0) == 0 then set_34(v) end
+        if v and v.floating and (v.fullscreen or 0) == 0 then set_full(v) end
     end, { timeout = 250, type = "oneshot" })
 end
 
@@ -349,11 +378,25 @@ end
 
 -- Dock bam vao app dang mo (khong thu nho): focus + dua len tren cung, KHONG keo con tro.
 -- (wlr-foreign-toplevel activate cua Hyprland luon warp chuot nen dock goi ham nay thay the)
+-- Cua so fullscreen (video) ve de len MOI cua so khac, ke ca cua so float duoc focus sau do ->
+-- app khac bi che. Truoc khi chuyen sang cua so khac: thoat fullscreen cua cac cua so con lai cung workspace.
+local function leave_fullscreen_others(target)
+    local ws = target.workspace and target.workspace.id
+    for _, v in ipairs(hl.get_windows()) do
+        if v.address ~= target.address and v.fullscreen and v.fullscreen ~= 0
+            and not in_min(v) and v.workspace and v.workspace.id == ws then
+            local mode = (v.fullscreen == 1) and "maximized" or "fullscreen"
+            dsp(hl.dsp.window.fullscreen({ mode = mode, action = "toggle", window = "address:" .. v.address }))
+        end
+    end
+end
+
 function cael_activate(addr)
     local w = find_window(addr ~= "" and addr or nil)
     if not w then return end
     if in_min(w) then return restore(w) end
     local sel = "address:" .. w.address
+    leave_fullscreen_others(w)
     no_warp(function()
         dsp(hl.dsp.focus({ window = sel }))   -- tu chuyen sang workspace cua cua so neu can
         dsp(hl.dsp.window.alter_zorder({ mode = "top", window = sel }))

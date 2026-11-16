@@ -36,7 +36,7 @@ MouseArea {
 
     function tempColor(t: real): color {
         const l = SysInfo.tempLevel(t);
-        return l === 2 ? Theme.error : l === 1 ? Theme.tertiary : Theme.fg;
+        return l === 2 ? Theme.macRed : l === 1 ? Theme.macOrange : Theme.fg;
     }
 
     Rectangle {
@@ -122,12 +122,14 @@ MouseArea {
         property string sub
         property var values: []
         property real max: 1
-        property color accent: Theme.primary
+        property color accent: Theme.macBlue
         Layout.fillWidth: true
         Layout.preferredWidth: 1
         implicitHeight: scCol.implicitHeight + 20
         radius: 10
-        color: Theme.alpha(Theme.fg, 0.05)
+        color: Theme.popoverCard
+        border.width: 1
+        border.color: Theme.popoverCardBorder
         ColumnLayout {
             id: scCol
             anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
@@ -159,7 +161,7 @@ MouseArea {
 
     component Bar: Rectangle {
         property real value: 0
-        property color accent: Theme.primary
+        property color accent: Theme.macBlue
         Layout.fillWidth: true
         implicitHeight: 5
         radius: 3
@@ -167,7 +169,7 @@ MouseArea {
         Rectangle {
             width: parent.width * Math.min(1, Math.max(0, parent.value))
             height: parent.height
-            radius: 3
+            radius: 2.5
             color: parent.accent
             Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
         }
@@ -198,9 +200,9 @@ MouseArea {
         Rectangle {
             anchors.fill: parent
             radius: 12
-            color: Theme.alpha(Theme.surface, 0.96)
+            color: Theme.popover   // popover de macOS
             border.width: 1
-            border.color: Theme.alpha(Theme.fg, 0.12)
+            border.color: Theme.popoverBorder
 
             ColumnLayout {
                 id: col
@@ -222,14 +224,14 @@ MouseArea {
                         value: Math.round(SysInfo.cpu * 100) + "%"
                         sub: (SysInfo.cpuMhz / 1000).toFixed(2) + " GHz"
                         values: SysInfo.cpuHistory
-                        accent: Theme.primary
+                        accent: Theme.macBlue
                     }
                     StatCard {
                         icon: "memory_alt"; title: "RAM"
                         value: Math.round(SysInfo.ram * 100) + "%"
                         sub: SysInfo.ramUsedGb.toFixed(1) + " / " + SysInfo.ramTotalGb.toFixed(0) + " GB"
                         values: SysInfo.ramHistory
-                        accent: Theme.tertiary
+                        accent: Theme.macOrange
                     }
                     StatCard {
                         icon: "device_thermostat"; title: I18n.t("Temp.")
@@ -237,7 +239,7 @@ MouseArea {
                         sub: "CPU"
                         values: SysInfo.tempHistory
                         max: 100
-                        accent: SysInfo.tempLevel(SysInfo.temp) === 2 ? Theme.error : SysInfo.tempLevel(SysInfo.temp) === 1 ? Theme.tertiary : "#4cc38a"
+                        accent: SysInfo.tempLevel(SysInfo.temp) === 2 ? Theme.macRed : SysInfo.tempLevel(SysInfo.temp) === 1 ? Theme.macOrange : Theme.macGreen
                     }
                 }
 
@@ -246,7 +248,9 @@ MouseArea {
                     Layout.fillWidth: true
                     implicitHeight: tCol.implicitHeight + 20
                     radius: 10
-                    color: Theme.alpha(Theme.fg, 0.05)
+                    color: Theme.popoverCard
+                    border.width: 1
+                    border.color: Theme.popoverCardBorder
                     ColumnLayout {
                         id: tCol
                         anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
@@ -263,14 +267,16 @@ MouseArea {
                     Layout.fillWidth: true
                     implicitHeight: dCol.implicitHeight + 20
                     radius: 10
-                    color: Theme.alpha(Theme.fg, 0.05)
+                    color: Theme.popoverCard
+                    border.width: 1
+                    border.color: Theme.popoverCardBorder
                     ColumnLayout {
                         id: dCol
                         anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
                         anchors.margins: 10
                         spacing: 6
                         InfoRow { icon: "hard_drive"; label: I18n.t("Disco"); value: Math.round(SysInfo.diskUsedGb) + " / " + Math.round(SysInfo.diskTotalGb) + " GB" }
-                        Bar { value: SysInfo.disk; accent: Theme.primary }
+                        Bar { value: SysInfo.disk; accent: Theme.macBlue }
                         InfoRow { visible: SysInfo.swapTotalGb > 0; icon: "swap_horiz"; label: "Swap"; value: SysInfo.swapUsedGb.toFixed(1) + " / " + SysInfo.swapTotalGb.toFixed(0) + " GB" }
                         InfoRow { icon: "download"; label: I18n.t("Descarga"); value: SysInfo.fmtRate(SysInfo.netDown) }
                         InfoRow { icon: "upload"; label: I18n.t("Subida"); value: SysInfo.fmtRate(SysInfo.netUp) }
@@ -287,7 +293,7 @@ MouseArea {
                         Layout.fillWidth: true
                         spacing: 8
                         Txt { Layout.fillWidth: true; text: modelData.name; font.pixelSize: 13; elide: Text.ElideRight }
-                        Txt { text: modelData.cpu.toFixed(1) + "%"; font.pixelSize: 12; font.features: { "tnum": 1 }; color: Theme.primary; Layout.minimumWidth: 44; horizontalAlignment: Text.AlignRight }
+                        Txt { text: modelData.cpu.toFixed(1) + "%"; font.pixelSize: 12; font.features: { "tnum": 1 }; color: Theme.macBlue; Layout.minimumWidth: 44; horizontalAlignment: Text.AlignRight }
                         Txt { text: root.fmtProcMem(modelData.mem); font.pixelSize: 12; font.features: { "tnum": 1 }; color: Theme.fgMuted; Layout.minimumWidth: 70; horizontalAlignment: Text.AlignRight }
                     }
                 }

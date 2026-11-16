@@ -156,7 +156,8 @@ GridLayout {
                 id: icon
                 anchors.centerIn: parent
                 size: Math.round(38 * Theme.dockScale)
-                name: btn.g.icon
+                // kitty: icono de Terminal de macOS (el del tema trae el gato)
+                name: ["kitty", "kitty-open"].includes(btn.g.icon) ? "utilities-terminal" : btn.g.icon
                 opacity: btn.running && btn.g.wins.every(w => Wm.isMinimized(w)) ? 0.6 : 1
                 // como macOS: el icono salta varias veces mientras la app abre, con una pausa entre saltos
                 // (el salto se mueve hacia el lado del borde del dock)
@@ -166,7 +167,7 @@ GridLayout {
                     y: root.dock.pos === "bottom" ? -icon.lift : root.dock.pos === "top" ? icon.lift : 0
                 }
                 SequentialAnimation on lift {
-                    running: btn.launching
+                    running: btn.launching && Settings.dock.animateOpen
                     loops: Animation.Infinite
                     alwaysRunToEnd: true
                     NumberAnimation { to: Math.round(16 * Theme.dockScale); duration: 220; easing.type: Easing.OutCubic }
@@ -184,7 +185,7 @@ GridLayout {
                     return t * t * (3 - 2 * t);
                 }
                 transformOrigin: root.dock.edgeOrigin
-                scale: (1 + 0.55 * near) * (btn.pressed ? 0.92 : 1)
+                scale: (1 + (Settings.dock.magnify ? Settings.dock.magnifyAmount : 0) * near) * (btn.pressed ? 0.92 : 1)
                 Behavior on scale { NumberAnimation { duration: 90; easing.type: Easing.OutQuad } }
             }
 
@@ -198,7 +199,7 @@ GridLayout {
                 anchors.verticalCenter: root.vertical ? parent.verticalCenter : undefined
                 anchors.margins: 2
                 // mientras abre (aún sin ventana) el punto parpadea suave, como el de macOS
-                visible: btn.running || btn.launching
+                visible: (btn.running || btn.launching) && Settings.dock.showIndicators
                 width: 5; height: 5
                 radius: 2.5
                 color: btn.focused ? Theme.fg : Theme.alpha(Theme.fg, 0.55)

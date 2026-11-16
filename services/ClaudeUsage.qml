@@ -18,6 +18,21 @@ Singleton {
     property real cost5h: 0
     property var block: ({ active: false, reset: 0, start: 0, burn_per_h: 0, tokens: 0, msgs: 0, input: 0, output: 0, cache_write: 0, cache_read: 0 })
     property var week: ({ tokens: 0, msgs: 0, input: 0, output: 0, cache_write: 0, cache_read: 0, daily: [0, 0, 0, 0, 0, 0, 0], models: [] })
+    // último uso del caché del prompt (epoch s) y su TTL (s); last = 0 si no se sabe
+    property var cache: ({ last: 0, ttl: 300 })
+
+    // Segundos que quedan de caché a partir de «now» (epoch s), o -1 si no se sabe
+    function cacheLeft(now: real): real {
+        if (!cache.last) return -1;
+        return Math.max(0, cache.last + cache.ttl - now);
+    }
+
+    // 4 min 32 s / 45 s
+    function fmtCountdown(s: real): string {
+        if (s < 0) return "—";
+        const m = Math.floor(s / 60), r = Math.floor(s % 60);
+        return m > 0 ? m + " min " + String(r).padStart(2, "0") + " s" : r + " s";
+    }
 
     // Duración de cada ventana de límite (s)
     function windowSecs(key: string): real {
@@ -112,6 +127,7 @@ Singleton {
                     root.cost5h = d.cost_5h ?? 0;
                     root.block = d.block ?? root.block;
                     root.week = d.week ?? root.week;
+                    root.cache = d.cache ?? root.cache;
                     root.ready = true;
                 } catch (e) {
                     root.ready = false;

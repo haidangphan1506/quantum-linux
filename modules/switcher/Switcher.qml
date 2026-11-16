@@ -138,7 +138,7 @@ Scope {
                 width: row.width + 40
                 height: row.height + 40 + 34
                 radius: 22
-                color: Theme.alpha(Theme.surface, 0.82)
+                color: Theme.glassPanel
                 border.width: 1
                 border.color: Theme.alpha(Theme.fg, 0.14)
                 scale: 0.94

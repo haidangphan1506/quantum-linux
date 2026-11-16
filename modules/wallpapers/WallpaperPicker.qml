@@ -68,7 +68,7 @@ PanelWindow {
         anchors.bottomMargin: 80
         width: Math.min(parent.width - 40, Math.max(640, row.implicitWidth + 48))
         height: 228
-        color: Theme.alpha(Theme.surface, 0.94)
+        color: Theme.glassPanel
         opacity: Math.min(1, win.progress * 1.4)
         scale: 0.94 + 0.06 * win.progress
         transformOrigin: Item.Bottom
@@ -92,7 +92,7 @@ PanelWindow {
                 // claro / oscuro
                 Rectangle {
                     implicitWidth: modeRow.implicitWidth + 24; implicitHeight: 36; radius: 18
-                    color: Theme.surfaceHigh
+                    color: Theme.glassTile
                     RowLayout {
                         id: modeRow
                         anchors.centerIn: parent
@@ -180,7 +180,7 @@ PanelWindow {
                             required property int index
                             readonly property bool on: modelData === win.current
                             width: 240; height: 140; radius: 18
-                            color: Theme.surfaceHigh
+                            color: Theme.glassTile
                             border.width: on ? 3 : 0
                             border.color: Theme.primary
                             clip: true

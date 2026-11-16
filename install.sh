@@ -9,6 +9,7 @@
 #   ./install.sh --no-hypr    không đụng tới ~/.config/hypr
 #   ./install.sh --no-extras  bỏ qua gói dev (docker, lazygit, bun, opencode...)
 #   ./install.sh --no-dotfiles không chép config fish/Thunar/pavucontrol/kitty
+#   ./install.sh --no-sddm    không cài theme đăng nhập SDDM kiểu macOS
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
@@ -18,7 +19,7 @@ BIN="$HOME/.local/bin"
 USER="${USER:-$(id -un)}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
-YES=0 AUR=1 DRY=0 HYPR=1 EXTRAS=1 DOTS=1
+YES=0 AUR=1 DRY=0 HYPR=1 EXTRAS=1 DOTS=1 SDDM=1
 for a in "$@"; do
   case "$a" in
     -y|--yes) YES=1 ;;
@@ -27,6 +28,7 @@ for a in "$@"; do
     --no-hypr) HYPR=0 ;;
     --no-extras) EXTRAS=0 ;;
     --no-dotfiles) DOTS=0 ;;
+    --no-sddm) SDDM=0 ;;
     -h|--help) sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Tuỳ chọn không hợp lệ: $a" >&2; exit 2 ;;
   esac
@@ -78,7 +80,7 @@ run "${PAC[@]}" "${OK_PKGS[@]}"
 # ---------- gói AUR ----------
 # Dùng paru. Material Symbols Rounded: font icon bắt buộc (Theme.iconFont).
 # hyprlauncher (Super+R) và hyprshutdown (Super+M) nếu chưa có trong repo chính.
-AUR_PKGS=(ttf-material-symbols-variable-git)
+AUR_PKGS=(ttf-material-symbols-variable-git mactahoe-icon-theme)   # mactahoe: icon theme kiểu macOS (shell.qml ghim sẵn)
 aur_helper() { command -v paru >/dev/null && echo paru; }
 if ((AUR)); then
   H="$(aur_helper || true)"
@@ -220,12 +222,25 @@ if ((HYPR)); then
   c "Cấu hình Hyprland (Lua, cần Hyprland >= 0.55): $CFG/hypr"
   put "$REPO/config/hypr" "$CFG/hypr"
   run chmod +x "$CFG/hypr/scripts/"*.sh 2>/dev/null || true
+  # Thanh tieu de kieu macOS (nut do/vang/xanh) can plugin hyprbars build cho dung ban Hyprland
+  if [[ ! -e "$HOME/.local/lib/hyprland/hyprbars.so" ]]; then
+    c "Build plugin hyprbars (thanh tieu de kieu macOS)"
+    run bash "$CFG/hypr/scripts/build-hyprbars.sh" \
+      || w "Build hyprbars thất bại - chạy tay: ~/.config/hypr/scripts/build-hyprbars.sh"
+  fi
 fi
 if ((DOTS)); then
-  c "Cấu hình fish, Thunar, pavucontrol, kitty"
+  c "Cấu hình fish, Thunar, pavucontrol, kitty, nút cửa sổ GTK"
   put "$REPO/config/fish"    "$CFG/fish"
   put "$REPO/config/Thunar"  "$CFG/Thunar"
   put "$REPO/config/pavucontrol.ini" "$CFG/pavucontrol.ini"
+  # Nút cửa sổ kiểu macOS (đỏ/vàng/xanh, bên trái) cho app GTK và Brave/Chromium (theme GTK)
+  for v in 3 4; do
+    put "$REPO/config/gtk/quantum-window-buttons-gtk$v.css" "$CFG/gtk-$v.0/quantum-window-buttons.css"
+    grep -qs 'quantum-window-buttons.css' "$CFG/gtk-$v.0/gtk.css" \
+      || { ((DRY)) || echo '@import url("quantum-window-buttons.css");' >> "$CFG/gtk-$v.0/gtk.css"; }
+  done
+  run gsettings set org.gnome.desktop.wm.preferences button-layout 'close,minimize,maximize:' || true
   # kitty chạy fish; Thunar "Open Terminal Here" (exo-open) dùng kitty
   if [[ ! -e "$CFG/kitty/kitty.conf" ]]; then
     run mkdir -p "$CFG/kitty"; ((DRY)) || printf 'shell /usr/bin/fish\nconfirm_os_window_close 0\n' > "$CFG/kitty/kitty.conf"
@@ -238,6 +253,19 @@ if ((DOTS)); then
     c "Đặt fish làm shell mặc định"
     run sudo chsh -s /usr/bin/fish "$USER" || w "chsh thất bại - chạy tay: chsh -s /usr/bin/fish"
   fi
+fi
+
+# ---------- màn hình đăng nhập SDDM kiểu macOS ----------
+# Theme config/sddm/quantum-macos được đặt làm mặc định (/etc/sddm.conf.d/10-quantum.conf).
+if ((SDDM)); then
+  c "Theme đăng nhập SDDM kiểu macOS (quantum-macos)"
+  run "${PAC[@]}" sddm || w "Không cài được sddm"
+  # Ảnh nền lấy từ scripts/gen-macos-wallpaper.py (cần ffmpeg)
+  if [[ ! -f "$HOME/Pictures/Wallpapers/quantum-silk-dark.png" ]]; then
+    run python3 "$REPO/scripts/gen-macos-wallpaper.py" || w "Không tạo được ảnh nền (cần ffmpeg)"
+  fi
+  run sudo bash "$REPO/config/sddm/install-sddm-theme.sh" \
+    || w "Cài theme SDDM thất bại - chạy tay: sudo $REPO/config/sddm/install-sddm-theme.sh"
 fi
 
 # ---------- kiểm tra cuối ----------

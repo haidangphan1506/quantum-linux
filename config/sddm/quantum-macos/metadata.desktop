@@ -1,0 +1,10 @@
+[SddmGreeterTheme]
+Name=Quantum macOS
+Description=Màn hình đăng nhập kiểu macOS cho Quantum
+Author=Quantum
+Type=sddm-theme
+Version=0.1
+MainScript=Main.qml
+ConfigFile=theme.conf
+Theme-Id=quantum-macos
+Theme-API=2.0

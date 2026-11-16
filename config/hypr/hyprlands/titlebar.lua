@@ -5,6 +5,38 @@
 -- Dung plugin hyprbars (hyprwm/hyprland-plugins), build cho dung Hyprland dang chay.
 -- Nut ben trai: do = dong, vang = thu nho xuong dock (xem minimize.lua), xanh = toan man hinh.
 -- Neu chua co file .so thi bo qua, Hyprland van chay binh thuong.
+-- Build/cai .so: ~/.config/hypr/scripts/build-hyprbars.sh  (install.sh tu chay neu chua co)
+
+------------------------------------------------------------
+---- APP CO HEADER RIENG (nhu Brave)                       ----
+------------------------------------------------------------
+-- Cac app tu ve header (hang tab Chromium, headerbar GTK3/GTK4): KHONG co thanh hyprbars,
+-- dung header cua app. Nut cua app thanh 3 cham do/vang/xanh ben trai nho
+-- ~/.config/gtk-{3,4}.0/quantum-window-buttons.css + button-layout 'close,minimize,maximize:'.
+-- Nut vang/xanh: dblclick.lua bat cu bam (Hyprland 0.57 bo qua minimize cua app, rules.lua
+-- chan maximize). kind = vi tri nut trong header:
+--   "gtk3": Chromium/Brave (theme GTK) va hop thoai GTK3 tu ve titlebar
+--   "adw" : GTK4 / libadwaita (Nautilus, File Roller, app GNOME)
+--   "own" : app tu ve nut kieu rieng (khong bat cu bam)
+-- Kiem tra bang cach mo app: neu thay 2 hang nut (hyprbars + cua app) thi them vao day.
+-- Brave: chon Theme "GTK" va TAT "Use system title bar and borders".
+CAEL_OWN_HEADER_LIST = {
+    { name = "brave",       re = "brave-browser",   lua = "^brave%-browser$",  kind = "gtk3" },
+    { name = "chromium",    re = "chromium",        lua = "^chromium$",        kind = "gtk3" },
+    { name = "chrome",      re = "google-chrome",   lua = "^google%-chrome$",  kind = "gtk3" },
+    { name = "vivaldi",     re = "vivaldi-stable",  lua = "^vivaldi%-stable$", kind = "own"  },
+    { name = "gnome",       re = "org\\.gnome\\..+", lua = "^org%.gnome%.",  kind = "adw"  },
+    { name = "xfce4-about", re = "xfce4-about",     lua = "^xfce4%-about$",    kind = "gtk3" },
+}
+-- Muc trong danh sach cho class nay (nil = cua so co thanh hyprbars)
+function cael_own_header(cls)
+    if not cls then return nil end
+    for _, e in ipairs(CAEL_OWN_HEADER_LIST) do
+        if string.match(cls, e.lua) then return e end
+    end
+    return nil
+end
+CAEL_OWN_HEADER = {}                  -- (cu) nay dung cael_own_header()
 
 local SO = os.getenv("HOME") .. "/.local/lib/hyprland/hyprbars.so"
 
@@ -70,26 +102,26 @@ hl.plugin.hyprbars.add_button({   -- vang: thu nho xuong dock
     bg_color = "rgb(febc2e)", fg_color = "rgb(5a3e00)", size = 13, icon = "−",
     action = "hyprctl eval 'cael_minimize()'",
 })
-hl.plugin.hyprbars.add_button({   -- xanh: phong to / tra lai (chi cua so nay)
+hl.plugin.hyprbars.add_button({   -- xanh: zoom 3/4 man hinh <-> full (giong bam dup thanh tieu de)
     bg_color = "rgb(28c840)", fg_color = "rgb(004d00)", size = 13, icon = "+",
-    action = "hyprctl eval 'cael_maximize()'",
+    action = "hyprctl eval 'cael_toggle_size()'",
 })
 
--- App co header rieng (tab bar, headerbar GTK): tat thanh hyprbars, dung header cua app luon.
--- Nut cua app lay theo gsettings org.gnome.desktop.wm.preferences button-layout
--- (dat 'close,minimize,maximize:' -> 3 nut ben trai nhu macOS). Nut thu nho cua app
--- gui yeu cau minimize -> minimize.lua xu ly nhu nut vang.
--- Brave KHONG nam trong danh sach: dung thanh hyprbars nhu terminal
--- (trong Brave bat "Use system title bar and borders" de Brave khong ve them nut rieng).
-local OWN_HEADER = {
-    "chromium", "google-chrome", "vivaldi-stable",
-}
-CAEL_OWN_HEADER = OWN_HEADER          -- minimize.lua dung de biet cua so nao co thanh hyprbars
 CAEL_BAR_HEIGHT = 30                  -- = bar_height ben duoi
-for _, cls in ipairs(OWN_HEADER) do
+
+-- Rule: app co header rieng -> khong co thanh hyprbars, mo full vung lam viec
+for _, e in ipairs(CAEL_OWN_HEADER_LIST) do
     hl.window_rule({
-        name  = "own-header-" .. cls,
-        match = { class = "^(" .. cls .. ")$" },
+        name  = "own-header-" .. e.name,
+        match = { class = "^(" .. e.re .. ")$" },
         ["hyprbars:no_bar"] = true,
+    })
+    -- khong co thanh hyprbars: mo full vung lam viec, khong chua 30px cho thanh tieu de
+    -- (rule sau de len size/move cua rules.lua)
+    hl.window_rule({
+        name  = "own-header-size-" .. e.name,
+        match = { class = "^(" .. e.re .. ")$", modal = false, title = "negative:Picture(-| )in(-| )[Pp]icture" },
+        size  = "(monitor_w-24) (monitor_h-54)",
+        move  = "12 42",
     })
 end

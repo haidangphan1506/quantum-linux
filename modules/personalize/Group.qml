@@ -3,64 +3,68 @@ import QtQuick.Layouts
 import qs.services
 import qs.components
 
-// Tarjeta de una sección de opciones, con título, ayuda y contenido.
-Rectangle {
+// Sección estilo Ajustes del Sistema de macOS: título en negrita fuera del recuadro,
+// las filas dentro de un recuadro gris redondeado (separadas por una línea fina, ver
+// OptionRow) y la nota de ayuda debajo, en gris pequeño.
+ColumnLayout {
     id: root
 
     property string title: ""
     property string help: ""
-    property string icon: ""
-    property bool advanced: false          // solo con «Opciones avanzadas»
+    property string icon: ""               // se mantiene por compatibilidad (no se dibuja)
+    property bool advanced: false          // solo con «Avanzado»
+    property bool shown: true              // para ocultar la sección según el estado
+    property bool boxed: true              // false: sin recuadro (contenido suelto)
     default property alias content: body.data
 
-    visible: !advanced || Settings.ui.advanced
+    visible: shown && (!advanced || Settings.ui.advanced)
     Layout.fillWidth: true
-    implicitHeight: col.implicitHeight + 36
-    radius: Theme.radiusLarge
-    color: Theme.surfaceContainer
-    border.width: 1
-    border.color: Theme.alpha(Theme.fg, 0.06)
+    Layout.topMargin: 8
+    spacing: 6
 
-    ColumnLayout {
-        id: col
-        anchors.fill: parent
-        anchors.margins: 18
-        spacing: 14
-
-        RowLayout {
-            visible: root.title !== ""
-            Layout.fillWidth: true
-            spacing: 10
-            Icon { visible: root.icon !== ""; text: root.icon; size: 20; fill: 1; color: Theme.primary }
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 2
-                RowLayout {
-                    spacing: 8
-                    Txt { text: root.title; font.pixelSize: Theme.textLarge; font.weight: Font.Bold }
-                    Rectangle {
-                        visible: root.advanced
-                        implicitWidth: advT.implicitWidth + 14; implicitHeight: 20; radius: 10
-                        color: Theme.alpha(Theme.primary, 0.16)
-                        Txt { id: advT; anchors.centerIn: parent; text: I18n.t("Avanzado"); font.pixelSize: Theme.textSmall - 1; font.weight: Font.Bold; color: Theme.primary }
-                    }
-                }
-                Txt {
-                    visible: root.help !== ""
-                    Layout.fillWidth: true
-                    text: root.help
-                    color: Theme.fgMuted
-                    font.pixelSize: Theme.textSmall + 1
-                    wrapMode: Text.WordWrap
-                    elide: Text.ElideNone
-                }
-            }
+    RowLayout {
+        visible: root.title !== ""
+        Layout.fillWidth: true
+        Layout.leftMargin: 4
+        spacing: 8
+        Txt { text: root.title; font.weight: Font.Bold }
+        Rectangle {
+            visible: root.advanced
+            implicitWidth: advT.implicitWidth + 12; implicitHeight: 18; radius: 9
+            color: Theme.alpha("#007aff", 0.14)
+            Txt { id: advT; anchors.centerIn: parent; text: I18n.t("Avanzado"); font.pixelSize: Theme.textSmall - 1; font.weight: Font.DemiBold; color: "#007aff" }
         }
+    }
+
+    Rectangle {
+        Layout.fillWidth: true
+        implicitHeight: body.implicitHeight + (root.boxed ? 8 : 0)
+        radius: 10
+        color: !root.boxed ? "transparent" : Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(0, 0, 0, 0.03)
+        border.width: root.boxed ? 1 : 0
+        border.color: Theme.alpha(Theme.fg, 0.08)
 
         ColumnLayout {
             id: body
-            Layout.fillWidth: true
-            spacing: 12
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.leftMargin: root.boxed ? 14 : 0
+            anchors.rightMargin: root.boxed ? 14 : 0
+            anchors.topMargin: root.boxed ? 4 : 0
+            spacing: 0
         }
+    }
+
+    Txt {
+        visible: root.help !== ""
+        Layout.fillWidth: true
+        Layout.leftMargin: 4
+        Layout.rightMargin: 4
+        text: root.help
+        color: Theme.fgMuted
+        font.pixelSize: Theme.textSmall
+        wrapMode: Text.WordWrap
+        elide: Text.ElideNone
     }
 }

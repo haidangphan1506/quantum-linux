@@ -43,14 +43,14 @@ vars.keybinds = {
     { key = "CTRL + ALT + T",               action = hl.dsp.exec_cmd(vars.terminal) },
     { key = mainMod .. " + SHIFT + RETURN", action = hl.dsp.exec_cmd(vars.terminal .. " -e btop") }, -- terminal chay btop
     { key = mainMod .. " + Q", action = hl.dsp.exec_cmd(vars.terminal) },   -- SUPER+Q: mo terminal
-    { key = mainMod .. " + C", action = hl.dsp.window.kill() },              -- SUPER+C: kill app dang focus
+    { key = mainMod .. " + C", action = hl.dsp.window.close() },             -- SUPER+C: dong rieng cua so dang focus (kill se giet ca tien trinh, dong het cua so Brave)
     -- (Da bo copy/paste kieu macOS SUPER+C/V; ham cael_clip() ben tren van con de gan phim khac neu can,
     --  vd: { key = mainMod .. " + SHIFT + C", action = function() cael_clip("c") end })
     { key = mainMod .. " + M", action = hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'") },
     { key = mainMod .. " + E", action = hl.dsp.exec_cmd(vars.fileManager) },
     { key = "CTRL + SHIFT + Escape", action = hl.dsp.exec_cmd(HOME .. "/.local/bin/quantum-taskmgr") }, -- Task Manager (nhu Windows)
     { key = mainMod .. " + R", action = hl.dsp.exec_cmd(vars.menu) },
-    -- Esc: dang fullscreen -> thoat va dua cua so ve 3/4 o giua (cael_esc trong minimize.lua).
+    -- Esc: dang fullscreen -> thoat va dua cua so ve full vung lam viec (cael_esc trong minimize.lua).
     -- non_consuming = app van nhan Esc (vim, hop thoai...); khong fullscreen thi khong lam gi.
     { key = "Escape", action = function() if cael_esc then cael_esc() end end, opts = { non_consuming = true } },
     -- ALT+TAB: chuyen cua so trong workspace hien tai (kieu Cmd+Tab cua macOS, Quantum Shell).
@@ -75,9 +75,7 @@ vars.keybinds = {
     { key = mainMod .. " + SPACE",   action = hl.dsp.global("caelestia:utilities") }, -- Utilities popup (toggles, incl. wallpaper)
     { key = mainMod .. " + W",       action = hl.dsp.global("caelestia:wallpaperToggle") }, -- Toggle wallpaper on/off
     { key = mainMod .. " + SHIFT + W", action = hl.dsp.exec_cmd("caelestia wallpaper -r") }, -- Random wallpaper
-    { key = mainMod .. " + I",       action = hl.dsp.global("caelestia:settings") }, -- SUPER+I: popup Settings (giong nut Mo cai dat trong popup bar)
     { key = mainMod .. " + SHIFT + E", action = hl.dsp.global("caelestia:nexus") },
-    { key = mainMod .. " + D",       action = hl.dsp.global("caelestia:dashboard") },
     { key = mainMod .. " + TAB",         action = hl.dsp.global("caelestia:spaceSwitcher") }, -- Switch workspace (island)
     { key = mainMod .. " + SHIFT + TAB", action = hl.dsp.global("caelestia:appSwitcher") },
     { key = mainMod .. " + A",       action = hl.dsp.global("caelestia:sidebar") },
@@ -94,7 +92,6 @@ vars.keybinds = {
     { key = mainMod .. " + SUPER_L", action = quantum("shell launcher"), opts = { release = true } }, -- Menu app
     { key = mainMod .. " + A",         action = quantum("shell controlCenter") },  -- Trung tam dieu khien
     { key = mainMod .. " + N",         action = quantum("shell controlCenter") },  -- Thong bao
-    { key = mainMod .. " + D",         action = quantum("shell dashboard") },      -- Lich + hieu nang
     { key = mainMod .. " + X",         action = quantum("shell session") },        -- Menu tat may
     { key = mainMod .. " + L",         action = quantum("lock lock") },            -- Khoa man hinh
     { key = mainMod .. " + W",         action = quantum("shell wallpapers") },     -- Chon hinh nen
@@ -137,7 +134,7 @@ vars.keybinds = {
     { key = mainMod .. " + mouse:273", action = hl.dsp.window.resize(), opts = { mouse = true } },
 
     -- Screenshot (popup thong bao Open/Save sau khi chup, xem README caelestia-cli)
-    { key = "Print",         action = hl.dsp.exec_cmd("caelestia screenshot") },
+    { key = "Print",         action = hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot-region.sh --full") },
     { key = "SHIFT + Print", action = hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot-region.sh") },
 
     -- Laptop multimedia keys for volume and LCD brightness

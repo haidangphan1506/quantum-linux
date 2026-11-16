@@ -209,6 +209,12 @@ Singleton {
             usage[app.id] = { n: (usage[app.id]?.n ?? 0) + 1, t: now };
             Settings.setUsage(usage);
         }
+        // Ajustes del Sistema es parte del propio shell: se abre directo (sin `qs ... ipc`, cuyo
+        // nombre de configuración depende de cómo se instaló y que Quickshell lee solo al iniciar).
+        if (app.id === "quantum-personalize") {
+            Shell.personalize();
+            return;
+        }
         if (app.runInTerminal) {
             if (app.command && app.command.length > 0)
                 Quickshell.execDetached(["kitty", "-e", ...app.command]);

@@ -1,8 +1,10 @@
 [Desktop Entry]
-Name=Personalizar
+Name=Ajustes del Sistema
+Name[vi]=Cài đặt hệ thống
+Name[en]=System Settings
 GenericName=Apariencia del escritorio
-Comment=Estilos, colores, fondo, barra de tareas y ventanas
-Exec=qs -c quantum ipc call shell personalize
+Comment=Apariencia, pantalla, sonido, red, Bluetooth y más
+Exec=sh -c "qs -c caelestia ipc call shell personalize || qs -c quantum ipc call shell personalize"
 Icon=quantum-personalize
 Terminal=false
 Type=Application

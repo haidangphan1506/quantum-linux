@@ -35,7 +35,13 @@ Singleton {
 
         onNotification: n => {
             n.tracked = true;
-            if (!root.dnd || n.urgency === NotificationUrgency.Critical) {
+            // lista de apps para Ajustes → Notificaciones (como «Notificaciones de apps» en macOS)
+            const app = n.appName || "";
+            const known = Settings.notifications.apps ?? [];
+            if (app && !known.includes(app))
+                Settings.set("notifications", "apps", known.concat([app]).slice(-60));
+            const muted = (Settings.notifications.muted ?? []).includes(app);
+            if ((!root.dnd && !muted) || n.urgency === NotificationUrgency.Critical) {
                 root.popups = [n, ...root.popups].slice(0, 5);
                 Sounds.play("notification");
             }

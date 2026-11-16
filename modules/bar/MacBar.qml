@@ -124,7 +124,7 @@ Item {
         items: [
             { text: I18n.t("Acerca de este equipo"), action: () => Shell.openAbout() },
             { separator: true },
-            { text: I18n.t("Personalizar") + "…", action: () => Shell.personalize() },
+            { text: I18n.t("Ajustes del Sistema") + "…", action: () => Shell.personalize() },
             { text: I18n.t("Fondos de pantalla") + "…", action: () => Shell.toggleWallpapers() },
             { separator: true },
             { text: I18n.t("Forzar salida de ") + root.appName, enabled: !!root.win, action: () => root.hyprDispatch(`hl.dsp.window.kill({ window = "${root.sel()}" })`) },
@@ -261,7 +261,7 @@ Item {
         }
         Status { implicitHeight: 24; radius: 5 }
         // Spotlight
-        BarIcon { icon: "search"; onClicked: { root.closeMenus(); Shell.toggleLauncher(false); } }
+        BarIcon { visible: Settings.layout.topBar.showSpotlight; icon: "search"; onClicked: { root.closeMenus(); Shell.toggleLauncher(false); } }
         // Centro de control (interruptores) / notificaciones pendientes
         BarIcon {
             icon: Notifs.count > 0 ? "notifications_unread" : "toggle_on"
@@ -269,27 +269,20 @@ Item {
             onClicked: { root.closeMenus(); Shell.toggleControlCenter(); }
         }
         // Fecha y hora en una sola línea, peso normal: «T7 31 thg 10  16:15»
-        MouseArea {
+        // Solo informativo: clic no abre el panel (dashboard)
+        Item {
             id: clockBtn
             implicitWidth: clockTxt.implicitWidth + 16
             implicitHeight: 24
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: { root.closeMenus(); Shell.toggleDashboard(); }
             SystemClock {
                 id: clock
                 precision: Settings.clock.showSeconds ? SystemClock.Seconds : SystemClock.Minutes
-            }
-            Rectangle {
-                anchors.fill: parent
-                radius: 5
-                color: clockBtn.containsMouse ? Theme.alpha(Theme.fg, 0.12) : "transparent"
             }
             Txt {
                 id: clockTxt
                 anchors.centerIn: parent
                 font.pixelSize: 13
-                text: (root.compact || !Settings.clock.showDate ? "" : clock.date.toLocaleDateString(I18n.locale, "ddd d MMM") + "   ")
+                text: (root.compact || !Settings.clock.showDate ? "" : clock.date.toLocaleDateString(I18n.locale, Settings.clock.showWeekday ? "ddd d MMM" : "d MMM") + "   ")
                     + Qt.formatDateTime(clock.date, (Settings.clock.format24h ? "HH:mm" : "h:mm") + (Settings.clock.showSeconds ? ":ss" : "")
                         + (Settings.clock.format24h ? "" : " AP"))
             }

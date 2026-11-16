@@ -1,107 +1,120 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Services.Pipewire
 import qs.services
 import qs.components
 
-// Sonidos del sistema: activar, volumen y escuchar cada uno.
+// Sonido como en Ajustes del Sistema de macOS: «Efectos de sonido» (sonido de alerta,
+// volumen de alertas, al iniciar, efectos de la interfaz, al cambiar el volumen) y
+// «Salida y entrada» con pestañas, la lista de dispositivos y su volumen.
 ColumnLayout {
     id: page
-
     spacing: 16
 
-    // Estilos de sonidos: tocar uno lo elige y lo hace sonar; el botón ▶ solo lo escucha
+    // dispositivos de audio de verdad (no las apps que suenan)
+    readonly property var outputs: Pipewire.nodes.values.filter(n => n.audio && n.isSink && !n.isStream)
+    readonly property var inputs: Pipewire.nodes.values.filter(n => n.audio && !n.isSink && !n.isStream)
+    property string tab: "output"
+    readonly property real micVolume: Audio.source?.audio?.volume ?? 0
+
     Group {
-        title: I18n.t("Estilo de sonidos")
-        help: I18n.t("Siete estilos hechos para Quantum. Toca ▶ para escuchar cada uno.")
-        icon: "library_music"
-        GridLayout {
-            Layout.fillWidth: true
-            columns: page.width > 760 ? 4 : 2
-            columnSpacing: 12; rowSpacing: 12
-            Repeater {
-                model: Sounds.packs
-                Rectangle {
-                    id: sp
-                    required property var modelData
-                    readonly property bool on: Settings.sounds.pack === modelData.id
-                    readonly property bool playing: Sounds.previewing === modelData.id
-                    Layout.fillWidth: true
-                    implicitHeight: 72
-                    radius: Theme.radius
-                    color: on ? Theme.alpha(Theme.primary, 0.16) : spa.containsMouse ? Theme.surfaceHighest : Theme.surfaceHigh
-                    border.width: on ? 2 : 0; border.color: Theme.primary
-                    MouseArea {
-                        id: spa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                        onClicked: { Settings.setMany({ sounds: { enabled: true, pack: sp.modelData.id } }); if (!sp.playing) Sounds.preview(sp.modelData.id); }
-                    }
-                    Icon { x: 14; anchors.verticalCenter: parent.verticalCenter; text: sp.modelData.icon; size: 22; fill: 1; color: Theme.primary }
-                    Txt { x: 46; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 100; text: sp.modelData.name; font.weight: Font.DemiBold }
-                    Rectangle {
-                        anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
-                        width: 40; height: 40; radius: 20
-                        color: sp.playing ? Theme.primary : pa.containsMouse ? Theme.alpha(Theme.fg, 0.12) : Theme.alpha(Theme.fg, 0.06)
-                        Icon { anchors.centerIn: parent; text: sp.playing ? "stop" : "play_arrow"; size: 22; fill: 1; color: sp.playing ? Theme.primaryFg : Theme.fg }
-                        MouseArea { id: pa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Sounds.preview(sp.modelData.id) }
-                    }
+        title: I18n.t("Efectos de sonido")
+        OptionRow {
+            title: I18n.t("Sonido de alerta")
+            RowLayout {
+                spacing: 6
+                IconButton {
+                    icon: Sounds.previewing === Settings.sounds.pack ? "stop" : "play_arrow"
+                    iconSize: 18; implicitWidth: 28; implicitHeight: 28
+                    onClicked: Sounds.preview(Settings.sounds.pack)
+                }
+                Choice {
+                    options: Sounds.packs.map(p => ({ v: p.id, t: p.name }))
+                    value: Settings.sounds.pack
+                    onPicked: v => { Settings.setMany({ sounds: { enabled: true, pack: v } }); Sounds.preview(v); }
                 }
             }
         }
-    }
-
-    Group {
-        title: I18n.t("Sonidos del sistema")
-        help: I18n.t("Sonidos suaves creados para Quantum: al iniciar sesión, cambiar el volumen, tocar la barra rápida y más.")
-        icon: "music_note"
         OptionRow {
-            title: I18n.t("Activar sonidos")
+            title: I18n.t("Volumen de alertas")
+            Slider {
+                implicitWidth: 240
+                from: 0; to: 1; step: 0.02
+                value: Settings.sounds.volume
+                minIcon: "volume_mute"; maxIcon: "volume_up"
+                onMoved: v => { Settings.set("sounds", "volume", v); Sounds.play("click"); }
+            }
+        }
+        OptionRow {
+            title: I18n.t("Reproducir sonido al iniciar sesión")
+            Toggle { checked: Settings.sounds.startup; onToggled: c => Settings.set("sounds", "startup", c) }
+        }
+        OptionRow {
+            title: I18n.t("Reproducir efectos de sonido de la interfaz")
+            help: I18n.t("Notificaciones, bloqueo, errores y clics de la barra rápida.")
             Toggle { checked: Settings.sounds.enabled; onToggled: c => Settings.set("sounds", "enabled", c) }
         }
         OptionRow {
-            title: I18n.t("Volumen de los sonidos")
-            help: I18n.t("Independiente del volumen de tu música y tus juegos.")
-            enabled: Settings.sounds.enabled
-            opacity: enabled ? 1 : 0.5
-            Slider {
-                implicitWidth: 240
-                from: 0.1; to: 1; step: 0.05
-                value: Settings.sounds.volume
-                text: Math.round(_shown * 100) + " %"
-                onMoved: v => { Settings.set("sounds", "volume", v); Sounds.play("volume"); }
-            }
+            title: I18n.t("Sonar al cambiar el volumen")
+            Toggle { checked: Settings.sounds.volumeFeedback; onToggled: c => Settings.set("sounds", "volumeFeedback", c) }
         }
-        OptionRow {
-            title: I18n.t("Sonido al iniciar sesión")
-            enabled: Settings.sounds.enabled
-            opacity: enabled ? 1 : 0.5
-            Toggle { checked: Settings.sounds.startup; onToggled: c => Settings.set("sounds", "startup", c) }
+    }
+
+    // ---------------------------------------------------- salida y entrada
+    ColumnLayout {
+        Layout.fillWidth: true
+        Layout.topMargin: 8
+        spacing: 8
+        Txt { Layout.fillWidth: true; Layout.leftMargin: 4; text: I18n.t("Salida y entrada"); font.weight: Font.Bold }
+        Segmented {
+            Layout.alignment: Qt.AlignHCenter
+            options: [{ v: "output", t: I18n.t("Salida") }, { v: "input", t: I18n.t("Entrada") }]
+            value: page.tab
+            onPicked: v => page.tab = v
         }
     }
 
     Group {
-        title: I18n.t("Escúchalos")
-        icon: "graphic_eq"
-        Flow {
-            Layout.fillWidth: true
-            spacing: 10
-            Repeater {
-                model: [
-                    { s: "startup", t: I18n.t("Inicio|sonido"), i: "power_settings_new" },
-                    { s: "volume", t: I18n.t("Volumen"), i: "volume_up" },
-                    { s: "toggle-on", t: I18n.t("Activar"), i: "toggle_on" },
-                    { s: "toggle-off", t: I18n.t("Desactivar"), i: "toggle_off" },
-                    { s: "notification", t: I18n.t("Notificación"), i: "notifications" },
-                    { s: "lock", t: I18n.t("Bloquear"), i: "lock" },
-                    { s: "unlock", t: I18n.t("Desbloquear"), i: "lock_open" },
-                    { s: "error", t: I18n.t("Error"), i: "error" },
-                    { s: "screenshot", t: I18n.t("Captura"), i: "screenshot_region" },
-                ]
-                PillButton {
-                    required property var modelData
-                    text: modelData.t
-                    icon: modelData.i
-                    enabled_: Settings.sounds.enabled
-                    onClicked: Sounds.play(modelData.s)
+        Layout.topMargin: 0
+        DeviceList {
+            nodes: page.tab === "output" ? page.outputs : page.inputs
+            current: page.tab === "output" ? Audio.sink : Audio.source
+            onChosen: n => { if (page.tab === "output") Pipewire.preferredDefaultAudioSink = n; else Pipewire.preferredDefaultAudioSource = n; }
+        }
+    }
+
+    Group {
+        Layout.topMargin: 0
+        OptionRow {
+            visible: page.tab === "output"
+            title: I18n.t("Volumen de salida")
+            RowLayout {
+                spacing: 12
+                Slider {
+                    implicitWidth: 240
+                    from: 0; to: 1; step: 0.01; live: true
+                    value: Audio.muted ? 0 : Audio.volume
+                    minIcon: "volume_mute"; maxIcon: "volume_up"
+                    onMoved: v => Audio.setVolume(v)
                 }
+                Txt { text: I18n.t("Silencio"); color: Theme.fgMuted }
+                Toggle { checked: Audio.muted; onToggled: Audio.toggleMute() }
+            }
+        }
+        OptionRow {
+            visible: page.tab === "input"
+            title: I18n.t("Volumen de entrada")
+            RowLayout {
+                spacing: 12
+                Slider {
+                    implicitWidth: 240
+                    from: 0; to: 1; step: 0.01; live: true
+                    value: page.micVolume
+                    minIcon: "mic_none"; maxIcon: "mic"
+                    onMoved: v => { if (Audio.source?.audio) Audio.source.audio.volume = v; }
+                }
+                Txt { text: I18n.t("Silencio"); color: Theme.fgMuted }
+                Toggle { checked: Audio.micMuted; onToggled: Audio.toggleMic() }
             }
         }
     }

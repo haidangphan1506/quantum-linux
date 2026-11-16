@@ -1,7 +1,7 @@
 # Quantum Shell (Caelestia)
 
 Desktop shell viết bằng [Quickshell](https://quickshell.org) (QML) cho **Hyprland** trên **Arch Linux**:
-thanh menu kiểu macOS + dock, launcher, Launchpad, Mission Control (overview), control center, dashboard,
+thanh menu kiểu macOS + dock, launcher, Launchpad, Mission Control (overview), control center,
 màn hình khoá (PAM), thông báo, OSD, screensaver, bộ chuyển cửa sổ Alt+Tab, hiệu ứng genie, trang
 *Personalize* (màu, bar, dock, âm thanh, ngôn ngữ…), hai giao diện **Caelestial** / **Serpantium**, cùng các app phụ
 (Task Manager, Claude Agents City/Viz).
@@ -43,7 +43,7 @@ Cấu hình Hyprland nằm ở `config/hypr/` (`hyprland.lua` nạp các module 
 
 **Terminal (kitty chạy fish): `Super+Enter`, `Super+Q`, `Ctrl+Alt+T`**; `Super+Shift+Enter` mở terminal chạy btop · `Super+Q` mở terminal · `Super+C` kill app đang focus (đã bỏ copy/paste kiểu macOS) ·
  `Super+E` file manager · `Super+R` hyprlauncher · `Super+Space`/tap `Super` launcher ·
-`Super+A` control center · `Super+D` dashboard · `Super+X` menu phiên · `Super+L` khoá · `Super+W` hình nền ·
+`Super+A` control center · `Super+X` menu phiên · `Super+L` khoá · `Super+W` hình nền ·
 `Super+I` Personalize · `Super+Shift+V` clipboard · `Super+S` chụp vùng · `Alt+Tab` chuyển cửa sổ ·
 `Ctrl+Shift+Esc` Task Manager · `Super+1..0` workspace · cử chỉ 3/4 ngón (touchpad).
 Mọi thứ đều đi qua IPC: `qs -c caelestia ipc call <target> <hàm>` (xem `grep -rn IpcHandler .`).
@@ -92,7 +92,7 @@ Không đưa vào repo: `herdr-app/` (có telemetry id cá nhân), `mimeapps.lis
 
 **Nhất quán, dọn dẹp:**
 - Code gọi `qs -c caelestia` nhưng một số comment ghi `qs -c quantum` và "Wayfire" (di sản từ bản trước). Installer tạo cả hai tên cấu hình để không lệch.
-- `shell.qml` ghim icon theme `MacTahoe` (không có trong repo Arch) → dùng fallback; cài tay icon theme này nếu muốn đúng giao diện.
+- `shell.qml` ghim icon theme `MacTahoe` (AUR `mactahoe-icon-theme`, `install.sh` đã tự cài) → icon app trên dock giống macOS; nếu chưa cài sẽ dùng fallback Adwaita.
 - Các chuỗi giao diện trộn Tây Ban Nha/Việt (`i18n/strings.js` là từ điển chung) — chủ ý, không phải lỗi.
 - `apps/agentviz/__pycache__/*.pyc` từng bị commit → đã gỡ khỏi git và thêm `.gitignore`.
 - Weather gọi `ipapi.co` / `open-meteo.com` (xác định vị trí theo IP khi chưa chọn thành phố) — lưu ý riêng tư.

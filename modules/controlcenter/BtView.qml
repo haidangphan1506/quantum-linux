@@ -56,7 +56,7 @@ ColumnLayout {
         visible: !Bt.available || !Bt.enabled
         implicitHeight: 96
         radius: Theme.radius
-        color: Theme.surfaceHigh
+        color: Theme.glassTile
 
         ColumnLayout {
             anchors.fill: parent
@@ -102,7 +102,7 @@ ColumnLayout {
         Layout.fillWidth: true
         implicitHeight: 54
         radius: Theme.radius
-        color: area.containsMouse ? Theme.surfaceHigh : "transparent"
+        color: area.containsMouse ? Theme.glassTileHover : "transparent"
 
         MouseArea {
             id: area
@@ -189,7 +189,7 @@ ColumnLayout {
         visible: Bt.enabled && Bt.nearby.length === 0
         implicitHeight: 84
         radius: Theme.radius
-        color: Theme.surfaceHigh
+        color: Theme.glassTile
 
         ColumnLayout {
             anchors.fill: parent

@@ -31,11 +31,12 @@ hl.animation({ leaf = "layersIn",      enabled = true,  speed = 4,    bezier = "
 hl.animation({ leaf = "layersOut",     enabled = true,  speed = 1.5,  bezier = "linear",       style = "fade" })
 hl.animation({ leaf = "fadeLayersIn",  enabled = true,  speed = 1.79, bezier = "almostLinear" })
 hl.animation({ leaf = "fadeLayersOut", enabled = true,  speed = 1.39, bezier = "almostLinear" })
--- Chuyen workspace kieu macOS: truot ngang, nhanh luc dau roi cham dan (khop voi vuot 4 ngon)
-hl.curve("macSlide",       { type = "bezier", points = { {0.22, 0.9},  {0.3, 1}     } })
-hl.animation({ leaf = "workspaces",       enabled = true, speed = 4.5, bezier = "macSlide", style = "slide" })
-hl.animation({ leaf = "workspacesIn",     enabled = true, speed = 4.5, bezier = "macSlide", style = "slide" })
-hl.animation({ leaf = "workspacesOut",    enabled = true, speed = 4.5, bezier = "macSlide", style = "slide" })
+-- Chuyen workspace kieu macOS Spaces: truot ngang thuan (khong mo), ease-out cubic (nhanh roi
+-- cham dan, khong vot), ~0.45 s (khop voi vuot 4 ngon)
+hl.curve("macSlide",       { type = "bezier", points = { {0.33, 1},  {0.68, 1}    } })
+hl.animation({ leaf = "workspaces",       enabled = true, speed = 2.2, bezier = "macSlide", style = "slide" })
+hl.animation({ leaf = "workspacesIn",     enabled = true, speed = 2.2, bezier = "macSlide", style = "slide" })
+hl.animation({ leaf = "workspacesOut",    enabled = true, speed = 2.2, bezier = "macSlide", style = "slide" })
 -- workspace dac biet (special:minimized ...) van mo dan, khong truot
 hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 3,   bezier = "easeOutQuint", style = "fade" })
 hl.animation({ leaf = "zoomFactor",    enabled = true,  speed = 7,    bezier = "quick" })

@@ -1,211 +1,267 @@
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
 import qs.services
 import qs.components
 
-// Pantalla: luz nocturna (temperatura de color) y ajustes de imagen (brillo por software,
-// contraste, gamma y saturación). Los aplica quantum-display con la curva de color de la
-// tarjeta de video (gratis en rendimiento); la saturación usa un filtro de Wayfire.
+// Pantallas como en Ajustes del Sistema de macOS: cada pantalla con «Texto más grande
+// … Más espacio» (escala, con «¿Mantener estos ajustes?» y vuelta atrás en 15 s), brillo,
+// Night Shift (horario y calidez) y ajustes de color. Lo aplica HyprApply en Hyprland.
 ColumnLayout {
     id: page
-
     spacing: 16
+
     readonly property var d: Settings.display
+    property var monitors: []
+    property string sel: ""
+    readonly property var mon: monitors.find(m => m.name === sel) ?? monitors[0] ?? null
 
-    // Color aproximado de una luz de `k` kelvin (para las vistas previas)
-    function kelvinColor(k: real): color {
-        const t = k / 100;
-        const r = t <= 66 ? 1 : Math.min(1, 1.2929 * Math.pow(t - 60, -0.1332));
-        const g = t <= 66 ? Math.min(1, Math.max(0, 0.3901 * Math.log(t) - 0.6318)) : Math.min(1, 1.1298 * Math.pow(t - 60, -0.0755));
-        const b = t >= 66 ? 1 : t <= 19 ? 0 : Math.min(1, Math.max(0, 0.5432 * Math.log(t - 10) - 1.1962));
-        return Qt.rgba(r, g, b, 1);
+    function load(): void { mons.running = true; }
+    Component.onCompleted: load()
+    Process {
+        id: mons
+        command: ["hyprctl", "monitors", "-j"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    page.monitors = JSON.parse(text);
+                    if (!page.monitors.some(m => m.name === page.sel)) page.sel = page.monitors.find(m => m.focused)?.name ?? page.monitors[0]?.name ?? "";
+                } catch (e) {}
+            }
+        }
     }
-    function pct(v: real): string { return Math.round(v * 100) + " %"; }
 
-    // Escena de muestra: un paisaje simple con colores puros, para ver cada ajuste
-    component Scene: Item {
-        id: sc
-        property real warm: 0          // 0..1 cuánto tiñe la luz nocturna
-        property color tint: "white"
-        clip: true
-        Item {
-            id: art
-            anchors.fill: parent
-            layer.enabled: true
+    // escalas que dan un tamaño entero (Hyprland no acepta otras)
+    readonly property var scales: {
+        if (!mon) return [];
+        const w = mon.width, h = mon.height;
+        return [2, 1.75, 1.6, 1.5, 1.25, 1].filter(s => Number.isInteger(w / s) && Number.isInteger(h / s));
+    }
+
+    // ---------------------------------------- confirmar la escala (como macOS)
+    property real prevScale: 0
+    property real newScale: 0
+    property int countdown: 0
+    function tryScale(s: real): void {
+        if (!mon || s === mon.scale) return;
+        prevScale = mon.scale;
+        newScale = s;
+        HyprApply.applyScale(mon.name, s);
+        countdown = 15;
+        tick.restart();
+        reloadT.restart();
+    }
+    function keep(): void {
+        tick.stop();
+        countdown = 0;
+        const sc = Object.assign({}, d.scales ?? {});
+        sc[mon.name] = newScale;
+        Settings.set("display", "scales", sc);
+    }
+    function revert(): void {
+        tick.stop();
+        countdown = 0;
+        HyprApply.applyScale(mon.name, prevScale);
+        reloadT.restart();
+    }
+    Timer { id: tick; interval: 1000; repeat: true; onTriggered: { page.countdown--; if (page.countdown <= 0) page.revert(); } }
+    Timer { id: reloadT; interval: 700; onTriggered: page.load() }
+
+    // ----------------------------------------------------------- pantalla
+    Segmented {
+        visible: page.monitors.length > 1
+        Layout.alignment: Qt.AlignHCenter
+        options: page.monitors.map(m => ({ v: m.name, t: m.description ? m.description.split(" ").slice(0, 2).join(" ") : m.name }))
+        value: page.sel
+        onPicked: v => page.sel = v
+    }
+
+    ColumnLayout {
+        Layout.fillWidth: true
+        Layout.topMargin: 6
+        spacing: 4
+        Item { Layout.fillWidth: true }    // ocupa todo el ancho: así se centra
+        Rectangle {
+            Layout.alignment: Qt.AlignHCenter
+            implicitWidth: 150; implicitHeight: page.mon ? Math.round(150 * page.mon.height / page.mon.width) : 94
+            radius: 8
+            color: "#1c1c1e"
             Rectangle {
-                anchors.fill: parent
+                anchors.fill: parent; anchors.margins: 5; radius: 4
                 gradient: Gradient {
-                    GradientStop { position: 0; color: "#4FD8FF" }
-                    GradientStop { position: 0.55; color: "#6A5CFF" }
-                    GradientStop { position: 1; color: "#B14DFF" }
+                    GradientStop { position: 0; color: "#64a8ff" }
+                    GradientStop { position: 1; color: "#7b5cff" }
                 }
             }
-            Rectangle { x: parent.width * 0.68; y: parent.height * 0.16; width: parent.height * 0.26; height: width; radius: width / 2; color: "#FFE37A" }
-            Rectangle {
-                y: parent.height * 0.62; width: parent.width; height: parent.height * 0.38
-                gradient: Gradient { GradientStop { position: 0; color: "#2ECC8F" } GradientStop { position: 1; color: "#147A5A" } }
-            }
-            Row {
-                x: 14; anchors.bottom: parent.bottom; anchors.bottomMargin: 12; spacing: 6
-                Repeater { model: ["#FF5C5C", "#FFB547", "#FFE37A", "#4ADE80", "#38BDF8", "#A78BFA", "#FFFFFF", "#000000"]
-                    Rectangle { required property string modelData; width: 18; height: 18; radius: 5; color: modelData; border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.3) } }
-            }
         }
-        MultiEffect {
-            anchors.fill: art; source: art
-            brightness: (page.d.brightness - 1) * 0.9
-            contrast: (page.d.contrast - 1)
-            saturation: page.d.saturation - 1
+        Txt {
+            Layout.alignment: Qt.AlignHCenter
+            Layout.topMargin: 6
+            text: page.mon ? (page.mon.description || page.mon.name) : "—"
+            font.weight: Font.Bold
         }
-        // la luz nocturna quita azul: un velo naranja que se nota más mientras más cálida
-        Rectangle { anchors.fill: parent; color: Qt.rgba(1, sc.tint.g * 0.62, sc.tint.b * 0.25, 1); opacity: sc.warm * 0.55 }
+        Txt {
+            Layout.alignment: Qt.AlignHCenter
+            visible: !!page.mon
+            text: page.mon ? page.mon.width + " × " + page.mon.height + " · " + Math.round(page.mon.refreshRate) + " Hz" : ""
+            color: Theme.fgMuted
+            font.pixelSize: Theme.textSmall
+        }
     }
 
-    // ---------------------------------------------------------------- luz nocturna
+    // aviso «¿Mantener estos ajustes?»
     Group {
-        title: I18n.t("Luz nocturna")
-        help: I18n.t("Pone la pantalla más cálida (menos luz azul) para cuidar tu vista de noche y dormir mejor.")
-        icon: "nightlight"
+        visible: page.countdown > 0
+        OptionRow {
+            title: I18n.t("¿Mantener estos ajustes de pantalla?")
+            help: I18n.t("Se vuelve a la escala anterior en") + " " + page.countdown + " s."
+            icon: "help"; iconColor: "#FF9500"
+            RowLayout {
+                spacing: 8
+                PillButton { text: I18n.t("Volver"); implicitHeight: 28; onClicked: page.revert() }
+                PillButton { text: I18n.t("Mantener"); primary: true; implicitHeight: 28; onClicked: page.keep() }
+            }
+        }
+    }
 
-        // vista previa: de día y con la luz nocturna
+    Group {
+        visible: page.scales.length > 1
+        title: I18n.t("Tamaño")
         RowLayout {
             Layout.fillWidth: true
-            spacing: 14
+            Layout.topMargin: 12
+            Layout.bottomMargin: 10
+            spacing: 10
             Repeater {
-                model: [{ t: I18n.t("Normal"), w: 0 }, { t: I18n.t("Con luz nocturna"), w: 1 }]
+                model: page.scales
                 ColumnLayout {
-                    required property var modelData
+                    id: sc
+                    required property real modelData
+                    required property int index
+                    readonly property bool on: page.mon && Math.abs(page.mon.scale - modelData) < 0.01
                     Layout.fillWidth: true
-                    Layout.preferredWidth: 1          // las dos del mismo ancho
-                    spacing: 6
+                    spacing: 5
                     Rectangle {
-                        Layout.fillWidth: true; Layout.preferredHeight: 120
-                        radius: 14; color: "transparent"; clip: true
-                        border.width: modelData.w && page.d.nightLight ? 2 : 1
-                        border.color: modelData.w && page.d.nightLight ? Theme.primary : Theme.alpha(Theme.fg, 0.1)
-                        Scene {
-                            anchors.fill: parent; anchors.margins: 1
-                            warm: parent.parent.modelData.w * (6500 - page.d.temperature) / 4000
-                            tint: page.kelvinColor(page.d.temperature)
+                        Layout.alignment: Qt.AlignHCenter
+                        implicitWidth: 76; implicitHeight: 50; radius: 6
+                        color: Theme.alpha(Theme.fg, 0.05)
+                        border.width: sc.on ? 3 : 1
+                        border.color: sc.on ? Theme.primary : Theme.alpha(Theme.fg, 0.15)
+                        Txt {
+                            anchors.centerIn: parent
+                            text: "Aa"
+                            font.pixelSize: Math.round(9 * sc.modelData + 4)
+                            font.weight: Font.DemiBold
                         }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: page.tryScale(sc.modelData) }
                     }
-                    Txt { text: modelData.t; font.pixelSize: Theme.textSmall; color: Theme.fgMuted }
-                }
-            }
-        }
-
-        OptionRow {
-            title: I18n.t("Activar luz nocturna")
-            help: page.d.nightMode === "manual" ? I18n.t("Se queda así hasta que la apagues.") : I18n.t("Se enciende y apaga sola según lo que elijas abajo.")
-            Toggle { checked: page.d.nightLight; onToggled: v => Settings.set("display", "nightLight", v) }
-        }
-        OptionRow {
-            title: I18n.t("Cuándo")
-            Segmented {
-                options: [{ v: "manual", t: I18n.t("Manual"), i: "touch_app" }, { v: "sunset", t: I18n.t("Al atardecer"), i: "wb_twilight" }, { v: "schedule", t: I18n.t("En un horario"), i: "schedule" }]
-                value: page.d.nightMode
-                onPicked: v => Settings.set("display", "nightMode", v)
-            }
-        }
-        // horario: dos horas que se cambian de a 30 min
-        OptionRow {
-            visible: page.d.nightMode === "schedule"
-            title: I18n.t("Horario")
-            help: I18n.t("Se enciende a la primera hora y se apaga a la segunda.")
-            Row {
-                spacing: 10
-                Repeater {
-                    model: [{ k: "nightFrom", t: I18n.t("Desde") }, { k: "nightTo", t: I18n.t("Hasta") }]
-                    Rectangle {
-                        id: tp
-                        required property var modelData
-                        readonly property string val: page.d[modelData.k]
-                        function shift(min) {
-                            const p = val.split(":").map(Number);
-                            const m = ((p[0] * 60 + p[1] + min) % 1440 + 1440) % 1440;
-                            Settings.set("display", modelData.k, String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"));
-                        }
-                        width: 150; height: 44; radius: 22; color: Theme.surfaceHigh
-                        Row {
-                            anchors.centerIn: parent; spacing: 4
-                            IconButton { icon: "remove"; width: 30; height: 30; iconSize: 18; onClicked: tp.shift(-30) }
-                            Column {
-                                anchors.verticalCenter: parent.verticalCenter
-                                Txt { anchors.horizontalCenter: parent.horizontalCenter; text: tp.modelData.t; font.pixelSize: 10; color: Theme.fgMuted }
-                                Txt { anchors.horizontalCenter: parent.horizontalCenter; text: tp.val; font.weight: Font.Bold }
-                            }
-                            IconButton { icon: "add"; width: 30; height: 30; iconSize: 18; onClicked: tp.shift(30) }
-                        }
+                    Txt {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: sc.index === 0 ? I18n.t("Texto más grande") : sc.index === page.scales.length - 1 ? I18n.t("Más espacio")
+                            : Math.round(page.mon.width / sc.modelData) + " × " + Math.round(page.mon.height / sc.modelData)
+                        font.pixelSize: Theme.textSmall - 1
+                        color: sc.on ? Theme.fg : Theme.fgMuted
+                        font.weight: sc.on ? Font.DemiBold : Font.Normal
                     }
                 }
-            }
-        }
-        OptionRow {
-            visible: page.d.nightMode === "sunset"
-            title: I18n.t("Según tu ubicación")
-            help: I18n.t("Usa la misma ubicación que el clima. Se enciende al atardecer y se apaga al amanecer.")
-            icon: "location_on"
-        }
-        OptionRow {
-            title: I18n.t("Calidez")
-            help: page.d.temperature <= 3200 ? I18n.t("Muy cálida: ideal para leer de noche.") : page.d.temperature <= 4500 ? I18n.t("Cálida: cómoda y sin cansar la vista.") : I18n.t("Suave: casi no se nota.")
-            Slider {
-                Layout.preferredWidth: 300
-                from: 2500; to: 6000; step: 100; live: true
-                value: page.d.temperature
-                text: value + " K"
-                onMoved: v => Settings.set("display", "temperature", Math.round(v))
             }
         }
     }
 
-    // ---------------------------------------------------------------- imagen
     Group {
-        title: I18n.t("Imagen")
-        help: I18n.t("Ajusta cómo se ve la pantalla, ideal en laptops que no traen botones para esto. Funciona en todas tus pantallas.")
-        icon: "tune"
-
-        Rectangle {
-            Layout.fillWidth: true; Layout.preferredHeight: 150
-            radius: 14; color: "transparent"; clip: true
-            border.width: 1; border.color: Theme.alpha(Theme.fg, 0.1)
-            Scene { anchors.fill: parent; anchors.margins: 1 }
-            Rectangle {
-                anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 10
-                width: lbl.implicitWidth + 20; height: 26; radius: 13; color: Qt.rgba(0, 0, 0, 0.45)
-                Txt { id: lbl; anchors.centerIn: parent; text: I18n.t("Vista previa"); color: "white"; font.pixelSize: Theme.textSmall }
+        OptionRow {
+            visible: Brightness.available
+            title: I18n.t("Brillo")
+            Slider {
+                implicitWidth: 260
+                from: 0.05; to: 1; step: 0.01; live: true
+                value: Brightness.value
+                minIcon: "brightness_low"; maxIcon: "brightness_high"
+                onMoved: v => Brightness.set(v)
             }
         }
-
         OptionRow {
-            title: I18n.t("Brillo extra")
-            help: I18n.t("Oscurece la imagen por software. Útil en monitores externos sin control de brillo.")
-            icon: "brightness_medium"
-            Slider { Layout.preferredWidth: 300; from: 0.3; to: 1; step: 0.01; live: true; value: page.d.brightness; text: page.pct(value); onMoved: v => Settings.set("display", "brightness", v) }
+            title: I18n.t("Frecuencia de actualización")
+            Txt { text: page.mon ? Math.round(page.mon.refreshRate) + " Hz" : "—"; color: Theme.fgMuted }
+        }
+    }
+
+    // ------------------------------------------------------------ Night Shift
+    Group {
+        title: "Night Shift"
+        help: I18n.t("Night Shift pone los colores de la pantalla más cálidos por la noche. Puede ayudarte a dormir mejor.")
+        OptionRow {
+            title: I18n.t("Programar")
+            Choice {
+                options: [{ v: "off", t: I18n.t("Desactivado") }, { v: "schedule", t: I18n.t("Personalizado") }]
+                value: page.d.nightLight && page.d.nightMode === "schedule" ? "schedule" : "off"
+                onPicked: v => Settings.setMany({ display: v === "schedule" ? { nightLight: true, nightMode: "schedule" } : { nightLight: false, nightMode: "manual" } })
+            }
+        }
+        OptionRow {
+            visible: page.d.nightLight && page.d.nightMode === "schedule"
+            title: I18n.t("Desde")
+            RowLayout {
+                spacing: 8
+                Choice {
+                    options: ["18:00", "19:00", "20:00", "21:00", "22:00", "23:00"].map(t => ({ v: t, t: t }))
+                    value: page.d.nightFrom
+                    onPicked: v => Settings.set("display", "nightFrom", v)
+                }
+                Txt { text: I18n.t("hasta"); color: Theme.fgMuted }
+                Choice {
+                    options: ["05:00", "06:00", "07:00", "08:00", "09:00"].map(t => ({ v: t, t: t }))
+                    value: page.d.nightTo
+                    onPicked: v => Settings.set("display", "nightTo", v)
+                }
+            }
+        }
+        OptionRow {
+            visible: !(page.d.nightLight && page.d.nightMode === "schedule")
+            title: I18n.t("Activar ahora")
+            help: I18n.t("Se queda encendido hasta que lo apagues.")
+            Toggle { checked: page.d.nightLight; onToggled: c => Settings.setMany({ display: { nightLight: c, nightMode: "manual" } }) }
+        }
+        OptionRow {
+            title: I18n.t("Temperatura del color")
+            help: HyprApply.nightNow ? I18n.t("Night Shift está encendido ahora.") : ""
+            Slider {
+                implicitWidth: 260
+                from: 0; to: 1; step: 0.02
+                value: (6000 - page.d.temperature) / 3300
+                minText: I18n.t("Menos cálido"); maxText: I18n.t("Más cálido")
+                onMoved: v => Settings.set("display", "temperature", Math.round(6000 - v * 3300))
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ color
+    Group {
+        title: I18n.t("Ajustes de color")
+        help: I18n.t("Corrigen la imagen por software, útil en monitores sin botones. Se aplican a todas las pantallas.")
+        OptionRow {
+            title: I18n.t("Atenuar por software")
+            Slider { implicitWidth: 240; from: 0.3; to: 1; step: 0.01; value: page.d.brightness; text: Math.round(_shown * 100) + "%"; onMoved: v => Settings.set("display", "brightness", v) }
         }
         OptionRow {
             title: I18n.t("Contraste")
-            icon: "contrast"
-            Slider { Layout.preferredWidth: 300; from: 0.5; to: 1.5; step: 0.01; live: true; value: page.d.contrast; text: page.pct(value); onMoved: v => Settings.set("display", "contrast", v) }
+            Slider { implicitWidth: 240; from: 0.5; to: 1.5; step: 0.01; value: page.d.contrast; text: Math.round(_shown * 100) + "%"; onMoved: v => Settings.set("display", "contrast", v) }
         }
         OptionRow {
             title: "Gamma"
-            help: I18n.t("Aclara u oscurece los tonos medios sin tocar el blanco ni el negro.")
-            icon: "exposure"
-            Slider { Layout.preferredWidth: 300; from: 0.5; to: 2; step: 0.05; live: true; value: page.d.gamma; text: value.toFixed(2); onMoved: v => Settings.set("display", "gamma", v) }
+            Slider { implicitWidth: 240; from: 0.5; to: 2; step: 0.01; value: page.d.gamma; text: _shown.toFixed(2); onMoved: v => Settings.set("display", "gamma", v) }
         }
         OptionRow {
             title: I18n.t("Saturación")
-            help: page.d.saturation !== 1 ? I18n.t("Usa un filtro: el Modo juego lo apaga para no perder FPS.") : I18n.t("Qué tan vivos se ven los colores.")
-            icon: "palette"
-            Slider { Layout.preferredWidth: 300; from: 0; to: 2; step: 0.05; live: true; value: page.d.saturation; text: page.pct(value); onMoved: v => Settings.set("display", "saturation", v) }
+            Slider { implicitWidth: 240; from: 0; to: 2; step: 0.01; value: page.d.saturation; text: Math.round(_shown * 100) + "%"; onMoved: v => Settings.set("display", "saturation", v) }
         }
-        RowLayout {
-            Layout.fillWidth: true
-            Item { Layout.fillWidth: true }
+        OptionRow {
+            visible: !HyprApply.imageNeutral
+            title: ""
             PillButton {
-                icon: "restart_alt"; text: I18n.t("Restablecer imagen")
+                text: I18n.t("Restablecer")
+                implicitHeight: 28
                 onClicked: Settings.setMany({ display: { brightness: 1, contrast: 1, gamma: 1, saturation: 1 } })
             }
         }

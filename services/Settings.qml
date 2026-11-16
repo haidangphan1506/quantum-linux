@@ -27,6 +27,7 @@ Singleton {
     property alias touchpad: adapter.touchpad
     property alias apps: adapter.apps
     property alias screensaver: adapter.screensaver
+    property alias power: adapter.power
 
     // Valores de fábrica de todo lo visual (= estilo «Quantum»). Los estilos se
     // aplican encima de esto, así un estilo siempre se ve igual.
@@ -41,6 +42,15 @@ Singleton {
                    wobbly: false, titleHeight: 34, borderSize: 1 }
     })
     readonly property var visualSections: ["appearance", "layout", "dock", "clock", "windows", "lock"]
+
+    // Solo se escribe el archivo cuando ya se leyó: si algo cambia un ajuste justo al
+    // arrancar o recargar el shell (antes de leerlo), se escribirían los valores de fábrica
+    // encima de los del usuario.
+    property bool loaded: false
+    function save(): void {
+        if (loaded)
+            file.writeAdapter();
+    }
 
     // ---------------------------------------------------- deshacer (Personalizar)
     property var _snapshot: null
@@ -108,10 +118,10 @@ Singleton {
         if (adapter[section] === undefined)
             return;
         adapter[section][key] = value;
-        if (key !== "wallpaper" && key !== "iconTheme" && !["display", "mouse", "touchpad", "sounds", "apps"].includes(section))   // no son parte de los estilos
+        if (key !== "wallpaper" && key !== "iconTheme" && !["display", "mouse", "touchpad", "sounds", "apps", "notifications", "screensaver", "keyboard", "power"].includes(section))   // no son parte de los estilos
             adapter.ui.style = "custom";
         changed = true;
-        file.writeAdapter();
+        root.save();
         applyTheme();
     }
 
@@ -124,7 +134,7 @@ Singleton {
         node[parts[parts.length - 1]] = value;
         adapter.ui.style = "custom";
         changed = true;
-        file.writeAdapter();
+        root.save();
         applyTheme();
     }
 
@@ -135,10 +145,10 @@ Singleton {
         for (const sec of Object.keys(obj))
             if (adapter[sec] !== undefined && typeof obj[sec] === "object")
                 _merge(adapter[sec], obj[sec]);
-        if (!obj.ui && Object.keys(obj).some(k => !["display", "mouse", "touchpad", "sounds"].includes(k)))
+        if (!obj.ui && Object.keys(obj).some(k => !["display", "mouse", "touchpad", "sounds", "notifications", "screensaver", "keyboard", "apps", "power"].includes(k)))
             adapter.ui.style = "custom";
         changed = true;
-        file.writeAdapter();
+        root.save();
         applyTheme();
     }
 
@@ -160,18 +170,18 @@ Singleton {
     // Estado de la ventana Personalizar (no cambia el aspecto del escritorio).
     function setUi(key: string, value: var): void {
         adapter.ui[key] = value;
-        file.writeAdapter();
+        root.save();
     }
 
     function setPinned(list: var): void {
         adapter.dock.pinned = list;
-        file.writeAdapter();
+        root.save();
     }
 
     // Uso de apps (no cambia el estilo ni vuelve a aplicar el tema)
     function setUsage(usage: var): void {
         adapter.apps.usage = usage;
-        file.writeAdapter();
+        root.save();
     }
 
     Timer {
@@ -209,10 +219,11 @@ Singleton {
         // En un sistema nuevo el archivo aún no existe y no se puede vigilar: se crea
         // con los valores de fábrica para que los cambios de otros programas
         // (quantum-theme, Centro Quantum) lleguen al shell.
-        onLoadFailed: error => { if (error === FileViewError.FileNotFound) writeAdapter(); }
+        onLoadFailed: error => { if (error === FileViewError.FileNotFound) { root.loaded = true; writeAdapter(); } }
         // Barra de tareas de fábrica de la 1.0 (con Fotón y la Store): si nadie la
         // cambió, pasa a la nueva, más limpia. Si la personalizaste, no se toca.
         onLoaded: {
+            root.loaded = true;
             let pins = adapter.dock.pinned ?? [];
             if (pins.join(",") === "org.gnome.Nautilus,firefox,foton,quantum-store,kitty,quantum-center")
                 pins = ["org.gnome.Nautilus", "firefox", "kitty", "quantum-center"];
@@ -261,11 +272,14 @@ Singleton {
                 property bool wobbly: false
                 property int titleHeight: 34
                 property int borderSize: 1
+                property string doubleClick: "fill"      // doble clic en la barra de título: fill | minimize | none (hyprbars)
             }
             property JsonObject keyboard: JsonObject {
                 property string layout: ""
                 property string variant: ""
                 property string options: "grp:alt_shift_toggle"
+                property int repeatRate: 25              // teclas por segundo al mantener pulsado (Hyprland input:repeat_rate)
+                property int repeatDelay: 600            // ms antes de repetir (input:repeat_delay)
             }
             // Pantalla: luz nocturna y ajustes de imagen (los aplica quantum-display)
             property JsonObject display: JsonObject {
@@ -278,6 +292,7 @@ Singleton {
                 property real contrast: 1.0              // 0.5..1.5
                 property real gamma: 1.0                 // 0.5..2
                 property real saturation: 1.0            // 0..2 (filtro de Wayfire si no es 1)
+                property var scales: ({})                // escala elegida por pantalla { "eDP-1": 1.25 } (HyprApply)
             }
             // Mouse y touchpad (van a la sección [input] de wayfire.ini)
             property JsonObject mouse: JsonObject {
@@ -303,9 +318,12 @@ Singleton {
                 property var shown: []
                 // veces que se abrió cada app: { "<id>": { n: veces, t: última vez (ms) } } → «Más usadas»
                 property var usage: ({})
+                property var login: []                   // apps que se abren al iniciar sesión (General → Elementos de inicio)
             }
             property JsonObject notifications: JsonObject {
                 property bool dnd: false
+                property var apps: []                    // apps que alguna vez avisaron (para la lista de Notificaciones)
+                property var muted: []                   // apps sin avisos emergentes ni sonido
             }
             property JsonObject dock: JsonObject {
                 // apps fijadas en la barra de tareas (ids de .desktop)
@@ -320,6 +338,10 @@ Singleton {
                 property bool showStart: true
                 property bool showTray: true
                 property bool showUpdates: true
+                property bool magnify: true              // ampliación al pasar el mouse (como macOS)
+                property real magnifyAmount: 0.55        // cuánto crece el ícono (0.1..1)
+                property bool showIndicators: true       // punto bajo las apps abiertas
+                property bool animateOpen: true          // el ícono rebota al abrir una app
             }
             property JsonObject layout: JsonObject {
                 property string style: "split"           // split (barra arriba + dock) | single (una barra abajo)
@@ -328,12 +350,14 @@ Singleton {
                     property bool showApp: true
                     property bool showSysMon: true   // temperatura, CPU y RAM en la barra
                     property bool showClaude: true   // uso de Claude Code (5 h y 7 días)
+                    property bool showSpotlight: true // botón de búsqueda (Spotlight)
                 }
             }
             property JsonObject clock: JsonObject {
                 property bool format24h: true
                 property bool showDate: true
                 property bool showSeconds: false
+                property bool showWeekday: true          // «T7 31 thg 10» o «31 thg 10»
             }
             // Pantalla de bloqueo: tarjetas de cada lado (en orden) y privacidad
             property JsonObject lock: JsonObject {
@@ -347,6 +371,10 @@ Singleton {
                 property bool enabled: true
                 property int timeout: 600
             }
+            // Batería: «Modo de bajo consumo» como en macOS (lo aplica HyprApply con power-profiles-daemon)
+            property JsonObject power: JsonObject {
+                property string lowPower: "never"        // never | always | battery | adapter
+            }
             // Asistente con IA local (Ollama): modelo elegido ("" = el primero instalado)
             property JsonObject ai: JsonObject {
                 property string model: ""
@@ -357,6 +385,7 @@ Singleton {
                 property bool enabled: true
                 property bool startup: true
                 property real volume: 0.6
+                property bool volumeFeedback: true       // sonar al cambiar el volumen
             }
             property JsonObject ui: JsonObject {
                 property bool welcomed: false            // ya pasó por la bienvenida del primer inicio

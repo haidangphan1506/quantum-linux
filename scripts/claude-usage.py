@@ -20,6 +20,8 @@ API_TTL = 600  # s: cada cuánto se consulta la API cuando no hay sesión de Cla
 CREDS = os.path.expanduser("~/.claude/.credentials.json")
 BLOCK = 5 * 3600
 WEEK = 7 * 24 * 3600
+CACHE_TTL_5M = 300    # s: caché de prompt efímero por defecto de Anthropic
+CACHE_TTL_1H = 3600   # s: caché de 1 h (si la respuesta lo escribió así)
 
 
 def parse_ts(s):
@@ -61,6 +63,7 @@ def log_usage(now):
                     ts = parse_ts(o.get("timestamp", ""))
                     if not u or ts is None or ts < since:
                         continue
+                    cc = u.get("cache_creation") or {}
                     e = {
                         "ts": ts,
                         "model": m.get("model") or "",
@@ -68,6 +71,8 @@ def log_usage(now):
                         "output": u.get("output_tokens") or 0,
                         "cache_write": u.get("cache_creation_input_tokens") or 0,
                         "cache_read": u.get("cache_read_input_tokens") or 0,
+                        # TTL del caché escrito en esta respuesta: 1 h si se pidió, si no 5 min
+                        "ttl": CACHE_TTL_1H if cc.get("ephemeral_1h_input_tokens") else CACHE_TTL_5M,
                     }
                     e["tok"] = e["input"] + e["output"] + e["cache_write"]
                     key = m.get("id") or o.get("uuid") or f"{path}:{ts}"
@@ -116,7 +121,16 @@ def log_usage(now):
     week["daily"] = daily
     week["models"] = sorted(models.values(), key=lambda m: m["tokens"], reverse=True)
 
-    return {"block": block, "week": week}
+    # Caché del prompt: cada respuesta que lee o escribe caché la renueva, así que el último
+    # uso de caché fija cuándo caduca. Tiempo restante = TTL - (ahora - último uso).
+    cache = {"last": 0, "ttl": CACHE_TTL_5M, "left": 0}
+    for e in reversed(entries):
+        if e["cache_write"] or e["cache_read"]:
+            ttl = e["ttl"]
+            cache = {"last": int(e["ts"]), "ttl": ttl, "left": max(0, int(e["ts"] + ttl - now))}
+            break
+
+    return {"block": block, "week": week, "cache": cache}
 
 
 def api_limits(now):

@@ -1,0 +1,34 @@
+/* Quantum: nút cửa sổ kiểu macOS (đỏ / vàng / xanh) cho app GTK 3 có headerbar
+   và cho Brave / Chromium khi dùng theme "GTK" (chúng vẽ nút theo kiểu titlebutton của GTK 3).
+   Thứ tự và bên trái/phải theo gsettings org.gnome.desktop.wm.preferences button-layout. */
+headerbar button.titlebutton,
+.titlebar button.titlebutton {
+  min-width: 12px;
+  min-height: 12px;
+  margin: 0 3px;
+  padding: 0;
+  border: none;
+  border-radius: 9999px;
+  background-image: none;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  color: transparent;
+  -gtk-icon-shadow: none;
+}
+headerbar button.titlebutton image,
+.titlebar button.titlebutton image { opacity: 0; -gtk-icon-transform: scale(0.7); }
+
+headerbar button.titlebutton.close,    .titlebar button.titlebutton.close    { background-color: #ff5f57; }
+headerbar button.titlebutton.minimize, .titlebar button.titlebutton.minimize { background-color: #febc2e; }
+headerbar button.titlebutton.maximize, .titlebar button.titlebutton.maximize { background-color: #28c840; }
+
+/* al pasar el mouse por los botones aparece el símbolo, como en macOS */
+headerbar:hover button.titlebutton image,
+.titlebar:hover button.titlebutton image { opacity: 1; color: rgba(0, 0, 0, 0.55); }
+
+headerbar button.titlebutton:active, .titlebar button.titlebutton:active { box-shadow: inset 0 0 0 20px rgba(0, 0, 0, 0.15); }
+
+/* ventana sin foco: gris */
+headerbar:backdrop button.titlebutton,
+.titlebar:backdrop button.titlebutton { background-color: alpha(currentColor, 0.18); box-shadow: none; }
+headerbar:backdrop button.titlebutton:hover,
+.titlebar:backdrop button.titlebutton:hover { background-color: #c0c0c4; }

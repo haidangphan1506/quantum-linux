@@ -4,9 +4,9 @@ import Quickshell
 import qs.services
 import qs.components
 
-// Bluetooth: reemplaza a blueman-manager. Adaptador (encendido, nombre,
-// visibilidad), dispositivos emparejados (conectar, confiar, bloquear,
-// renombrar, enviar archivos, olvidar) y búsqueda de dispositivos nuevos.
+// Bluetooth como en macOS: encabezado, interruptor (el equipo es visible mientras esta
+// página está abierta), «Mis dispositivos» con detalles al tocar (conectar, confiar,
+// bloquear, renombrar, enviar archivos, olvidar) y «Dispositivos cercanos».
 ColumnLayout {
     id: page
 
@@ -15,9 +15,16 @@ ColumnLayout {
     // dirección del dispositivo abierto (detalles)
     property string expanded: ""
 
-    // La búsqueda corre mientras esta página está abierta
-    Component.onCompleted: Bt.startScan()
-    Component.onDestruction: if (!Shell.btPage) Bt.stopScan()
+    // Como en macOS: mientras la página está abierta se busca y el equipo es visible
+    property bool wasDiscoverable: false
+    Component.onCompleted: {
+        Bt.startScan();
+        if (ad && Bt.enabled) { wasDiscoverable = ad.discoverable; ad.discoverable = true; }
+    }
+    Component.onDestruction: {
+        if (!Shell.btPage) Bt.stopScan();
+        if (ad && !wasDiscoverable) ad.discoverable = false;
+    }
 
     // Campo de texto con botón «Guardar»
     component NameField: RowLayout {
@@ -28,8 +35,8 @@ ColumnLayout {
         spacing: 8
         Rectangle {
             Layout.fillWidth: true
-            implicitHeight: 40; radius: 20
-            color: Theme.surfaceHigh
+            implicitHeight: 28; radius: 7
+            color: Theme.dark ? Qt.rgba(1, 1, 1, 0.08) : "white"
             border.width: input.activeFocus ? 2 : 1
             border.color: input.activeFocus ? Theme.primary : Theme.alpha(Theme.fg, 0.1)
             Icon { x: 14; anchors.verticalCenter: parent.verticalCenter; text: "edit"; size: 18; color: Theme.fgMuted }
@@ -49,6 +56,7 @@ ColumnLayout {
             }
         }
         PillButton {
+            implicitHeight: 28
             text: I18n.t("Guardar")
             enabled_: input.text.trim() !== "" && input.text !== nf.value
             onClicked: nf.saved(input.text.trim())
@@ -56,61 +64,40 @@ ColumnLayout {
     }
 
     // ------------------------------------------------------------ adaptador
-    Group {
-        title: I18n.t("Este equipo")
-        help: !Bt.available ? I18n.t("No se encontró un adaptador Bluetooth") : I18n.t("Enciende el Bluetooth y elige cómo te ven los demás dispositivos.")
+    PageHero {
         icon: "bluetooth"
+        color: "#007AFF"
+        title: "Bluetooth"
+        text: I18n.t("Conecta accesorios como auriculares, teclados, mouse y mandos para escuchar música, escribir o jugar.")
+    }
 
+    Group {
+        help: !Bt.available ? I18n.t("No se encontró un adaptador Bluetooth")
+            : Bt.enabled ? I18n.t("Este equipo es visible como «") + (page.ad?.name ?? "") + I18n.t("» mientras los ajustes de Bluetooth están abiertos.") : ""
         OptionRow {
             visible: Bt.available
             title: "Bluetooth"
-            help: Bt.enabled ? I18n.t("Encendido") : I18n.t("Apagado")
-            icon: Bt.enabled ? "bluetooth" : "bluetooth_disabled"
             Toggle { checked: Bt.enabled; onToggled: c => { if (page.ad) page.ad.enabled = c; } }
         }
+    }
 
+    Group {
+        visible: Bt.available && Bt.enabled
+        advanced: true
+        title: I18n.t("Este equipo")
         OptionRow {
-            visible: Bt.enabled
-            title: I18n.t("Visible para otros")
-            help: page.ad?.discoverable
-                ? I18n.t("Otros dispositivos pueden encontrar este equipo como «") + (page.ad?.name ?? "") + "»"
-                : I18n.t("Solo los dispositivos emparejados ven este equipo")
-            icon: "visibility"
-            Toggle { checked: page.ad?.discoverable ?? false; onToggled: c => page.ad.discoverable = c }
-        }
-
-        OptionRow {
-            visible: Bt.enabled && (page.ad?.discoverable ?? false)
-            title: I18n.t("Tiempo visible")
-            help: I18n.t("Después se oculta solo.")
-            icon: "timer"
-            Segmented {
-                options: [{ v: 120, t: "2 " + I18n.t("min") }, { v: 300, t: "5 " + I18n.t("min") }, { v: 0, t: I18n.t("Siempre") }]
-                value: page.ad?.discoverableTimeout ?? 0
-                onPicked: v => page.ad.discoverableTimeout = v
-            }
-        }
-
-        OptionRow {
-            visible: Bt.enabled
-            advanced: true
-            title: I18n.t("Permitir emparejar")
-            help: I18n.t("Si se apaga, ningún dispositivo nuevo puede emparejarse.")
-            icon: "link"
-            Toggle { checked: page.ad?.pairable ?? false; onToggled: c => page.ad.pairable = c }
-        }
-
-        ColumnLayout {
-            visible: Bt.available
-            Layout.fillWidth: true
-            spacing: 6
-            Txt { text: I18n.t("Nombre del equipo"); font.weight: Font.DemiBold }
+            title: I18n.t("Nombre del equipo")
             NameField {
-                Layout.fillWidth: true
+                implicitWidth: 300
                 value: page.ad?.name ?? ""
                 placeholder: I18n.t("Nombre que ven los demás")
                 onSaved: t => Quickshell.execDetached(["busctl", "set-property", "org.bluez", page.ad.dbusPath, "org.bluez.Adapter1", "Alias", "s", t])
             }
+        }
+        OptionRow {
+            title: I18n.t("Permitir emparejar")
+            help: I18n.t("Si se apaga, ningún dispositivo nuevo puede emparejarse.")
+            Toggle { checked: page.ad?.pairable ?? false; onToggled: c => page.ad.pairable = c }
         }
     }
 
@@ -122,18 +109,17 @@ ColumnLayout {
         readonly property bool isPaired: dev.paired || dev.bonded
         readonly property bool open: isPaired && page.expanded === dev.address
 
+        required property int index
         Layout.fillWidth: true
-        implicitHeight: col.implicitHeight + 16
-        radius: Theme.radius
-        color: open ? Theme.surfaceHigh : head.containsMouse ? Theme.alpha(Theme.fg, 0.05) : "transparent"
-        border.width: open ? 1 : 0
-        border.color: Theme.alpha(Theme.fg, 0.08)
-        Behavior on color { ColorAnimation { duration: Theme.animFast } }
+        implicitHeight: col.implicitHeight + 8
+        color: "transparent"
+        // línea entre filas, como las listas de macOS
+        Rectangle { visible: card.index > 0; width: parent.width; height: 1; color: Theme.alpha(Theme.fg, 0.08) }
 
         ColumnLayout {
             id: col
             anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
-            anchors.margins: 8
+            anchors.topMargin: 4
             spacing: 10
 
             // fila principal
@@ -151,17 +137,16 @@ ColumnLayout {
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 6
                     spacing: 12
 
                     Rectangle {
-                        implicitWidth: 40; implicitHeight: 40; radius: 12
-                        color: card.dev.connected ? Theme.alpha(Theme.primary, 0.18) : Theme.surfaceHighest
+                        implicitWidth: 32; implicitHeight: 32; radius: 16
+                        color: card.dev.connected ? "#007AFF" : Theme.alpha(Theme.fg, 0.1)
                         Icon {
                             anchors.centerIn: parent
                             text: Bt.deviceIcon(card.dev)
-                            size: 22
-                            color: card.dev.connected ? Theme.primary : Theme.fg
+                            size: 18
+                            color: card.dev.connected ? "white" : Theme.fg
                             SequentialAnimation on opacity {
                                 running: Bt.busy(card.dev)
                                 loops: Animation.Infinite
@@ -173,11 +158,11 @@ ColumnLayout {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 1
-                        Txt { Layout.fillWidth: true; text: card.dev.name; font.weight: Font.DemiBold; elide: Text.ElideRight }
+                        Txt { Layout.fillWidth: true; text: card.dev.name; elide: Text.ElideRight }
                         Txt {
                             Layout.fillWidth: true
                             text: Bt.hint(card.dev) + (card.dev.blocked ? " · " + I18n.t("Bloqueado") : card.dev.trusted && card.isPaired ? " · " + I18n.t("De confianza") : "")
-                            color: card.dev.connected ? Theme.primary : Theme.fgMuted
+                            color: Theme.fgMuted
                             font.pixelSize: Theme.textSmall
                         }
                     }
@@ -189,6 +174,7 @@ ColumnLayout {
                         Txt { text: Math.round(card.dev.battery * 100) + "%"; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
                     }
                     PillButton {
+                        implicitHeight: 28
                         visible: !card.isPaired || !card.open
                         text: !card.isPaired ? I18n.t("Emparejar") : card.dev.connected ? I18n.t("Desconectar") : I18n.t("Conectar")
                         primary: !card.dev.connected
@@ -197,8 +183,8 @@ ColumnLayout {
                     }
                     Icon {
                         visible: card.isPaired
-                        text: card.open ? "expand_less" : "expand_more"
-                        size: 22
+                        text: card.open ? "expand_less" : "info"
+                        size: 20
                         color: Theme.fgMuted
                     }
                 }
@@ -279,7 +265,7 @@ ColumnLayout {
 
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: 4
+            spacing: 0
             Repeater {
                 model: Bt.paired
                 delegate: DeviceCard {}
@@ -289,30 +275,23 @@ ColumnLayout {
 
     Group {
         visible: Bt.enabled
-        title: I18n.t("Otros dispositivos")
+        title: I18n.t("Dispositivos cercanos")
         help: Bt.discovering ? I18n.t("Buscando dispositivos… Pon el dispositivo en modo de emparejamiento.") : I18n.t("Pulsa buscar para encontrar dispositivos cercanos.")
         icon: "bluetooth_searching"
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
+        OptionRow {
+            title: Bt.nearby.length + I18n.t(" encontrados")
             PillButton {
+                implicitHeight: 28
                 text: Bt.discovering ? I18n.t("Detener") : I18n.t("Buscar")
                 icon: Bt.discovering ? "stop" : "search"
-                primary: !Bt.discovering
                 onClicked: Bt.discovering ? Bt.stopScan() : Bt.startScan()
-            }
-            Txt {
-                Layout.fillWidth: true
-                text: Bt.nearby.length + I18n.t(" encontrados")
-                color: Theme.fgMuted
-                font.pixelSize: Theme.textSmall
             }
         }
 
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: 4
+            spacing: 0
             Repeater {
                 model: Bt.nearby
                 delegate: DeviceCard {}

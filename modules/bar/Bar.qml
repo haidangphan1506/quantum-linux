@@ -45,7 +45,7 @@ Variants {
 
         component Section: Card {
             radius: height / 2
-            color: bar.floating ? Theme.alpha(Theme.surface, Theme.glassOpacity("bar")) : "transparent"
+            color: bar.floating ? Theme.glassPanel : "transparent"
             border.width: bar.floating ? 1 : 0
             implicitHeight: 42
             implicitWidth: row.implicitWidth + 12

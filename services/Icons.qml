@@ -19,9 +19,10 @@ Singleton {
         { id: "whitesur", name: "WhiteSur", desc: I18n.t("Como macOS."), pkg: "whitesur-icon-theme", size: "10 MB" },
         { id: "colloid", name: "Colloid", desc: I18n.t("Planos, suaves y modernos."), pkg: "colloid-icon-theme", size: "21 MB" },
         { id: "candy", name: "Candy", desc: I18n.t("Degradados de neón, para gamers."), pkg: "candy-icons-git", size: "2 MB" },
+        { id: "mactahoe", name: "MacTahoe", desc: I18n.t("Los de macOS Tahoe."), pkg: "mactahoe-icon-theme", size: "" },
     ]
     readonly property string current: Settings.appearance.iconTheme || "papirus"
-    property var installed: ({ papirus: true })
+    property var installed: ({})
     property string installing: ""
 
     function preview(id: string): string {
@@ -44,12 +45,12 @@ Singleton {
     Process {
         id: check
         // instalado con pacman, o puesto a mano en ~/.local/share/icons o /usr/share/icons
-        command: ["sh", "-c", "for x in tela-icon-theme:Tela fluent-icon-theme:Fluent whitesur-icon-theme:WhiteSur colloid-icon-theme:Colloid candy-icons-git:candy-icons; do " +
+        command: ["sh", "-c", "for x in papirus-icon-theme:Papirus mactahoe-icon-theme:MacTahoe tela-icon-theme:Tela fluent-icon-theme:Fluent whitesur-icon-theme:WhiteSur colloid-icon-theme:Colloid candy-icons-git:candy-icons; do " +
                   "p=${x%%:*}; d=${x#*:}; if pacman -Q $p >/dev/null 2>&1 || [ -e \"${XDG_DATA_HOME:-$HOME/.local/share}/icons/$d/index.theme\" ] || [ -e /usr/share/icons/$d/index.theme ]; then echo $p; fi; done"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const lines = text.split("\n");
-                const inst = { papirus: true };
+                const inst = {};
                 for (const pk of root.packs) if (lines.includes(pk.pkg)) inst[pk.id] = true;
                 root.installed = inst;
             }

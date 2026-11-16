@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Services.UPower
 import qs.services
 import qs.components
 
@@ -25,6 +26,19 @@ MouseArea {
 
     SystemClock { id: clock; precision: SystemClock.Minutes }
     readonly property real now: clock.date.getTime() / 1000
+    // reloj de segundos para la cuenta atrás del caché (solo se usa dentro del popup)
+    SystemClock { id: secClock; precision: SystemClock.Seconds }
+    readonly property real cacheLeft: ClaudeUsage.cacheLeft(secClock.date.getTime() / 1000)
+
+    // batería del sistema (UPower), mismos iconos que modules/bar/Status.qml
+    readonly property var bat: UPower.displayDevice
+    readonly property bool batCharging: bat?.state === UPowerDeviceState.Charging
+    readonly property int batPct: Math.round((bat?.percentage ?? 0) * 100)
+    readonly property string batIcon: {
+        if (batCharging) return "battery_charging_full";
+        const level = Math.min(6, Math.floor((bat?.percentage ?? 0) * 7));
+        return (bat?.percentage ?? 0) > 0.95 ? "battery_full" : "battery_" + level + "_bar";
+    }
 
     // "5 h 27%": porcentaje ya usado de cada ventana. Si aún no hay lectura de los límites
     // (statusLine sin configurar o ventana reiniciada sin respuesta nueva) se muestra "—".
@@ -44,7 +58,7 @@ MouseArea {
 
     // Color según lo que se ha llenado del contexto
     function ctxColor(p: real): color {
-        return p > 85 ? Theme.error : p > 65 ? Theme.tertiary : Theme.primary;
+        return p > 85 ? Theme.macRed : p > 65 ? Theme.macOrange : Theme.macBlue;
     }
 
     RowLayout {
@@ -77,15 +91,15 @@ MouseArea {
     // Barra de progreso fina
     component Meter: Rectangle {
         property real value: 0
-        property color accent: Theme.primary
+        property color accent: Theme.macBlue
         Layout.fillWidth: true
-        implicitHeight: 6
-        radius: 3
-        color: Theme.alpha(Theme.fg, 0.1)
+        implicitHeight: 5
+        radius: 2.5
+        color: Theme.alpha(Theme.fg, Theme.dark ? 0.16 : 0.1)
         Rectangle {
             width: parent.width * Math.min(1, Math.max(0, parent.value))
             height: parent.height
-            radius: 3
+            radius: 2.5
             color: parent.accent
             Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
         }
@@ -114,9 +128,9 @@ MouseArea {
         Rectangle {
             anchors.fill: parent
             radius: 12
-            color: Theme.alpha(Theme.surface, 0.96)
+            color: Theme.popover   // popover de macOS
             border.width: 1
-            border.color: Theme.alpha(Theme.fg, 0.12)
+            border.color: Theme.popoverBorder
 
             ColumnLayout {
                 id: col
@@ -208,7 +222,9 @@ MouseArea {
                     Layout.fillWidth: true
                     implicitHeight: ctxCol.implicitHeight + 20
                     radius: 10
-                    color: Theme.alpha(Theme.fg, 0.05)
+                    color: Theme.popoverCard
+                    border.width: 1
+                    border.color: Theme.popoverCardBorder
                     visible: root.s !== null
                     ColumnLayout {
                         id: ctxCol
@@ -238,7 +254,9 @@ MouseArea {
                     Layout.fillWidth: true
                     implicitHeight: detCol.implicitHeight + 20
                     radius: 10
-                    color: Theme.alpha(Theme.fg, 0.05)
+                    color: Theme.popoverCard
+                    border.width: 1
+                    border.color: Theme.popoverCardBorder
                     visible: root.s !== null
                     ColumnLayout {
                         id: detCol
@@ -268,11 +286,51 @@ MouseArea {
                             icon: "code"; label: I18n.t("Líneas cambiadas")
                             value: "+" + (root.s?.lines_added ?? 0) + "  −" + (root.s?.lines_removed ?? 0)
                         }
-                        InfoRow {
-                            visible: root.s?.cache_warm != null
-                            icon: "cached"; label: I18n.t("Caché del prompt")
-                            value: root.s?.cache_warm ? I18n.t("caliente") : I18n.t("fría")
-                            valueColor: root.s?.cache_warm ? Theme.primary : Theme.fgMuted
+                        // batería del sistema: mismo icono que la barra (sacándolo de UPower), con % y estado de carga
+                        RowLayout {
+                            visible: UPower.displayDevice?.isLaptopBattery ?? false
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Icon {
+                                text: root.batIcon; size: 16; fill: root.batCharging ? 1 : 0
+                                color: root.batCharging ? Theme.macGreen : Theme.fgMuted
+                            }
+                            Txt { Layout.fillWidth: true; text: I18n.t("Batería"); font.pixelSize: 13; color: Theme.fgMuted }
+                            Txt {
+                                text: root.batPct + "% · " + (root.batCharging ? I18n.t("cargando") : I18n.t("en batería"))
+                                font.pixelSize: 13; font.weight: Font.DemiBold; font.features: { "tnum": 1 }
+                                color: root.batCharging ? Theme.macGreen : Theme.fg
+                            }
+                        }
+
+                        // caché del prompt: pin verde = còn caché; cuenta atrás + thanh = tiempo que queda
+                        RowLayout {
+                            visible: ClaudeUsage.cache.last > 0
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Icon {
+                                text: "keep"; size: 16; fill: root.cacheLeft > 0 ? 1 : 0
+                                color: root.cacheLeft > 0 ? Theme.macGreen : Theme.fgMuted
+                            }
+                            Txt { Layout.fillWidth: true; text: I18n.t("Caché del prompt"); font.pixelSize: 13; color: Theme.fgMuted }
+                            Txt {
+                                text: root.cacheLeft > 0 ? ClaudeUsage.fmtCountdown(root.cacheLeft) : I18n.t("expirada")
+                                font.pixelSize: 13; font.weight: Font.DemiBold; font.features: { "tnum": 1 }
+                                color: root.cacheLeft > 0 ? Theme.macGreen : Theme.fgMuted
+                            }
+                        }
+                        RowLayout {
+                            visible: ClaudeUsage.cache.last > 0
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Icon {
+                                text: "timer"; size: 16
+                                color: root.cacheLeft > 0 ? Theme.macGreen : Theme.fgMuted
+                            }
+                            Meter {
+                                value: root.cacheLeft / Math.max(1, ClaudeUsage.cache.ttl)
+                                accent: Theme.macGreen
+                            }
                         }
                     }
                 }
@@ -282,7 +340,9 @@ MouseArea {
                     Layout.fillWidth: true
                     implicitHeight: totCol.implicitHeight + 20
                     radius: 10
-                    color: Theme.alpha(Theme.fg, 0.05)
+                    color: Theme.popoverCard
+                    border.width: 1
+                    border.color: Theme.popoverCardBorder
                     ColumnLayout {
                         id: totCol
                         anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top

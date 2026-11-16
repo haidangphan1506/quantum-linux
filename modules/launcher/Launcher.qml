@@ -44,7 +44,7 @@ PanelWindow {
     readonly property bool showFrequent: !clipMode && search.text.trim() === ""
     readonly property var frequentApps: open && showFrequent ? Apps.frequent(Math.max(1, grid.columns)) : []
 
-    // Menú contextual (clic derecho en una app): fijar/quitar de la barra, ocultar del menú
+    // Menú contextual (clic derecho en una app): abrir / ocultar del menú
     property var ctxApp: null
     property point ctxPos: Qt.point(0, 0)
     function openCtx(app: var, item: Item, mx: real, my: real): void {
@@ -84,7 +84,7 @@ PanelWindow {
         anchors.bottomMargin: 78
         width: Math.min(720, parent.width - 40)
         height: Math.min(640, parent.height - 78 - 70)
-        color: Theme.alpha(Theme.surface, 0.94)
+        color: Theme.glassPanel
         opacity: Math.min(1, enter * 1.3)
         scale: 0.96 + 0.04 * enter
         transformOrigin: Item.Bottom
@@ -120,7 +120,7 @@ PanelWindow {
                 Layout.fillWidth: true
                 implicitHeight: 52
                 radius: height / 2
-                color: Theme.surfaceHigh
+                color: Theme.glassTile
                 border.width: search.activeFocus ? 2 : 0
                 border.color: Theme.primary
 
@@ -149,7 +149,7 @@ PanelWindow {
 
                         Txt {
                             anchors.verticalCenter: parent.verticalCenter
-                            visible: !search.text
+                            visible: !search.text && search.preeditText === ""
                             text: win.clipMode ? I18n.t("Busca en lo que copiaste…") : I18n.t("Busca apps, juegos o ajustes…")
                             font.pixelSize: Theme.textLarge
                             color: Theme.fgMuted
@@ -284,17 +284,6 @@ PanelWindow {
                         }
                     }
 
-                    // fijada en la barra
-                    Icon {
-                        visible: !win.clipMode && Apps.isPinned(cell.modelData.id ?? "")
-                        anchors.top: parent.top
-                        anchors.right: parent.right
-                        anchors.margins: 12
-                        text: "keep"
-                        size: 15
-                        fill: 1
-                        color: Theme.primary
-                    }
 
                     // Modo apps: ícono grande y nombre
                     ColumnLayout {
@@ -408,10 +397,9 @@ PanelWindow {
             width: 240
             height: ctxCol.implicitHeight + 12
             radius: 10
-            color: Theme.alpha(Theme.surfaceHigh, 0.98)
+            color: Theme.glassPanel
             border.width: 1
             border.color: Theme.alpha(Theme.fg, 0.12)
-            readonly property bool pinned: !!win.ctxApp && Apps.isPinned(win.ctxApp.id)
             ColumnLayout {
                 id: ctxCol
                 anchors.fill: parent
@@ -420,7 +408,6 @@ PanelWindow {
                 Repeater {
                     model: win.ctxApp ? [
                         { icon: "open_in_new", text: I18n.t("Abrir"), run: () => { Apps.launch(win.ctxApp); Shell.launcherOpen = false; } },
-                        { icon: ctxMenu.pinned ? "keep_off" : "keep", text: ctxMenu.pinned ? I18n.t("Quitar de la barra") : I18n.t("Fijar en la barra"), run: () => Wm.togglePin(win.ctxApp.id) },
                         { icon: "visibility_off", text: I18n.t("Ocultar del menú"), run: () => Apps.setVisible(win.ctxApp, false) }
                     ] : []
                     MouseArea {

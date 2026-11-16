@@ -21,6 +21,9 @@
 
 -- Example window rules that are useful
 
+-- Mo app full vung lam viec, chua cho cho bar tren cung (khong chia doi man hinh)
+FULL_SIZE = "(monitor_w-24) (monitor_h-84)"  -- 24 = 2*gaps_out; 84 = bar tren 30 + 2*gaps_out 24 + thanh tieu de 30
+
 local suppressMaximizeRule = hl.window_rule({
     -- Ignore maximize requests from all apps. You'll probably like this.
     name  = "suppress-maximize-events",
@@ -43,7 +46,19 @@ hl.window_rule({
 hl.window_rule({
     name  = "size-3-4-all",
     match = { class = ".+", modal = false, title = "negative:Picture(-| )in(-| )[Pp]icture" },
+    size  = FULL_SIZE,
+    -- vi tri co dinh: bar tren 30 + gap 12 + thanh tieu de 30 = 72 (center tinh khong co thanh tieu de nen tran len bar 3px)
+    move  = "12 72",
+})
+
+-- Ajustes del Sistema y editor de capturas (ventanas propias del shell, org.quickshell):
+-- 3/4 de la pantalla y centradas (no a pantalla completa como las demas apps).
+-- y = bar superior 30 + (alto libre - ventana - thanh tieu de 30)/2 + thanh tieu de 30
+hl.window_rule({
+    name  = "quickshell-3-4",
+    match = { class = "^org\\.quickshell$", modal = false },
     size  = "(monitor_w*0.75) (monitor_h*0.75)",
+    move  = "(monitor_w*0.125) (monitor_h*0.125+30)",
 })
 
 -- «Acerca de este equipo»: ventana pequeña, 2/5 del ancho de la pantalla
@@ -92,8 +107,8 @@ hl.window_rule({
     match = { class = "^(kitty)$" },
 
     float  = true,
-    size   = "(monitor_w*0.75) (monitor_h*0.75)",
-    center = true,
+    size   = FULL_SIZE,
+    move   = "12 72",   -- ver size-3-4-all
 })
 
 hl.window_rule({
@@ -102,8 +117,8 @@ hl.window_rule({
     match = { class = "^(brave-browser)$", title = "negative:Picture(-| )in(-| )[Pp]icture" },
 
     float  = true,
-    size   = "(monitor_w*0.75) (monitor_h*0.75)",
-    center = true,
+    size   = FULL_SIZE,
+    move   = "12 72",   -- ver size-3-4-all
 })
 
 -- Browser Picture-in-Picture (Firefox, Chrome/Brave/Chromium all use this title)

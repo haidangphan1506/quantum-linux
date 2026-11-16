@@ -30,7 +30,7 @@ Variants {
         readonly property bool floating: Serp.on || Settings.dock.floating
         readonly property bool full: single || !floating          // ocupa todo el borde
         // Como el dock de macOS: barra alta en forma de píldora, con iconos grandes
-        readonly property int barH: Math.round(56 * Theme.dockScale)
+        readonly property int barH: Math.round(64 * Theme.dockScale)
         // posición del mouse sobre la barra (-1 fuera) a lo largo de la barra: los iconos crecen según la distancia
         readonly property real pointerPos: cardHover.hovered ? (vertical ? cardHover.point.position.y : cardHover.point.position.x) : -1
         readonly property Item cardItem: card
@@ -152,19 +152,32 @@ Variants {
 
         Card {
             id: card
-            width: dock.vertical ? dock.barH : (dock.full ? parent.width - 2 * dock.gap : row.implicitWidth + 16)
+            width: dock.vertical ? dock.barH : (dock.full ? parent.width - 2 * dock.gap : row.implicitWidth + 12)
             height: dock.vertical ? (dock.full ? parent.height - 2 * dock.gap : row.implicitHeight + 16) : dock.barH
             x: dock.vertical ? (dock.pos === "left" ? dock.gap : parent.width - width - dock.gap)
                              : (dock.full ? dock.gap : (parent.width - width) / 2)
             y: dock.vertical ? (dock.full ? dock.gap : (parent.height - height) / 2)
                              : (dock.pos === "top" ? dock.gap : parent.height - height - dock.gap)
-            radius: dock.floating ? Math.min(width, height) / 2 : 0
-            // Vidrio como Liquid Glass de macOS Tahoe: bastante transparente para que el blur
-            // de Hyprland (layer quantum-dock) se vea detrás. Con el slider de opacidad se ajusta.
-            color: Theme.alpha(Theme.surface, Math.max(0.25, Math.min(0.6, Theme.glassOpacity("dock") * 0.55)))
+            // bo góc kiểu macOS: hình chữ nhật bo ~34% chiều cao (không phải viên thuốc)
+            radius: dock.floating ? Math.round(dock.barH * 0.34) : 0
+            // Vidrio como el dock de macOS: tinte NEUTRO (blanco, no el color del tema), muy
+            // translucido; el blur de Hyprland (layer quantum-dock) hace el resto.
+            color: Theme.dark ? Qt.rgba(0.82, 0.82, 0.86, 0.08) : Qt.rgba(1, 1, 1, 0.16)
             border.width: dock.floating ? 1 : 0
             // borde de luz: un reflejo blanco fino alrededor del vidrio
-            border.color: Theme.dark ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.6)
+            border.color: Theme.dark ? Qt.rgba(1, 1, 1, 0.28) : Qt.rgba(1, 1, 1, 0.65)
+            // reflejo interior: luz suave arriba que se desvanece abajo (como el vidrio de macOS)
+            Rectangle {
+                visible: dock.floating
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: parent.radius - 1
+                gradient: Gradient {
+                    GradientStop { position: 0; color: Qt.rgba(1, 1, 1, Theme.dark ? 0.06 : 0.12) }
+                    GradientStop { position: 0.5; color: Qt.rgba(1, 1, 1, 0.02) }
+                    GradientStop { position: 1; color: Qt.rgba(1, 1, 1, Theme.dark ? 0.04 : 0.08) }
+                }
+            }
             // Ẩn/hiện al pasar el mouse: un valor 0..1 controla deslizar + opacidad + escala.
             // Hiện: bulle un poco (OutBack cuando flota). Ocultar: más rápido, acelerando (InCubic).
             property real reveal: dock.shown && dock.revealed ? 1 : 0
@@ -207,28 +220,6 @@ Variants {
                 color: Theme.alpha(Theme.fg, 0.08)
             }
 
-            // brillo con los colores de Quantum (del lado de adentro)
-            Rectangle {
-                visible: dock.floating
-                anchors.top: dock.pos === "bottom" ? parent.top : undefined
-                anchors.bottom: dock.pos === "top" ? parent.bottom : undefined
-                anchors.left: dock.pos === "right" ? parent.left : undefined
-                anchors.right: dock.pos === "left" ? parent.right : undefined
-                anchors.horizontalCenter: dock.vertical ? undefined : parent.horizontalCenter
-                anchors.verticalCenter: dock.vertical ? parent.verticalCenter : undefined
-                width: dock.vertical ? 1 : parent.width - 2 * parent.radius
-                height: dock.vertical ? parent.height - 2 * parent.radius : 1
-                opacity: 0.55
-                gradient: Gradient {
-                    orientation: dock.vertical ? Gradient.Vertical : Gradient.Horizontal
-                    GradientStop { position: 0; color: "transparent" }
-                    GradientStop { position: 0.25; color: Theme.brandCyan }
-                    GradientStop { position: 0.5; color: Theme.brandIndigo }
-                    GradientStop { position: 0.75; color: Theme.brandViolet }
-                    GradientStop { position: 1; color: "transparent" }
-                }
-            }
-
             // Apps en fila (horizontal) o en columna (vertical)
             readonly property bool startShown: Settings.dock.showStart && !Serp.on
             readonly property bool searchShown: Settings.dock.showSearch && !Serp.on
@@ -254,23 +245,24 @@ Variants {
 
                 DockButton {
                     visible: Settings.dock.showStart && !Serp.on
-                    tip: I18n.t("Inicio")
-                    active: Shell.launcherOpen && !Shell.clipboardMode
-                    onClicked: Shell.toggleLauncher(false)
+                    tip: "Launchpad"
+                    active: Shell.launchpadOpen
+                    // abre la cuadrícula de apps a pantalla completa (modules/launchpad); otro clic la cierra
+                    onClicked: Shell.launchpadRequest(Shell.launchpadOpen ? "close" : "open")
+                    // icono de Launchpad de macOS: cuadro gris con la cuadrícula de colores
                     Image {
                         anchors.centerIn: parent
-                        width: Math.round(28 * Theme.dockScale); height: width
-                        source: Quickshell.shellDir + "/assets/quantum-mark.svg"
-                        sourceSize: Qt.size(56, 56)
-                        rotation: parent.hovered ? 30 : 0
-                        Behavior on rotation { NumberAnimation { duration: Theme.animSlow; easing.type: Easing.OutBack } }
+                        width: Math.round(38 * Theme.dockScale); height: width
+                        source: Quickshell.shellDir + "/assets/quantum-launchpad.svg"
+                        sourceSize: Qt.size(128, 128)
+                        smooth: true
                     }
                 }
                 DockButton {
                     visible: Settings.dock.showSearch && !Serp.on
                     tip: I18n.t("Buscar")
                     onClicked: Shell.toggleLauncher(false)
-                    AppIcon { anchors.centerIn: parent; name: "system-search"; fallback: ""; glyph: "search"; size: Math.round(28 * Theme.dockScale) }
+                    AppIcon { anchors.centerIn: parent; name: "system-search"; fallback: ""; glyph: "search"; size: Math.round(38 * Theme.dockScale) }
                 }
                 Rectangle {
                     visible: (Settings.dock.showStart || Settings.dock.showSearch) && !Serp.on
@@ -315,7 +307,7 @@ Variants {
             x: dock.hoverItem ? dock.popupX(dock.hoverItem, width) : 0
             y: dock.hoverItem ? dock.popupY(dock.hoverItem, height) : 0
             radius: Theme.radius
-            color: Theme.alpha(Theme.surfaceHigh, 0.97)
+            color: Theme.glassPanel
             implicitWidth: bubbleCol.implicitWidth + 20
             implicitHeight: bubbleCol.implicitHeight + 16
             opacity: visible ? 1 : 0
@@ -351,7 +343,7 @@ Variants {
             x: dock.menuItem ? dock.popupX(dock.menuItem, width) : 0
             y: dock.menuItem ? dock.popupY(dock.menuItem, height) : 0
             radius: Theme.radius
-            color: Theme.alpha(Theme.surfaceHigh, 0.98)
+            color: Theme.glassPanel
             implicitWidth: 240
             implicitHeight: menuCol.implicitHeight + 12
 
@@ -363,11 +355,32 @@ Variants {
                 anchors.margins: 6
                 spacing: 2
 
-                RowLayout {
-                    Layout.margins: 8
-                    spacing: 10
-                    AppIcon { size: 22; name: menu.g ? menu.g.icon : "" }
-                    Txt { Layout.fillWidth: true; text: menu.g ? menu.g.name : ""; font.weight: Font.Bold; elide: Text.ElideRight }
+                // encabezado: clic = alternar 3/4 de pantalla <-> completa (si la app tiene ventanas)
+                Rectangle {
+                    id: head
+                    readonly property bool hasWins: menu.g !== null && menu.g.wins.length > 0
+                    Layout.fillWidth: true
+                    implicitHeight: headRow.implicitHeight + 16
+                    radius: Theme.radiusSmall
+                    color: headArea.containsMouse && hasWins ? Theme.alpha(Theme.fg, 0.08) : "transparent"
+                    RowLayout {
+                        id: headRow
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 10
+                        AppIcon { size: 22; name: menu.g ? menu.g.icon : "" }
+                        Txt { Layout.fillWidth: true; text: menu.g ? menu.g.name : ""; font.weight: Font.Bold; elide: Text.ElideRight }
+                    }
+                    MouseArea {
+                        id: headArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: head.hasWins ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: {
+                            if (head.hasWins) Wm.toggleSizeGroup(menu.g);
+                            dock.closeMenu();
+                        }
+                    }
                 }
                 // ventanas de la app (como macOS): clic para llevarla al frente
                 Repeater {

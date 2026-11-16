@@ -4,7 +4,7 @@ import qs.services
 // Fondo translúcido de los paneles del shell.
 Rectangle {
     radius: Theme.radiusLarge
-    color: Theme.alpha(Theme.surface, Theme.glassOpacity("panels"))
+    color: Theme.glassPanel
     border.width: 1
-    border.color: Theme.alpha(Theme.fg, 0.08)
+    border.color: Theme.glassBorder
 }

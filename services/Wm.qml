@@ -130,7 +130,7 @@ Singleton {
     }
 
     function nameFor(appId: string, title): string {
-        if (appId === "org.quickshell" && title !== root.officeTitle) return I18n.t("Personalizar");
+        if (appId === "org.quickshell" && title !== root.officeTitle) return I18n.t("Ajustes del Sistema");
         return root.entryFor(appId, title)?.name ?? appId;
     }
 
@@ -185,6 +185,16 @@ Singleton {
     function focus(win: Toplevel): void {
         if (root.isMinimized(win)) root.restore(win);
         else root.activate(win);
+    }
+
+    // Clic en el encabezado del menú del dock: alterna 3/4 <-> completa para la ventana de la app
+    // (la activa, o la primera no minimizada). Usa cael_toggle_size de hyprlands/minimize.lua.
+    function toggleSizeGroup(g: var): void {
+        if (!g || g.wins.length === 0) return;
+        const w = g.wins.find(x => x.activated && !root.isMinimized(x))
+            ?? g.wins.find(x => !root.isMinimized(x)) ?? g.wins[0];
+        const a = root.hyprAddress(w);
+        if (a) Quickshell.execDetached(["hyprctl", "eval", `cael_toggle_size('${a}')`]);
     }
 
     // Clic en el dock: si ya está activa se minimiza, si está minimizada vuelve, si no, se enfoca.

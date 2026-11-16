@@ -19,7 +19,7 @@ Rectangle {
 
     implicitHeight: content.implicitHeight + 24
     radius: Theme.radius
-    color: popup ? Theme.alpha(Theme.surface, 0.94) : Theme.surfaceHigh
+    color: popup ? Theme.glassPanel : Theme.glassTile
     border.width: popup ? 1 : 0
     border.color: notif.urgency === NotificationUrgency.Critical ? Theme.error : Theme.alpha(Theme.fg, 0.08)
 

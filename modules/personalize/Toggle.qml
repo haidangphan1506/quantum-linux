@@ -2,37 +2,29 @@ import QtQuick
 import qs.services
 import qs.components
 
-// Interruptor.
+// Interruptor estilo macOS: pequeño, azul al activarse, perilla blanca.
 Rectangle {
     id: root
 
     property bool checked: false
     signal toggled(bool checked)
 
-    implicitWidth: 52
-    implicitHeight: 30
+    implicitWidth: 38
+    implicitHeight: 22
     radius: height / 2
-    color: checked ? Theme.primary : Theme.surfaceHighest
-    border.width: checked ? 0 : 2
-    border.color: Theme.outline
+    color: checked ? "#007aff" : Theme.alpha(Theme.fg, 0.16)
     Behavior on color { ColorAnimation { duration: Theme.animFast } }
 
     Rectangle {
         anchors.verticalCenter: parent.verticalCenter
-        x: root.checked ? parent.width - width - 5 : 7
-        width: root.checked ? parent.height - 8 : parent.height - 14
+        x: root.checked ? parent.width - width - 2 : 2
+        width: parent.height - 4
         height: width
         radius: width / 2
-        color: root.checked ? Theme.primaryFg : Theme.outline
-        Behavior on x { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutBack } }
-        Behavior on width { NumberAnimation { duration: Theme.animFast } }
-        Icon {
-            anchors.centerIn: parent
-            visible: root.checked
-            text: "check"
-            size: parent.width - 7
-            color: Theme.primary
-        }
+        color: "white"
+        border.width: 1
+        border.color: Qt.rgba(0, 0, 0, 0.08)
+        Behavior on x { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
     }
 
     MouseArea {
