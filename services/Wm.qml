@@ -31,6 +31,8 @@ Singleton {
         if (appId === "org.quickshell") {
             if (title === root.officeTitle)
                 return DesktopEntries.byId("claude-agentoffice") ?? DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
+            if (title === "Activity Monitor")
+                return DesktopEntries.byId("quantum-activitymonitor") ?? DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
             if (title === root.hqTitle)
                 return DesktopEntries.byId("claude-agenthq") ?? DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
             return DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
@@ -134,6 +136,7 @@ Singleton {
     }
 
     function nameFor(appId: string, title): string {
+        if (appId === "org.quickshell" && title === "Activity Monitor") return "Activity Monitor";
         if (appId === "org.quickshell" && title !== root.officeTitle) return I18n.t("Ajustes del Sistema");
         return root.entryFor(appId, title)?.name ?? appId;
     }
