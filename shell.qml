@@ -72,6 +72,7 @@ ShellRoot {
             Osd {}
             Screenshot {}
             Launcher {}
+            Spotlight {}
             ControlCenter {}
             WallpaperPicker {}
             Personalize {}

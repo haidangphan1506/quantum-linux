@@ -25,7 +25,7 @@ LockCard {
                 property real bob: 0
                 SequentialAnimation on bob {
                     loops: Animation.Infinite
-                    running: Settings.windows.animations !== "none"
+                    running: Theme.animations !== "none"
                     NumberAnimation { to: -6; duration: 1600; easing.type: Easing.InOutSine }
                     NumberAnimation { to: 0; duration: 1600; easing.type: Easing.InOutSine }
                 }

@@ -150,7 +150,7 @@ Variants {
                 parent: win.contentItem
                 anchors.fill: parent
                 running: !Shell.gameMode && !(Wm.active?.fullscreen ?? false) && !(Wm.active?.maximized ?? false)
-                         && Settings.windows.animations !== "none"
+                         && Theme.animations !== "none"
             }
         }
     }

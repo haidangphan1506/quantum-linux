@@ -12,6 +12,7 @@ Singleton {
 
     property bool launcherOpen: false
     property bool clipboardMode: false
+    property bool spotlightOpen: false
     property bool controlCenterOpen: false
     property bool sessionOpen: false
     property bool wallpapersOpen: false
@@ -43,6 +44,7 @@ Singleton {
 
     function closeAll(): void {
         launcherOpen = false;
+        spotlightOpen = false;
         controlCenterOpen = false;
         sessionOpen = false;
         wallpapersOpen = false;
@@ -57,6 +59,12 @@ Singleton {
         closeAll();
         clipboardMode = clipboard;
         launcherOpen = opening;
+    }
+
+    function toggleSpotlight(): void {
+        const opening = !spotlightOpen;
+        closeAll();
+        spotlightOpen = opening;
     }
 
     function toggleControlCenter(): void {
@@ -142,10 +150,13 @@ Singleton {
         Settings.set("display", "nightLight", !Settings.display.nightLight);
     }
 
-    // Modo juego: quita animaciones y desenfoque de Wayfire para ganar FPS.
+    // Modo juego: quita todas las animaciones (shell + Hyprland) y efectos para ganar FPS.
     function setGameMode(on: bool): void {
         gameMode = on;
         Quickshell.execDetached(["quantum-theme", "gamemode", on ? "on" : "off"]);
+        // Hyprland: desactiva (o restaura) todas las animaciones, blur y sombras del compositor
+        Quickshell.execDetached(["hyprctl", "eval",
+            `hl.config({ animations = { enabled = ${!on} }, decoration = { blur = { enabled = ${!on} }, shadow = { enabled = ${!on} } } })`]);
     }
 
     IpcHandler {
@@ -154,6 +165,7 @@ Singleton {
         function launcher(): void { root.toggleLauncher(false); }
         function swipe(dir: string): void { root.swipe(dir); }
         function swipeState(): string { return `overview=${root.overviewOpen} launchpad=${root.launchpadOpen}`; }
+        function spotlight(): void { root.toggleSpotlight(); }
         function clipboard(): void { root.toggleLauncher(true); }
         function controlCenter(): void { root.toggleControlCenter(); }
         function wifi(): void { root.openWifi(); }

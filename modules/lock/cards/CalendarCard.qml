@@ -39,13 +39,13 @@ LockCard {
                     border.width: 2; border.color: Theme.primary
                     SequentialAnimation on scale {
                         loops: Animation.Infinite
-                        running: Settings.windows.animations !== "none"
+                        running: Theme.animations !== "none"
                         NumberAnimation { from: 1; to: 1.6; duration: 1600; easing.type: Easing.OutCubic }
                         PauseAnimation { duration: 400 }
                     }
                     SequentialAnimation on opacity {
                         loops: Animation.Infinite
-                        running: Settings.windows.animations !== "none"
+                        running: Theme.animations !== "none"
                         NumberAnimation { from: 0.8; to: 0; duration: 1600; easing.type: Easing.OutCubic }
                         PauseAnimation { duration: 400 }
                     }

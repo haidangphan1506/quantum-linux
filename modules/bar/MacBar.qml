@@ -271,7 +271,7 @@ Item {
         }
         Status { implicitHeight: 24; radius: 5 }
         // Spotlight
-        BarIcon { visible: Settings.layout.topBar.showSpotlight; icon: "search"; onClicked: { root.closeMenus(); Shell.toggleLauncher(false); } }
+        BarIcon { visible: Settings.layout.topBar.showSpotlight; icon: "search"; onClicked: { root.closeMenus(); Shell.toggleSpotlight(); } }
         // Centro de control (interruptores) / notificaciones pendientes
         BarIcon {
             icon: Notifs.count > 0 ? "notifications_unread" : "toggle_on"
