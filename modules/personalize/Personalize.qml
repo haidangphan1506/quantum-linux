@@ -17,58 +17,116 @@ Scope {
         FloatingWindow {
             id: win
 
-            title: I18n.t("Personalizar")
-            // 3/4 de la pantalla por defecto (la del monitor enfocado), como las demás ventanas
+            title: I18n.t("Ajustes del Sistema")
+            // Tamaño de Ajustes del Sistema de macOS: ventana mediana (no 3/4 de la pantalla)
             readonly property var scr: Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0]
-            implicitWidth: Math.round((scr?.width ?? 1920) * 0.75)
-            implicitHeight: Math.round((scr?.height ?? 1080) * 0.75)
+            implicitWidth: Math.min(1060, Math.round((scr?.width ?? 1920) * 0.8))
+            implicitHeight: Math.min(740, Math.round((scr?.height ?? 1080) * 0.8))
             width: implicitWidth
             height: implicitHeight
-            minimumSize: Qt.size(860, 480)
+            minimumSize: Qt.size(820, 480)
             color: Theme.surface
             visible: true
             onVisibleChanged: if (!visible) Shell.personalizeOpen = false
 
-            // Orden y grupos como la barra lateral de Ajustes del Sistema de macOS.
-            // g: grupo (se separan con espacio); k: color del ícono (estilo macOS).
+            // Orden, nombres y grupos como la barra lateral de Ajustes del Sistema de macOS
+            // (Tahoe): Wi-Fi/Bluetooth · General…Fondo de pantalla · Notificaciones/Sonido ·
+            // Pantalla bloqueada · Mouse/Trackpad. «Estilos» es propio de Quantum y va al final.
+            // g: grupo (se separan con una línea); k: color del ícono; p: página «padre»
+            // (no sale en la barra lateral, se abre desde ella, p. ej. General → Acerca de).
             readonly property var pages: [
-                { id: "bluetooth", g: 0, t: "Bluetooth", h: I18n.t("Empareja auriculares, teclados y otros dispositivos."), i: "bluetooth", k: "#0089FF", c: bluetoothPage },
-                { id: "input", g: 0, t: I18n.t("Mouse y touchpad"), h: I18n.t("Velocidad, aceleración, desplazamiento y clics."), i: "mouse", k: "#8E8E93", c: inputPage },
-                { id: "sounds", g: 0, t: I18n.t("Sonidos"), h: I18n.t("Los sonidos del sistema y su volumen."), i: "music_note", k: "#FF2D55", c: soundsPage },
-                { id: "display", g: 0, t: I18n.t("Pantalla"), h: I18n.t("Luz nocturna, brillo, contraste, gamma y saturación."), i: "desktop_windows", k: "#0089FF", c: displayPage },
-                { id: "language", g: 1, t: I18n.t("Idioma"), h: I18n.t("El idioma de la barra, los menús, los paneles y esta ventana."), i: "translate", k: "#8E8E93", c: languagePage },
-                { id: "apps", g: 1, t: I18n.t("Aplicaciones"), h: I18n.t("Muestra u oculta apps del menú y mira de qué paquete vienen."), i: "apps", k: "#FF9500", c: appsPage },
-                { id: "lock", g: 1, t: I18n.t("Bloqueo"), h: I18n.t("Qué tarjetas se ven en la pantalla de bloqueo y en qué orden."), i: "lock", k: "#000000", c: lockPage },
-                { id: "styles", g: 2, t: I18n.t("Estilos"), h: I18n.t("Cambia todo el escritorio con un clic."), i: "auto_awesome", k: "#000000", c: stylesPage },
-                { id: "colors", g: 2, t: I18n.t("Colores y fondo"), h: I18n.t("Modo claro u oscuro, color de acento y fondo de pantalla."), i: "palette", k: "#32ADE6", c: colorsPage },
-                { id: "windows", g: 2, t: I18n.t("Ventanas"), h: I18n.t("Esquinas, botones y animaciones de las ventanas."), i: "web_asset", k: "#5856D6", c: windowsPage },
-                { id: "bar", g: 3, t: I18n.t("Barra y dock"), h: I18n.t("Dónde van tus apps, la hora y el estado del sistema."), i: "dock_to_bottom", k: "#000000", c: barPage },
+                { id: "wifi", g: 1, t: "Wi-Fi", h: I18n.t("Redes inalámbricas, contraseña y detalles de la conexión."), i: "wifi", k: "#007AFF", c: wifiPage },
+                { id: "bluetooth", g: 1, t: "Bluetooth", h: I18n.t("Empareja auriculares, teclados y otros dispositivos."), i: "bluetooth", k: "#007AFF", c: bluetoothPage },
+                { id: "battery", g: 1, t: I18n.t("Batería"), h: I18n.t("Nivel, modo de bajo consumo y salud de la batería."), i: "battery_full", k: "#34C759", c: batteryPage },
+                { id: "general", g: 2, t: I18n.t("General"), h: I18n.t("Acerca de, actualizaciones, almacenamiento, idioma, fecha y hora."), i: "settings", k: "#8E8E93", c: generalPage },
+                { id: "appearance", g: 2, t: I18n.t("Apariencia"), h: I18n.t("Modo claro u oscuro, color de acento, vidrio, íconos y texto."), i: "contrast", k: "#3A3A3C", c: appearancePage },
+                { id: "desktop", g: 2, t: I18n.t("Escritorio y Dock"), h: I18n.t("Dock, barra de tareas, navegador predeterminado y ventanas."), i: "dock_to_bottom", k: "#3A3A3C", c: desktopPage },
+                { id: "display", g: 2, t: I18n.t("Pantallas"), h: I18n.t("Tamaño del texto, brillo, Night Shift y color."), i: "light_mode", k: "#007AFF", c: displayPage },
+                { id: "menubar", g: 2, t: I18n.t("Barra de menús"), h: I18n.t("Controles de la barra de menús y opciones del reloj."), i: "top_panel_open", k: "#3A3A3C", c: menuBarPage },
+                { id: "wallpaper", g: 2, t: I18n.t("Fondo de pantalla"), h: I18n.t("Fondos de Quantum, el fondo vivo y tus fotos."), i: "wallpaper", k: "#32ADE6", c: wallpaperPage },
+                { id: "notifications", g: 3, t: I18n.t("Notificaciones"), h: I18n.t("Vistas previas, No molestar y avisos de cada app."), i: "notifications", k: "#FF3B30", c: notificationsPage },
+                { id: "sounds", g: 3, t: I18n.t("Sonido"), h: I18n.t("Efectos de sonido, salida y entrada."), i: "volume_up", k: "#FF2D55", c: soundsPage },
+                { id: "lock", g: 4, t: I18n.t("Pantalla bloqueada"), h: I18n.t("Salvapantallas, bloquear y tarjetas de la pantalla bloqueada."), i: "lock", k: "#3A3A3C", c: lockPage },
+                { id: "keyboard", g: 5, t: I18n.t("Teclado"), h: I18n.t("Repetición de teclas, luz del teclado, atajos y distribución."), i: "keyboard", k: "#8E8E93", c: keyboardPage },
+                { id: "mouse", g: 5, t: I18n.t("Mouse"), h: I18n.t("Velocidad, desplazamiento, clic secundario y puntero."), i: "mouse", k: "#8E8E93", c: mousePage },
+                { id: "trackpad", g: 5, t: I18n.t("Trackpad"), h: I18n.t("Tocar para hacer clic, clic secundario, desplazamiento y gestos."), i: "touchpad_mouse", k: "#8E8E93", c: trackpadPage },
+                { id: "styles", g: 6, t: I18n.t("Estilos"), h: I18n.t("Cambia todo el escritorio con un clic."), i: "auto_awesome", k: "#AF52DE", c: stylesPage },
+                // dentro de General
+                { id: "about", g: 9, p: "general", t: I18n.t("Acerca de"), h: I18n.t("Equipo, procesador, memoria, pantallas y almacenamiento."), i: "info", k: "#8E8E93", c: aboutPage },
+                { id: "update", g: 9, p: "general", t: I18n.t("Actualización de software"), h: I18n.t("Buscar e instalar actualizaciones."), i: "system_update_alt", k: "#8E8E93", c: updatePage },
+                { id: "storage", g: 9, p: "general", t: I18n.t("Almacenamiento"), h: I18n.t("Qué ocupa el disco y cómo liberar espacio."), i: "hard_drive", k: "#8E8E93", c: storagePage },
+                { id: "login", g: 9, p: "general", t: I18n.t("Elementos de inicio"), h: I18n.t("Apps que se abren al iniciar sesión."), i: "list", k: "#8E8E93", c: loginPage },
+                { id: "language", g: 9, p: "general", t: I18n.t("Idioma y región"), h: I18n.t("El idioma de Quantum y los formatos de fecha y hora."), i: "language", k: "#007AFF", c: languagePage },
+                { id: "datetime", g: 9, p: "general", t: I18n.t("Fecha y hora"), h: I18n.t("Hora automática, zona horaria y formato de 24 horas."), i: "schedule", k: "#007AFF", c: dateTimePage },
+                { id: "apps", g: 9, p: "general", t: I18n.t("Aplicaciones"), h: I18n.t("Muestra u oculta apps del menú y mira de qué paquete vienen."), i: "apps", k: "#FF9500", c: appsPage },
             ]
+            // Ids de antes de reordenar como macOS (accesos directos y ajustes guardados)
+            function resolve(id: string): string {
+                return ({ colors: "appearance", bar: "desktop", windows: "desktop", input: "mouse" })[id] ?? id;
+            }
             property string query: ""
-            property string current: pages.some(p => p.id === Settings.ui.page) ? Settings.ui.page : "styles"
+            property string current: pages.some(p => p.id === resolve(Settings.ui.page)) ? resolve(Settings.ui.page) : "general"
             readonly property var page: pages.find(p => p.id === current)
             property bool confirmReset: false
+            readonly property bool scrolled: flick.contentY > 4
+
+            // Historial para las flechas atrás / adelante de la barra de herramientas (como macOS)
+            property var history: [current]
+            property int histPos: 0
+            readonly property bool canBack: histPos > 0 || !!page.p
+            function go(id: string): void {
+                id = resolve(id);
+                if (id === current || !pages.some(p => p.id === id)) return;
+                history = history.slice(0, histPos + 1).concat([id]);
+                histPos = history.length - 1;
+                current = id;
+                Settings.setUi("page", id);
+            }
+            // sin historial, «atrás» en una subpágina vuelve a su página (Acerca de → General)
+            function back(): void {
+                if (histPos > 0) { histPos--; current = history[histPos]; }
+                else if (page.p) go(page.p);
+            }
+            function forward(): void { if (histPos < history.length - 1) { histPos++; current = history[histPos]; } }
 
             Component.onCompleted: Settings.snapshot()
 
+            Component { id: generalPage; GeneralPage { host: win } }
+            Component { id: aboutPage; AboutPage {} }
+            Component { id: updatePage; SoftwareUpdatePage {} }
+            Component { id: storagePage; StoragePage {} }
+            Component { id: loginPage; LoginItemsPage {} }
             Component { id: languagePage; LanguagePage {} }
+            Component { id: dateTimePage; DateTimePage {} }
             Component { id: appsPage; AppsPage {} }
-            Component { id: stylesPage; StylesPage {} }
-            Component { id: colorsPage; ColorsPage {} }
-            Component { id: barPage; BarPage {} }
-            Component { id: windowsPage; WindowsPage {} }
-            Component { id: lockPage; LockPage {} }
-            Component { id: soundsPage; SoundsPage {} }
-            Component { id: displayPage; DisplayPage {} }
-            Component { id: inputPage; InputPage {} }
+            Component { id: wifiPage; WifiPage {} }
             Component { id: bluetoothPage; BluetoothPage {} }
+            Component { id: batteryPage; BatteryPage {} }
+            Component { id: appearancePage; AppearancePage {} }
+            Component { id: desktopPage; DesktopDockPage {} }
+            Component { id: displayPage; DisplayPage {} }
+            Component { id: menuBarPage; MenuBarPage {} }
+            Component { id: wallpaperPage; WallpaperPage {} }
+            Component { id: notificationsPage; NotificationsPage {} }
+            Component { id: soundsPage; SoundsPage {} }
+            Component { id: lockPage; LockPage {} }
+            Component { id: keyboardPage; KeyboardPage {} }
+            Component { id: mousePage; MousePage {} }
+            Component { id: trackpadPage; TrackpadPage {} }
+            Component { id: stylesPage; StylesPage {} }
+
+            // las páginas se enlazan entre sí (p. ej. Acerca de → Almacenamiento)
+            Connections {
+                target: Shell
+                function onSettingsGo(page: string): void { win.go(page); }
+            }
 
             Shortcut { sequence: "Escape"; onActivated: Shell.personalizeOpen = false }
 
-            // Para probar sin mouse: qs ipc call personalize page colors
+            // Para probar sin mouse: qs ipc call personalize page appearance
             IpcHandler {
                 target: "personalize"
-                function page(id: string): void { win.current = id; }
+                function page(id: string): void { win.go(id); }
                 function advanced(on: bool): void { Settings.setUi("advanced", on); }
                 function scroll(y: real): void { flick.contentY = y; }
             }
@@ -78,149 +136,7 @@ Scope {
                 spacing: 0
 
                 // ---------------------------------------------- barra lateral
-                Rectangle {
-                    Layout.fillHeight: true
-                    Layout.preferredWidth: 270
-                    color: Theme.surfaceLow
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 18
-                        spacing: 6
-
-                        // tarjeta de perfil (como el Apple Account de macOS)
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.bottomMargin: 10
-                            implicitHeight: profRow.implicitHeight + 16
-                            radius: 12
-                            color: profArea.containsMouse ? Theme.alpha(Theme.fg, 0.06) : "transparent"
-                            RowLayout {
-                                id: profRow
-                                anchors.left: parent.left; anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.leftMargin: 8; anchors.rightMargin: 8
-                                spacing: 12
-                                Image {
-                                    Layout.preferredWidth: 46; Layout.preferredHeight: 46
-                                    source: Quickshell.shellDir + "/assets/quantum-personalize.svg"
-                                    sourceSize: Qt.size(92, 92)
-                                    smooth: true
-                                }
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 0
-                                    Txt { text: I18n.t("Personalizar"); font.pixelSize: Theme.textLarge; font.weight: Font.Bold }
-                                    Txt { text: I18n.t("Tu escritorio, a tu manera"); color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
-                                }
-                            }
-                            MouseArea { id: profArea; anchors.fill: parent; hoverEnabled: true }
-                        }
-
-                        // buscador (como «Buscar» en Ajustes del Sistema)
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.bottomMargin: 8
-                            implicitHeight: 34
-                            radius: 17
-                            color: Theme.alpha(Theme.fg, 0.07)
-                            Icon { id: searchIcon; anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter; text: "search"; size: 18; color: Theme.fgMuted }
-                            TextInput {
-                                id: searchIn
-                                anchors.left: searchIcon.right; anchors.leftMargin: 8
-                                anchors.right: parent.right; anchors.rightMargin: 12
-                                anchors.verticalCenter: parent.verticalCenter
-                                font.family: Theme.font
-                                font.pixelSize: Theme.textNormal
-                                color: Theme.fg
-                                clip: true
-                                onTextChanged: win.query = text.trim()
-                                Txt {
-                                    visible: !searchIn.text && !searchIn.activeFocus
-                                    text: I18n.t("Buscar")
-                                    color: Theme.fgMuted
-                                }
-                            }
-                        }
-
-                        Repeater {
-                            model: win.pages
-                            Rectangle {
-                                id: nav
-                                required property var modelData
-                                required property int index
-                                readonly property bool on: win.current === modelData.id
-                                readonly property bool matches: win.query === "" || modelData.t.toLowerCase().indexOf(win.query.toLowerCase()) >= 0
-                                // espacio entre grupos
-                                readonly property bool newGroup: index > 0 && win.pages[index - 1].g !== modelData.g
-                                visible: matches
-                                Layout.fillWidth: true
-                                Layout.topMargin: newGroup ? 14 : 0
-                                implicitHeight: 36
-                                radius: 9
-                                color: on ? Theme.primary : navArea.containsMouse ? Theme.alpha(Theme.fg, 0.06) : "transparent"
-                                Behavior on color { ColorAnimation { duration: Theme.animFast } }
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 8
-                                    anchors.rightMargin: 10
-                                    spacing: 10
-                                    // ícono en cuadro de color redondeado, como en macOS
-                                    Rectangle {
-                                        Layout.preferredWidth: 26; Layout.preferredHeight: 26
-                                        radius: 7
-                                        color: nav.modelData.k
-                                        Icon { anchors.centerIn: parent; text: nav.modelData.i; size: 16; fill: 1; color: "white" }
-                                    }
-                                    Txt {
-                                        Layout.fillWidth: true
-                                        text: nav.modelData.t
-                                        font.weight: nav.on ? Font.DemiBold : Font.Normal
-                                        color: nav.on ? Theme.primaryFg : Theme.fg
-                                    }
-                                }
-                                MouseArea {
-                                    id: navArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: { win.current = nav.modelData.id; Settings.setUi("page", nav.modelData.id); }
-                                }
-                            }
-                        }
-
-                        Item { Layout.fillHeight: true }
-
-                        // vista previa en vivo de los ajustes actuales
-                        Txt { text: I18n.t("Vista previa"); font.weight: Font.Bold; font.pixelSize: Theme.textSmall; color: Theme.fgMuted }
-                        MiniDesktop {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: width * 9 / 16
-                            v: Settings.visualState()
-                        }
-
-                        PillButton {
-                            Layout.fillWidth: true
-                            Layout.topMargin: 10
-                            text: I18n.t("Deshacer cambios")
-                            icon: "undo"
-                            enabled_: Settings.changed
-                            onClicked: Settings.undo()
-                        }
-                        PillButton {
-                            Layout.fillWidth: true
-                            text: win.confirmReset ? I18n.t("¿Seguro? Toca otra vez") : I18n.t("Restablecer todo")
-                            icon: "restart_alt"
-                            danger: true
-                            onClicked: {
-                                if (!win.confirmReset) { win.confirmReset = true; resetTimer.restart(); return; }
-                                win.confirmReset = false;
-                                Settings.resetAll();
-                            }
-                            Timer { id: resetTimer; interval: 3000; onTriggered: win.confirmReset = false }
-                        }
-                    }
-                }
+                PersonalizeSidebar { host: win }
 
                 // --------------------------------------------------- contenido
                 ColumnLayout {
@@ -228,40 +144,8 @@ Scope {
                     Layout.fillHeight: true
                     spacing: 0
 
-                    // encabezado
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.margins: 28
-                        Layout.bottomMargin: 14
-                        spacing: 16
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 2
-                            Txt { text: win.page.t; font.pixelSize: Theme.textTitle + 6; font.weight: Font.Bold }
-                            Txt { Layout.fillWidth: true; text: win.page.h; color: Theme.fgMuted }
-                        }
-                        // interruptor de opciones avanzadas
-                        Rectangle {
-                            implicitWidth: advRow.implicitWidth + 24
-                            implicitHeight: 44
-                            radius: 22
-                            color: Settings.ui.advanced ? Theme.alpha(Theme.primary, 0.14) : Theme.surfaceContainer
-                            border.width: 1
-                            border.color: Theme.alpha(Theme.fg, 0.08)
-                            RowLayout {
-                                id: advRow
-                                anchors.centerIn: parent
-                                spacing: 10
-                                Icon { text: "tune"; size: 19; color: Settings.ui.advanced ? Theme.primary : Theme.fg }
-                                Txt { text: I18n.t("Opciones avanzadas"); font.weight: Font.DemiBold }
-                                Toggle {
-                                    implicitWidth: 44; implicitHeight: 26
-                                    checked: Settings.ui.advanced
-                                    onToggled: c => Settings.setUi("advanced", c)
-                                }
-                            }
-                        }
-                    }
+                    PersonalizeHeader { host: win }
+
 
                     Flickable {
                         id: flick
@@ -271,10 +155,12 @@ Scope {
                         clip: true
                         boundsBehavior: Flickable.StopAtBounds
 
+                        // contenido centrado con ancho máximo, como el panel derecho de macOS
                         Loader {
                             id: loader
-                            x: 28
-                            width: flick.width - 56
+                            width: Math.min(flick.width - 48, 820)
+                            x: (flick.width - width) / 2
+                            y: 8
                             sourceComponent: win.page.c
                             // entrada suave al cambiar de sección
                             opacity: 0

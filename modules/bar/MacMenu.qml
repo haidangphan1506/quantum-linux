@@ -65,9 +65,9 @@ PanelWindow {
     Rectangle {
         anchors.fill: parent
         radius: 10
-        color: Theme.alpha(Theme.surface, 0.96)
+        color: Theme.glassPanel   // vidrio translúcido (blur de Hyprland)
         border.width: 1
-        border.color: Theme.alpha(Theme.fg, 0.12)
+        border.color: Theme.glassBorder
 
         HoverHandler { id: hover }
 

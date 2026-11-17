@@ -16,7 +16,7 @@ Rectangle {
 
     implicitHeight: 58
     radius: Theme.radius
-    color: on ? Theme.primaryContainer : area.containsMouse ? Theme.surfaceHighest : Theme.surfaceHigh
+    color: on ? Theme.primaryContainer : area.containsMouse ? Theme.glassTileHover : Theme.glassTile
 
     Behavior on color { ColorAnimation { duration: Theme.anim } }
 

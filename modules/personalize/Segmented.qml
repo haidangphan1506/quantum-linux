@@ -3,7 +3,8 @@ import QtQuick.Layouts
 import qs.services
 import qs.components
 
-// Selector de una opción entre pocas: [{ v: valor, t: "Texto", i: "ícono" }]
+// Control segmentado de macOS: [{ v: valor, t: "Texto", i: "ícono" }].
+// Fondo gris, la opción elegida en una pastilla blanca (gris claro en modo oscuro).
 Rectangle {
     id: root
 
@@ -11,12 +12,11 @@ Rectangle {
     property var value
     signal picked(var value)
 
-    implicitWidth: row.implicitWidth + 8
-    implicitHeight: 40
-    radius: height / 2
-    color: Theme.surfaceHigh
+    implicitWidth: row.implicitWidth + 4
+    implicitHeight: 28
+    radius: 7
+    color: Theme.alpha(Theme.fg, Theme.dark ? 0.1 : 0.07)
 
-    // indicador que se desliza a la opción elegida
     Rectangle {
         readonly property Item target: {
             for (let i = 0; i < rep.count; i++)
@@ -25,18 +25,20 @@ Rectangle {
         }
         visible: target !== null
         x: target ? target.x + row.x : 0
-        y: 4
+        y: 2
         width: target ? target.width : 0
-        height: parent.height - 8
-        radius: height / 2
-        color: Theme.primaryContainer
+        height: parent.height - 4
+        radius: 5
+        color: Theme.dark ? Qt.rgba(1, 1, 1, 0.22) : "white"
+        border.width: Theme.dark ? 0 : 1
+        border.color: Qt.rgba(0, 0, 0, 0.06)
         Behavior on x { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
         Behavior on width { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
     }
 
     RowLayout {
         id: row
-        x: 4
+        x: 2
         anchors.verticalCenter: parent.verticalCenter
         spacing: 0
         Repeater {
@@ -46,24 +48,24 @@ Rectangle {
                 id: opt
                 required property var modelData
                 readonly property bool on: root.value === modelData.v
-                implicitWidth: lab.implicitWidth + 28
-                implicitHeight: 32
+                implicitWidth: lab.implicitWidth + 22
+                implicitHeight: 24
                 RowLayout {
                     id: lab
                     anchors.centerIn: parent
-                    spacing: 6
+                    spacing: 5
                     Icon {
                         visible: !!opt.modelData.i
                         text: opt.modelData.i ?? ""
-                        size: 17
+                        size: 15
                         fill: opt.on ? 1 : 0
-                        color: opt.on ? Theme.primaryContainerFg : Theme.fg
+                        color: Theme.fg
                     }
                     Txt {
                         text: opt.modelData.t
                         font.pixelSize: Theme.textSmall + 1
-                        font.weight: Font.DemiBold
-                        color: opt.on ? Theme.primaryContainerFg : Theme.fg
+                        font.weight: opt.on ? Font.DemiBold : Font.Normal
+                        color: Theme.fg
                     }
                 }
                 MouseArea {

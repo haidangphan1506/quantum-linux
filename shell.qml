@@ -10,12 +10,12 @@ import "modules"
 import "modules/bar"
 import "modules/launcher"
 import "modules/controlcenter"
-import "modules/dashboard"
 import "modules/wallpapers"
 import "modules/notifications"
 import "modules/personalize"
 import "modules/assistant"
 import "modules/osd"
+import "modules/screenshot"
 import "modules/session"
 import "modules/welcome"
 import "modules/lock"
@@ -32,12 +32,18 @@ import "modules/effects"
 // Primero aparece la pantalla de carga (liviana) y el resto se carga de fondo, sin
 // bloquear; cuando está todo listo, la pantalla se desvanece y aparece el escritorio.
 ShellRoot {
+    // Ajustes del Sistema → Hyprland (mouse, trackpad, teclado, Night Shift, escala…)
+    readonly property bool hyprApply: HyprApply.inputLua !== ""
+
     Splash {
         desktopReady: desktop.item !== null
         onSessionStarted: {
             Sounds.play("startup");
             // apps de inicio que no deben competir con la carga del escritorio
             Quickshell.execDetached(["quantum-center", "--autostart"]);
+            // Ajustes → General → Elementos de inicio («Abrir al iniciar sesión» de macOS)
+            for (const id of Settings.apps.login ?? [])
+                Apps.entry(id)?.execute();
         }
     }
 
@@ -51,7 +57,7 @@ ShellRoot {
             // La forma del shell: Caelestial (barra + dock) o Serpantium (píldoras arriba)
             LazyLoader {
                 active: !Serp.on
-                Scope { Bar {} DockHost {} DashboardZone {} }
+                Scope { Bar {} DockHost {} }
             }
             LazyLoader {
                 active: Serp.on
@@ -64,9 +70,9 @@ ShellRoot {
             Lock {}
             Popups {}
             Osd {}
+            Screenshot {}
             Launcher {}
             ControlCenter {}
-            Dashboard {}
             WallpaperPicker {}
             Personalize {}
             About {}

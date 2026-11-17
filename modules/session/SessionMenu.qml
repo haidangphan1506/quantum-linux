@@ -135,7 +135,7 @@ PanelWindow {
                     Rectangle {
                         anchors.fill: parent
                         radius: width * 0.32
-                        color: Theme.alpha(Theme.surface, 0.88)
+                        color: Theme.glassPanel
                         border.width: 1
                         border.color: Theme.alpha("white", item.selected ? 0.3 : 0.1)
 

@@ -23,12 +23,16 @@ Singleton {
     // Dentro de org.quickshell, la ventana «Claude Agents City» (apps/agentoffice) es de otra app:
     // se distingue por el título y usa el .desktop claude-agentoffice.
     readonly property string officeTitle: "Claude Agents City"
+    // «Claude Agent HQ» (apps/agenthq) también es org.quickshell: usa el .desktop claude-agenthq.
+    readonly property string hqTitle: "Claude Agent HQ"
 
     // title (opcional): título de la ventana; hace falta para distinguir las ventanas org.quickshell.
     function entryFor(appId: string, title): var {
         if (appId === "org.quickshell") {
             if (title === root.officeTitle)
                 return DesktopEntries.byId("claude-agentoffice") ?? DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
+            if (title === root.hqTitle)
+                return DesktopEntries.byId("claude-agenthq") ?? DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
             return DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
         }
         return DesktopEntries.heuristicLookup(appId);
@@ -130,7 +134,7 @@ Singleton {
     }
 
     function nameFor(appId: string, title): string {
-        if (appId === "org.quickshell" && title !== root.officeTitle) return I18n.t("Personalizar");
+        if (appId === "org.quickshell" && title !== root.officeTitle) return I18n.t("Ajustes del Sistema");
         return root.entryFor(appId, title)?.name ?? appId;
     }
 
@@ -175,16 +179,26 @@ Singleton {
         const a = t?.address ?? "";
         return a === "" ? "" : (a.startsWith("0x") ? a : "0x" + a);
     }
-    function activate(win: Toplevel): void {
+    function activate(win: Toplevel, warp = false): void {
         const a = root.hyprAddress(win);
-        if (a) Quickshell.execDetached(["hyprctl", "eval", `cael_activate('${a}')`]);
+        if (a) Quickshell.execDetached(["hyprctl", "eval", `cael_activate('${a}', ${warp})`]);
         else win.activate();
     }
 
     // Enfocar una ventana; si está minimizada, primero vuelve del dock (como en macOS).
-    function focus(win: Toplevel): void {
+    function focus(win: Toplevel, warp = false): void {
         if (root.isMinimized(win)) root.restore(win);
-        else root.activate(win);
+        else root.activate(win, warp);
+    }
+
+    // Clic en el encabezado del menú del dock: alterna 3/4 <-> completa para la ventana de la app
+    // (la activa, o la primera no minimizada). Usa cael_toggle_size de hyprlands/minimize.lua.
+    function toggleSizeGroup(g: var): void {
+        if (!g || g.wins.length === 0) return;
+        const w = g.wins.find(x => x.activated && !root.isMinimized(x))
+            ?? g.wins.find(x => !root.isMinimized(x)) ?? g.wins[0];
+        const a = root.hyprAddress(w);
+        if (a) Quickshell.execDetached(["hyprctl", "eval", `cael_toggle_size('${a}')`]);
     }
 
     // Clic en el dock: si ya está activa se minimiza, si está minimizada vuelve, si no, se enfoca.

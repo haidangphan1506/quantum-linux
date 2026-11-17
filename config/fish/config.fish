@@ -1,13 +1,15 @@
-# check status interactive của shell : khi mở kiity/fish => interactive , nhưng khi thực thị script có thể không phải
-# check tồn tại file local.config thì reload không thì bỏ qua
+# Chỉ cấu hình cho shell tương tác (mở kitty/fish); script chạy bằng fish bỏ qua phần này.
+# Cấu hình riêng từng máy: ~/.config/fish/local.config (nếu có thì được nạp cuối cùng).
 
 if status is-interactive
     # ssh-agent chi khoi dong cho shell tuong tac (truoc day chay ca khi chay script -> sinh agent thua)
     if not set -q SSH_AUTH_SOCK
         eval (ssh-agent -c | string collect) >/dev/null
     end
-    if test -f ~/.ssh/id_ed25519_personal
-        ssh-add ~/.ssh/id_ed25519_personal 2>/dev/null   # --apple-use-keychain chi co tren macOS
+    # nạp mọi khoá ~/.ssh/id_ed25519* (bỏ .pub); --apple-use-keychain chỉ có trên macOS
+    for key in ~/.ssh/id_ed25519*
+        string match -q '*.pub' -- $key; and continue
+        ssh-add $key 2>/dev/null
     end
 
     # nạp tất cả module trong fish/config/ (alias, env, tools, ...)
@@ -16,17 +18,11 @@ if status is-interactive
     end
 
     set -l local_config "$HOME/.config/fish/local.config"
-
-    # Auto load SSH keys
-    for key in \
-        ~/.ssh/id_ed25519_gitlab \
-        ~/.ssh/id_ed25519_github
-
-        if test -f $key
-            ssh-add $key 2>/dev/null
-        end
+    if test -f $local_config
+        source $local_config
     end
 end
+
 # bun
 set --export BUN_INSTALL "$HOME/.bun"
-set --export PATH $BUN_INSTALL/bin $PATH
+fish_add_path -g $BUN_INSTALL/bin

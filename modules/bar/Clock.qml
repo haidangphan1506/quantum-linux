@@ -31,10 +31,4 @@ Item {
             color: Theme.fgMuted
         }
     }
-
-    MouseArea {
-        anchors.fill: parent
-        cursorShape: Qt.PointingHandCursor
-        onClicked: Shell.toggleDashboard()
-    }
 }

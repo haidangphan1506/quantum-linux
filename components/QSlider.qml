@@ -16,7 +16,7 @@ Item {
         id: track
         anchors.fill: parent
         radius: height / 2
-        color: Theme.surfaceHighest
+        color: Theme.glassTile
 
         Rectangle {
             width: Math.max(parent.height, parent.width * root.value)

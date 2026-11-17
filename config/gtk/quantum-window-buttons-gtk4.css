@@ -1,0 +1,33 @@
+/* Quantum: nút cửa sổ kiểu macOS (đỏ / vàng / xanh) cho app GTK 4 / libadwaita.
+   En libadwaita el círculo es la imagen dentro del botón. */
+windowcontrols > button {
+  min-width: 14px;
+  min-height: 14px;
+  margin: 0 2px;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+windowcontrols > button > image {
+  padding: 0;
+  min-width: 12px;
+  min-height: 12px;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  color: transparent;
+  -gtk-icon-size: 8px;
+}
+windowcontrols > button.close > image    { background-color: #ff5f57; }
+windowcontrols > button.minimize > image { background-color: #febc2e; }
+windowcontrols > button.maximize > image { background-color: #28c840; }
+
+windowcontrols:hover > button > image { color: rgba(0, 0, 0, 0.55); }
+windowcontrols > button:active > image { box-shadow: inset 0 0 0 20px rgba(0, 0, 0, 0.15); }
+
+windowcontrols:backdrop > button > image { background-color: alpha(currentColor, 0.18); box-shadow: none; }
+
+/* GTK 4 desactiva «minimizar» porque Hyprland no anuncia esa capacidad; el clic lo atiende
+   Hyprland (dblclick.lua), así que el botón se ve normal y no transparente. */
+windowcontrols > button:disabled, windowcontrols > button:disabled > image { opacity: 1; filter: none; }
+windowcontrols > button.minimize:disabled > image { background-color: #febc2e; opacity: 1; }
+windowcontrols:backdrop > button.minimize:disabled > image { background-color: alpha(currentColor, 0.18); }

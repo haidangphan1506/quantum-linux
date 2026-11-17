@@ -40,18 +40,27 @@ Rectangle {
         RowLayout {
             visible: root.hasBattery
             spacing: 2
+            readonly property real pct: root.battery?.percentage ?? 0
+            readonly property bool charging: root.battery?.state === UPowerDeviceState.Charging
+            readonly property bool full: root.battery?.state === UPowerDeviceState.FullyCharged
+            // verde: enchufado/cargando o lleno · rojo/ámbar: batería baja · resto: normal
+            readonly property color tint: charging || full ? Theme.success
+                : pct <= 0.2 ? Theme.error
+                : pct <= 0.4 ? Theme.tertiary
+                : Theme.fg
             Icon {
                 size: 18
+                fill: parent.charging ? 1 : 0
+                color: parent.tint
                 text: {
-                    const p = root.battery?.percentage ?? 0;
-                    if (root.battery?.state === UPowerDeviceState.Charging)
-                        return "battery_charging_full";
-                    const level = Math.min(6, Math.floor(p * 7));
-                    return p > 0.95 ? "battery_full" : "battery_" + level + "_bar";
+                    if (parent.charging) return "battery_charging_full";
+                    if (parent.full || parent.pct > 0.95) return "battery_full";
+                    return "battery_" + Math.min(6, Math.floor(parent.pct * 7)) + "_bar";
                 }
             }
             Txt {
-                text: Math.round((root.battery?.percentage ?? 0) * 100) + "%"
+                color: parent.tint
+                text: Math.round(parent.pct * 100) + "%"
                 font.pixelSize: Theme.textSmall
             }
         }

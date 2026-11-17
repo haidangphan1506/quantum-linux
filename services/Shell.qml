@@ -14,10 +14,6 @@ Singleton {
     property bool clipboardMode: false
     property bool controlCenterOpen: false
     property bool sessionOpen: false
-    property bool dashboardOpen: false
-    // abierto al pasar el mouse por el borde de arriba: se cierra solo al salir
-    property bool dashboardHover: false
-    property bool dashboardZoneHovered: false
     property bool wallpapersOpen: false
     property bool personalizeOpen: false
     property bool aiOpen: false
@@ -49,7 +45,6 @@ Singleton {
         launcherOpen = false;
         controlCenterOpen = false;
         sessionOpen = false;
-        dashboardOpen = false;
         wallpapersOpen = false;
         aiOpen = false;
         wifiPage = false;
@@ -85,21 +80,6 @@ Singleton {
         controlCenterOpen = true;
     }
 
-    function toggleDashboard(): void {
-        if (Serp.on) { const p = Serp.panel; closeAll(); Serp.panel = p; Serp.toggle("clock"); return; }
-        const opening = !dashboardOpen;
-        closeAll();
-        dashboardHover = false;
-        dashboardOpen = opening;
-    }
-
-    function hoverDashboard(): void {
-        if (dashboardOpen || launcherOpen || controlCenterOpen || sessionOpen || wallpapersOpen || aiOpen)
-            return;
-        dashboardHover = true;
-        dashboardOpen = true;
-    }
-
     function toggleWallpapers(): void {
         const opening = !wallpapersOpen;
         closeAll();
@@ -126,7 +106,7 @@ Singleton {
     // Personalizar es una ventana normal: abrirla no cierra ni la cierran los paneles.
     // Ventana de Personalizar en Hyprland (por su título)
     function personalizeToplevel(): var {
-        const t = I18n.t("Personalizar");
+        const t = I18n.t("Ajustes del Sistema");
         return Hyprland.toplevels.values.find(h => h.title === t && h.wayland?.appId === "org.quickshell") ?? null;
     }
 
@@ -142,6 +122,9 @@ Singleton {
         closeAll();
         personalizeOpen = !personalizeOpen;
     }
+
+    // Ajustes del Sistema ya abierto: ir a otra página (las páginas lo usan para enlazarse)
+    signal settingsGo(string page)
 
     // Abre Personalizar directo en una página (ej. «display» desde la luz nocturna)
     function personalizePage(page: string): void {
@@ -176,7 +159,6 @@ Singleton {
         function wifi(): void { root.openWifi(); }
         function bluetooth(): void { root.openBluetooth(); }
         function session(): void { root.toggleSession(); }
-        function dashboard(): void { root.toggleDashboard(); }
         function wallpapers(): void { root.toggleWallpapers(); }
         function personalize(): void { root.personalize(); }
         function about(): void { root.openAbout(); }

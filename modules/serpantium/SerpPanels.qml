@@ -420,7 +420,7 @@ PanelWindow {
             }
             Row {
                 width: parent.width; spacing: 8
-                Btn { width: (parent.width - 8) / 2; icon: "tune"; label: I18n.t("Personalizar"); onClicked: { Serp.panel = ""; Shell.personalizePage("bar"); } }
+                Btn { width: (parent.width - 8) / 2; icon: "tune"; label: I18n.t("Personalizar"); onClicked: { Serp.panel = ""; Shell.personalizePage("desktop"); } }
                 Btn { width: (parent.width - 8) / 2; icon: "blur_on"; label: I18n.t("Usar Caelestial"); onClicked: Serp.choose("caelestial", false) }
             }
             T {

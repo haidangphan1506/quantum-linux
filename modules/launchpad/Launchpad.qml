@@ -11,14 +11,14 @@ import qs.components
 //  - Pantalla completa, fondo difuminado (capa quantum-launchpad, blur en decorators.lua).
 //  - Buscador pequeño arriba, cuadrícula de apps por páginas y puntos de página abajo.
 //  - Cambiar de página: arrastrar, rueda / 2 ngón ngang, ← →, clic en los puntos.
-//  - Clic = abrir app, clic derecho = menú (fijar / ocultar). Esc, clic en vacío o
+//  - Clic = abrir app, clic derecho = menú (abrir / ocultar). Esc, clic en vacío o
 //    vuốt 4 ngón xuống: cerrar.
 Scope {
     id: root
 
     property bool open: false
     property real p: open ? 1 : 0
-    Behavior on p { NumberAnimation { duration: Math.max(1, root.open ? Theme.animSlow : Theme.anim); easing.type: Easing.OutCubic } }
+    Behavior on p { NumberAnimation { duration: Math.max(1, root.open ? Math.round(Theme.animSlow * 1.6) : Theme.anim); easing.type: Easing.OutCubic } }
     readonly property bool shown: open || p > 0.001
 
     function show(): void {
@@ -61,11 +61,12 @@ Scope {
             readonly property string query: search.text.trim()
             readonly property var results: Apps.search(search.text)
 
-            // cuadrícula: ~7 x 5 como macOS, según el tamaño de la pantalla
-            readonly property real gridW: Math.min(width - 160, 1500)
-            readonly property real gridH: height - 120 - 110
-            readonly property int cols: Math.max(4, Math.min(8, Math.floor(gridW / 170)))
-            readonly property int rows: Math.max(3, Math.min(6, Math.floor(gridH / 150)))
+            // pantalla completa (como el Launchpad de macOS) y cuadrícula de 7 x 5
+            readonly property real topPad: 120                  // hasta donde empiezan las apps
+            readonly property real gridW: Math.min(width - 160, 1400)
+            readonly property real gridH: height - topPad - 110
+            readonly property int cols: Math.max(4, Math.min(7, Math.floor(gridW / 150)))
+            readonly property int rows: Math.max(3, Math.min(5, Math.floor(gridH / 140)))
             readonly property int perPage: cols * rows
             readonly property int pageCount: Math.max(1, Math.ceil(results.length / perPage))
             readonly property real cellW: gridW / cols
@@ -109,7 +110,7 @@ Scope {
                 }
             }
 
-            // fondo: oscurece (y Hyprland difumina la capa)
+            // fondo: oscurece toda la pantalla (y Hyprland difumina la capa)
             Rectangle {
                 anchors.fill: parent
                 color: Qt.rgba(0.04, 0.04, 0.06, 0.5 * root.p)
@@ -122,9 +123,11 @@ Scope {
             Item {
                 id: content
                 anchors.fill: parent
+                focus: true
+                Keys.forwardTo: [search]
                 opacity: root.p
                 // como macOS: al abrir, la cuadrícula «se aleja» desde un poco más grande
-                scale: 1.08 - 0.08 * root.p
+                scale: 1.12 - 0.12 * root.p
                 transformOrigin: Item.Center
 
                 // ------------------------------------------------ buscador
@@ -135,19 +138,36 @@ Scope {
                     width: 240
                     height: 30
                     radius: 8
-                    color: Qt.rgba(1, 1, 1, 0.14)
+                    color: Qt.rgba(1, 1, 1, search.activeFocus ? 0.2 : 0.14)
                     border.width: 1
-                    border.color: Qt.rgba(1, 1, 1, search.activeFocus ? 0.28 : 0.16)
+                    border.color: search.activeFocus ? Theme.macBlue : Qt.rgba(1, 1, 1, 0.16)
+                    Behavior on color { ColorAnimation { duration: Theme.animFast } }
+                    // anillo de foco azul de macOS: se ve que el campo está activo
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: -3
+                        radius: parent.radius + 3
+                        color: "transparent"
+                        border.width: 3
+                        border.color: Qt.rgba(Theme.macBlue.r, Theme.macBlue.g, Theme.macBlue.b, 0.55)
+                        opacity: search.activeFocus ? 1 : 0
+                        Behavior on opacity { NumberAnimation { duration: Theme.animFast } }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onPressed: e => { search.forceActiveFocus(); e.accepted = false; }
+                    }
 
                     Row {
-                        anchors.centerIn: search.text === "" ? parent : undefined
-                        anchors.left: search.text === "" ? undefined : parent.left
+                        anchors.centerIn: search.text === "" && search.preeditText === "" && !search.activeFocus ? parent : undefined
+                        anchors.left: search.text === "" && search.preeditText === "" && !search.activeFocus ? undefined : parent.left
                         anchors.leftMargin: 10
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 6
                         Icon { text: "search"; size: 16; color: Qt.rgba(1, 1, 1, 0.7); anchors.verticalCenter: parent.verticalCenter }
                         Txt {
-                            visible: search.text === ""
+                            visible: search.text === "" && search.preeditText === ""
                             text: I18n.t("Buscar")
                             color: Qt.rgba(1, 1, 1, 0.55)
                             anchors.verticalCenter: parent.verticalCenter
@@ -157,6 +177,9 @@ Scope {
                     TextInput {
                         id: search
                         anchors.fill: parent
+                        focus: true
+                        activeFocusOnPress: true
+                        selectByMouse: true
                         anchors.leftMargin: 32
                         anchors.rightMargin: 10
                         verticalAlignment: TextInput.AlignVCenter
@@ -166,9 +189,15 @@ Scope {
                         selectionColor: Theme.primary
                         selectedTextColor: Theme.primaryFg
                         clip: true
-                        // con el texto vacío el «Buscar» va centrado: sin cursor a la izquierda
-                        cursorDelegate: Rectangle { width: 1.5; color: "white"; visible: search.text !== "" && search.cursorVisible }
+                        // sin foco y vacío, el «Buscar» va centrado; con foco pasa a la izquierda y aparece el cursor
+                        cursorDelegate: Rectangle { width: 1.5; color: "white"; visible: search.activeFocus && search.cursorVisible }
 
+                        // IBeam al pasar por encima del campo
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.IBeamCursor
+                            acceptedButtons: Qt.NoButton
+                        }
                         Keys.onEscapePressed: {
                             if (win.ctxApp) win.ctxApp = null;
                             else if (search.text !== "") search.text = "";
@@ -204,7 +233,7 @@ Scope {
                     id: pages
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    y: 120
+                    y: win.topPad
                     height: win.gridH
                     orientation: ListView.Horizontal
                     snapMode: ListView.SnapOneItem
@@ -246,6 +275,13 @@ Scope {
                                     width: win.cellW
                                     height: win.cellH
                                     hoverEnabled: true
+                                    // animación al abrir / cerrar: los íconos aparecen en cascada (de arriba a la izquierda
+                                    // hacia abajo a la derecha), creciendo desde pequeños; al cerrar vuelven a encogerse
+                                    readonly property real delay: Math.min(0.4, ((index % win.cols) + Math.floor(index / win.cols)) * 0.035)
+                                    readonly property real t: Math.max(0, Math.min(1, (root.p - delay) / (1 - delay)))
+                                    opacity: t
+                                    scale: 0.7 + 0.3 * (1 - Math.pow(1 - t, 3))
+                                    transformOrigin: Item.Center
                                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                                     onClicked: e => {
                                         if (e.button === Qt.RightButton) {
@@ -268,8 +304,8 @@ Scope {
                                     AppIcon {
                                         id: icon
                                         anchors.horizontalCenter: parent.horizontalCenter
-                                        y: Math.max(4, (parent.height - 96 - 34) / 2)
-                                        size: 96
+                                        y: Math.max(4, (parent.height - 88 - 34) / 2)
+                                        size: 88
                                         name: cell.modelData.icon ?? ""
                                         scale: cell.pressed ? 0.9 : 1
                                         Behavior on scale { NumberAnimation { duration: Theme.animFast } }
@@ -287,16 +323,6 @@ Scope {
                                         maximumLineCount: 1
                                         style: Text.Raised
                                         styleColor: Qt.rgba(0, 0, 0, 0.35)
-                                    }
-                                    Icon {
-                                        visible: Apps.isPinned(cell.modelData.id ?? "")
-                                        anchors.right: icon.right
-                                        anchors.top: icon.top
-                                        anchors.margins: -4
-                                        text: "keep"
-                                        size: 16
-                                        fill: 1
-                                        color: "white"
                                     }
                                 }
                             }
@@ -375,7 +401,6 @@ Scope {
                     color: Theme.alpha(Theme.surfaceHigh, 0.97)
                     border.width: 1
                     border.color: Theme.alpha(Theme.fg, 0.12)
-                    readonly property bool pinned: !!win.ctxApp && Apps.isPinned(win.ctxApp.id)
                     ColumnLayout {
                         id: ctxCol
                         anchors.fill: parent
@@ -384,7 +409,6 @@ Scope {
                         Repeater {
                             model: win.ctxApp ? [
                                 { icon: "open_in_new", text: I18n.t("Abrir"), run: () => win.launch(win.ctxApp) },
-                                { icon: ctxMenu.pinned ? "keep_off" : "keep", text: ctxMenu.pinned ? I18n.t("Quitar de la barra") : I18n.t("Fijar en la barra"), run: () => Wm.togglePin(win.ctxApp.id) },
                                 { icon: "visibility_off", text: I18n.t("Ocultar del menú"), run: () => Apps.setVisible(win.ctxApp, false) }
                             ] : []
                             MouseArea {

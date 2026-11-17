@@ -9,6 +9,8 @@ ColumnLayout {
     id: root
 
     spacing: 12
+    // dentro de Ajustes del Sistema: sin flecha para volver al centro de control
+    property bool embedded: false
 
     // ------------------------------------------------------------ encabezado
     RowLayout {
@@ -16,6 +18,7 @@ ColumnLayout {
         spacing: 8
 
         IconButton {
+            visible: !root.embedded
             icon: "chevron_left"
             onClicked: Shell.wifiPage = false
         }
@@ -54,7 +57,7 @@ ColumnLayout {
         visible: !Net.hasDevice || !Net.wifiEnabled
         implicitHeight: 96
         radius: Theme.radius
-        color: Theme.surfaceHigh
+        color: Theme.glassTile
 
         ColumnLayout {
             anchors.fill: parent
@@ -98,7 +101,7 @@ ColumnLayout {
         visible: Net.pendingSsid !== ""
         implicitHeight: pwCol.implicitHeight + 24
         radius: Theme.radius
-        color: Theme.surfaceHigh
+        color: Theme.glassTile
         border.width: 1
         border.color: Theme.alpha(Theme.primary, 0.5)
 
@@ -209,7 +212,7 @@ ColumnLayout {
             Layout.fillWidth: true
             implicitHeight: 54
             radius: Theme.radius
-            color: area.containsMouse ? Theme.surfaceHigh : "transparent"
+            color: area.containsMouse ? Theme.glassTileHover : "transparent"
 
             RowLayout {
                 anchors.fill: parent
@@ -277,7 +280,7 @@ ColumnLayout {
         visible: Net.hasDevice && Net.wifiEnabled && Net.networks.length === 0
         implicitHeight: 84
         radius: Theme.radius
-        color: Theme.surfaceHigh
+        color: Theme.glassTile
 
         ColumnLayout {
             anchors.fill: parent

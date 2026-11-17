@@ -2,11 +2,13 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Services.UPower
 import qs.services
 import qs.components
 
-// Uso de Claude Code en la barra superior: contexto del chat actual y lo que queda de la
-// ventana de 5 h y de la semana. Clic: popup con el detalle (límites, sesión, coste…).
+// Uso de Claude Code en la barra superior: contexto del chat actual y el % ya usado de la
+// ventana de 5 h y de la semana. Clic: popup con el detalle (límites, ritmo, previsión,
+// tokens por tipo/día/modelo, sesión, coste…).
 MouseArea {
     id: root
 
@@ -24,11 +26,23 @@ MouseArea {
 
     SystemClock { id: clock; precision: SystemClock.Minutes }
     readonly property real now: clock.date.getTime() / 1000
+    // reloj de segundos para la cuenta atrás del caché (solo se usa dentro del popup)
+    SystemClock { id: secClock; precision: SystemClock.Seconds }
+    readonly property real cacheLeft: ClaudeUsage.cacheLeft(secClock.date.getTime() / 1000)
 
-    // "5 h 27%": porcentaje ya usado de la ventana (el popup sigue mostrando lo que queda).
-    // Sin límites de la cuenta se muestran los tokens de los registros locales.
-    function limPart(key: string, label: string, tokens: real): string {
-        if (!ClaudeUsage.limits) return label + " " + ClaudeUsage.fmtTokens(tokens);
+    // batería del sistema (UPower), mismos iconos que modules/bar/Status.qml
+    readonly property var bat: UPower.displayDevice
+    readonly property bool batCharging: bat?.state === UPowerDeviceState.Charging
+    readonly property int batPct: Math.round((bat?.percentage ?? 0) * 100)
+    readonly property string batIcon: {
+        if (batCharging) return "battery_charging_full";
+        const level = Math.min(6, Math.floor((bat?.percentage ?? 0) * 7));
+        return (bat?.percentage ?? 0) > 0.95 ? "battery_full" : "battery_" + level + "_bar";
+    }
+
+    // "5 h 27%": porcentaje ya usado de cada ventana. Si aún no hay lectura de los límites
+    // (statusLine sin configurar o ventana reiniciada sin respuesta nueva) se muestra "—".
+    function limPart(key: string, label: string): string {
         const u = ClaudeUsage.used(key);
         return label + " " + (u >= 0 ? Math.round(u) + "%" : "—");
     }
@@ -37,17 +51,14 @@ MouseArea {
         if (!ClaudeUsage.ready) return "Claude";
         const p = [];
         if (ClaudeUsage.ctxPct >= 0) p.push(I18n.t("Contexto") + " " + Math.round(ClaudeUsage.ctxPct) + "%");
-        p.push(limPart("five_hour", I18n.t("5 h"), ClaudeUsage.block.tokens));
-        p.push(limPart("seven_day", I18n.t("7 días"), ClaudeUsage.week.tokens));
+        p.push(limPart("five_hour", I18n.t("5 h")));
+        p.push(limPart("seven_day", I18n.t("7 días")));
         return p.join("   ");
     }
 
-    // Color según lo que queda (límites) o lo que se ha llenado (contexto)
-    function leftColor(l: real): color {
-        return l < 15 ? Theme.error : l < 35 ? Theme.tertiary : Theme.primary;
-    }
+    // Color según lo que se ha llenado del contexto
     function ctxColor(p: real): color {
-        return p > 85 ? Theme.error : p > 65 ? Theme.tertiary : Theme.primary;
+        return p > 85 ? Theme.macRed : p > 65 ? Theme.macOrange : Theme.macBlue;
     }
 
     RowLayout {
@@ -80,57 +91,17 @@ MouseArea {
     // Barra de progreso fina
     component Meter: Rectangle {
         property real value: 0
-        property color accent: Theme.primary
+        property color accent: Theme.macBlue
         Layout.fillWidth: true
-        implicitHeight: 6
-        radius: 3
-        color: Theme.alpha(Theme.fg, 0.1)
+        implicitHeight: 5
+        radius: 2.5
+        color: Theme.alpha(Theme.fg, Theme.dark ? 0.16 : 0.1)
         Rectangle {
             width: parent.width * Math.min(1, Math.max(0, parent.value))
             height: parent.height
-            radius: 3
+            radius: 2.5
             color: parent.accent
             Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
-        }
-    }
-
-    // Tarjeta de un límite: nombre · % restante · barra · cuándo se reinicia
-    component LimitCard: Rectangle {
-        id: lc
-        property string title
-        property string key
-        readonly property real leftPct: ClaudeUsage.left(key)
-        readonly property var lim: ClaudeUsage.limits?.[key]
-        Layout.fillWidth: true
-        implicitHeight: lcCol.implicitHeight + 20
-        radius: 10
-        color: Theme.alpha(Theme.fg, 0.05)
-        visible: lim !== undefined && lim !== null
-        ColumnLayout {
-            id: lcCol
-            anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
-            anchors.margins: 10
-            spacing: 4
-            RowLayout {
-                Layout.fillWidth: true
-                Txt { Layout.fillWidth: true; text: lc.title; font.pixelSize: 12; color: Theme.fgMuted }
-                Txt {
-                    text: lc.leftPct >= 0 ? Math.round(lc.leftPct) + "% " + I18n.t("restante") : "—"
-                    font.pixelSize: 12; font.weight: Font.DemiBold
-                    color: lc.leftPct >= 0 ? root.leftColor(lc.leftPct) : Theme.fgMuted
-                }
-            }
-            Meter { value: Math.max(0, lc.leftPct) / 100; accent: root.leftColor(lc.leftPct) }
-            Txt {
-                Layout.fillWidth: true
-                font.pixelSize: 11
-                color: Theme.fgMuted
-                wrapMode: Text.WordWrap
-                text: (lc.leftPct >= 0
-                        ? I18n.t("reinicia en") + " " + ClaudeUsage.until(lc.lim?.resets ?? 0, root.now)
-                        : I18n.t("Sin lectura tras el reinicio"))
-                    + (ClaudeUsage.readAt(lc.key) ? " · " + I18n.t("leído a las") + " " + ClaudeUsage.readAt(lc.key) : "")
-            }
         }
     }
 
@@ -144,7 +115,7 @@ MouseArea {
         anchor.item: root
         anchor.rect.x: root.width - implicitWidth
         anchor.rect.y: root.height + 3
-        implicitWidth: 340
+        implicitWidth: 360
         implicitHeight: col.implicitHeight + 28
         color: "transparent"
 
@@ -157,9 +128,9 @@ MouseArea {
         Rectangle {
             anchors.fill: parent
             radius: 12
-            color: Theme.alpha(Theme.surface, 0.96)
+            color: Theme.popover   // popover de macOS
             border.width: 1
-            border.color: Theme.alpha(Theme.fg, 0.12)
+            border.color: Theme.popoverBorder
 
             ColumnLayout {
                 id: col
@@ -181,18 +152,79 @@ MouseArea {
                     wrapMode: Text.WordWrap
                     font.pixelSize: 12
                     color: Theme.fgMuted
-                    text: I18n.t("Sin datos de límites: hace falta una suscripción de Claude y una respuesta de Claude Code.")
+                    text: I18n.t("Sin datos de límites: hace falta una suscripción de Claude, el statusLine de Quantum en ~/.claude/settings.json y una respuesta de Claude Code.")
                 }
 
-                LimitCard { title: I18n.t("Ventana de 5 h"); key: "five_hour" }
-                LimitCard { title: I18n.t("Semana"); key: "seven_day" }
+                ClaudeLimitCard {
+                    now: root.now
+                    title: I18n.t("Ventana de 5 h"); key: "five_hour"; tok: ClaudeUsage.block
+                    ClaudeSubRow {
+                        visible: ClaudeUsage.block.active && ClaudeUsage.block.burn_per_h > 0
+                        label: I18n.t("Ritmo")
+                        value: ClaudeUsage.fmtTokens(ClaudeUsage.block.burn_per_h) + " " + I18n.t("tokens/h")
+                        valueColor: Theme.fgMuted
+                    }
+                }
+                ClaudeLimitCard {
+                    now: root.now
+                    title: I18n.t("Semana"); key: "seven_day"; tok: ClaudeUsage.week
+                    // tokens por día, últimos 7 días (hoy a la derecha)
+                    RowLayout {
+                        id: days
+                        readonly property var vals: ClaudeUsage.week.daily ?? []
+                        readonly property real maxV: Math.max(1, ...vals)
+                        Layout.fillWidth: true
+                        Layout.topMargin: 4
+                        spacing: 4
+                        Repeater {
+                            model: days.vals.length
+                            ColumnLayout {
+                                id: dayCol
+                                required property int index
+                                readonly property var date: new Date((root.now - (6 - index) * 86400) * 1000)
+                                Layout.fillWidth: true
+                                spacing: 2
+                                Item {
+                                    Layout.fillWidth: true
+                                    implicitHeight: 28
+                                    Rectangle {
+                                        anchors.bottom: parent.bottom
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        width: Math.min(parent.width, 18)
+                                        height: Math.max(2, parent.height * days.vals[dayCol.index] / days.maxV)
+                                        radius: 2
+                                        color: dayCol.index === 6 ? Theme.primary : Theme.alpha(Theme.primary, 0.45)
+                                    }
+                                }
+                                Txt {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    font.pixelSize: 9
+                                    color: Theme.fgMuted
+                                    text: I18n.weekdaysShort[(dayCol.date.getDay() + 6) % 7]
+                                }
+                            }
+                        }
+                    }
+                    // tokens por modelo (7 días)
+                    Repeater {
+                        model: (ClaudeUsage.week.models ?? []).slice(0, 4)
+                        ClaudeSubRow {
+                            required property var modelData
+                            label: "  " + modelData.model.replace(/^claude-/, "")
+                            value: ClaudeUsage.fmtTokens(modelData.tokens) + " · " + modelData.msgs + " " + I18n.t("msgs")
+                            valueColor: Theme.fgMuted
+                        }
+                    }
+                }
 
                 // contexto del chat actual
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: ctxCol.implicitHeight + 20
                     radius: 10
-                    color: Theme.alpha(Theme.fg, 0.05)
+                    color: Theme.popoverCard
+                    border.width: 1
+                    border.color: Theme.popoverCardBorder
                     visible: root.s !== null
                     ColumnLayout {
                         id: ctxCol
@@ -222,7 +254,9 @@ MouseArea {
                     Layout.fillWidth: true
                     implicitHeight: detCol.implicitHeight + 20
                     radius: 10
-                    color: Theme.alpha(Theme.fg, 0.05)
+                    color: Theme.popoverCard
+                    border.width: 1
+                    border.color: Theme.popoverCardBorder
                     visible: root.s !== null
                     ColumnLayout {
                         id: detCol
@@ -252,11 +286,51 @@ MouseArea {
                             icon: "code"; label: I18n.t("Líneas cambiadas")
                             value: "+" + (root.s?.lines_added ?? 0) + "  −" + (root.s?.lines_removed ?? 0)
                         }
-                        InfoRow {
-                            visible: root.s?.cache_warm != null
-                            icon: "cached"; label: I18n.t("Caché del prompt")
-                            value: root.s?.cache_warm ? I18n.t("caliente") : I18n.t("fría")
-                            valueColor: root.s?.cache_warm ? Theme.primary : Theme.fgMuted
+                        // batería del sistema: mismo icono que la barra (sacándolo de UPower), con % y estado de carga
+                        RowLayout {
+                            visible: UPower.displayDevice?.isLaptopBattery ?? false
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Icon {
+                                text: root.batIcon; size: 16; fill: root.batCharging ? 1 : 0
+                                color: root.batCharging ? Theme.macGreen : Theme.fgMuted
+                            }
+                            Txt { Layout.fillWidth: true; text: I18n.t("Batería"); font.pixelSize: 13; color: Theme.fgMuted }
+                            Txt {
+                                text: root.batPct + "% · " + (root.batCharging ? I18n.t("cargando") : I18n.t("en batería"))
+                                font.pixelSize: 13; font.weight: Font.DemiBold; font.features: { "tnum": 1 }
+                                color: root.batCharging ? Theme.macGreen : Theme.fg
+                            }
+                        }
+
+                        // caché del prompt: pin verde = còn caché; cuenta atrás + thanh = tiempo que queda
+                        RowLayout {
+                            visible: ClaudeUsage.cache.last > 0
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Icon {
+                                text: "keep"; size: 16; fill: root.cacheLeft > 0 ? 1 : 0
+                                color: root.cacheLeft > 0 ? Theme.macGreen : Theme.fgMuted
+                            }
+                            Txt { Layout.fillWidth: true; text: I18n.t("Caché del prompt"); font.pixelSize: 13; color: Theme.fgMuted }
+                            Txt {
+                                text: root.cacheLeft > 0 ? ClaudeUsage.fmtCountdown(root.cacheLeft) : I18n.t("expirada")
+                                font.pixelSize: 13; font.weight: Font.DemiBold; font.features: { "tnum": 1 }
+                                color: root.cacheLeft > 0 ? Theme.macGreen : Theme.fgMuted
+                            }
+                        }
+                        RowLayout {
+                            visible: ClaudeUsage.cache.last > 0
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Icon {
+                                text: "timer"; size: 16
+                                color: root.cacheLeft > 0 ? Theme.macGreen : Theme.fgMuted
+                            }
+                            Meter {
+                                value: root.cacheLeft / Math.max(1, ClaudeUsage.cache.ttl)
+                                accent: Theme.macGreen
+                            }
                         }
                     }
                 }
@@ -266,7 +340,9 @@ MouseArea {
                     Layout.fillWidth: true
                     implicitHeight: totCol.implicitHeight + 20
                     radius: 10
-                    color: Theme.alpha(Theme.fg, 0.05)
+                    color: Theme.popoverCard
+                    border.width: 1
+                    border.color: Theme.popoverCardBorder
                     ColumnLayout {
                         id: totCol
                         anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
@@ -280,14 +356,6 @@ MouseArea {
                             visible: ClaudeUsage.cost5h > 0
                             icon: "payments"; label: I18n.t("Coste (5 h, aprox.)")
                             value: "$" + ClaudeUsage.cost5h.toFixed(2)
-                        }
-                        InfoRow {
-                            icon: "token"; label: I18n.t("Tokens bloque 5 h")
-                            value: ClaudeUsage.fmtTokens(ClaudeUsage.block.tokens) + " · " + ClaudeUsage.block.msgs + " " + I18n.t("msgs")
-                        }
-                        InfoRow {
-                            icon: "calendar_month"; label: I18n.t("Tokens últimos 7 días")
-                            value: ClaudeUsage.fmtTokens(ClaudeUsage.week.tokens) + " · " + ClaudeUsage.week.msgs + " " + I18n.t("msgs")
                         }
                     }
                 }

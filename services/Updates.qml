@@ -69,7 +69,10 @@ Singleton {
 
     // Abre una terminal que actualiza todo (con instantánea previa gracias a snap-pac)
     function update(): void {
-        Quickshell.execDetached(["quantum-update"]);
+        // sin quantum-update (Arch normal): una terminal con paru / pacman, y al terminar vuelve a revisar
+        Quickshell.execDetached(["sh", "-c", "command -v quantum-update >/dev/null && exec quantum-update; " +
+            "exec kitty --title 'Actualización de software' sh -c 'if command -v paru >/dev/null; then paru -Syu; else sudo pacman -Syu; fi; " +
+            "qs -c caelestia ipc call updates check >/dev/null 2>&1; printf \"\\nListo. Pulsa Enter para cerrar.\"; read _'"]);
     }
 
     // primera revisión 2 min después de iniciar sesión, luego cada 3 horas

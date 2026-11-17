@@ -4,7 +4,8 @@ import Quickshell
 import qs.services
 import qs.components
 
-// Pantalla de bloqueo: qué tarjetas se ven a cada lado y en qué orden.
+// Pantalla bloqueada como en macOS: cuándo empieza el salvapantallas, bloquear ahora y,
+// propio de Quantum, qué tarjetas se ven a cada lado y en qué orden.
 ColumnLayout {
     id: page
 
@@ -42,21 +43,37 @@ ColumnLayout {
     }
     function add(k: string, side: string): void { setSide(side, Array.from(Settings.lock[side]).concat([k])); }
 
-    // vista previa real
     Group {
-        title: I18n.t("Así se ve")
-        help: I18n.t("Abre la pantalla de bloqueo de verdad, sin bloquear la sesión. Sal con Esc.")
-        icon: "lock"
-        RowLayout {
-            spacing: 10
-            PillButton { text: I18n.t("Ver pantalla de bloqueo"); icon: "visibility"; primary: true; onClicked: Quickshell.execDetached(["qs", "-c", "caelestia", "ipc", "call", "lock", "preview"]) }
-            PillButton { text: I18n.t("Bloquear ahora"); icon: "lock"; onClicked: Shell.lock() }
+        OptionRow {
+            title: I18n.t("Iniciar el salvapantallas cuando esté inactivo")
+            help: I18n.t("No aparece mientras ves un video o juegas a pantalla completa.")
+            Choice {
+                options: [{ v: 0, t: I18n.t("Nunca") }, { v: 60, t: I18n.t("Tras 1 minuto") }, { v: 120, t: I18n.t("Tras 2 minutos") },
+                          { v: 300, t: I18n.t("Tras 5 minutos") }, { v: 600, t: I18n.t("Tras 10 minutos") }, { v: 1200, t: I18n.t("Tras 20 minutos") },
+                          { v: 1800, t: I18n.t("Tras 30 minutos") }, { v: 3600, t: I18n.t("Tras 1 hora") }, { v: 7200, t: I18n.t("Tras 2 horas") }]
+                value: Settings.screensaver.enabled ? Settings.screensaver.timeout : 0
+                onPicked: v => Settings.setMany({ screensaver: v === 0 ? { enabled: false } : { enabled: true, timeout: v } })
+            }
+        }
+        OptionRow {
+            title: I18n.t("Bloquear la pantalla")
+            help: I18n.t("También con Super + L.")
+            RowLayout {
+                spacing: 8
+                PillButton { text: I18n.t("Vista previa"); implicitHeight: 28; onClicked: Quickshell.execDetached(["qs", "-c", "caelestia", "ipc", "call", "lock", "preview"]) }
+                PillButton { text: I18n.t("Bloquear ahora"); implicitHeight: 28; onClicked: Shell.lock() }
+            }
+        }
+        NavRow {
+            title: I18n.t("Vista previa de las notificaciones")
+            value: Settings.lock.showNotifContent ? I18n.t("Siempre") : I18n.t("Al desbloquear")
+            onClicked: Shell.settingsGo("notifications")
         }
     }
 
     // columnas
     Group {
-        title: I18n.t("Tarjetas")
+        title: I18n.t("Tarjetas de la pantalla bloqueada")
         help: I18n.t("Ordénalas con las flechas, pásalas al otro lado o quítalas. La última de cada lado ocupa el espacio que sobra.")
         icon: "dashboard_customize"
 
@@ -145,13 +162,8 @@ ColumnLayout {
     }
 
     Group {
-        title: I18n.t("Privacidad y clima")
-        icon: "shield_person"
-        OptionRow {
-            title: I18n.t("Mostrar el contenido de las notificaciones")
-            help: I18n.t("Si está apagado, solo se ve qué app te avisó (nadie puede leer tus mensajes con la pantalla bloqueada).")
-            Toggle { checked: Settings.lock.showNotifContent; onToggled: c => Settings.setPath("lock.showNotifContent", c) }
-        }
+        title: I18n.t("Clima")
+        icon: "partly_cloudy_day"
         OptionRow {
             title: I18n.t("Ciudad del clima")
             help: I18n.t("Déjala vacía para usar tu ubicación aproximada (por tu conexión).")

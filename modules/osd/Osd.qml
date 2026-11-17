@@ -56,7 +56,7 @@ PanelWindow {
     Timer { id: hideTimer; interval: 1600; onTriggered: win.shown = false }
     onProgressChanged: if (progress < 0.001 && !shown) demo = -1
 
-    Connections { target: Audio; function onChanged() { win.show("volume"); Sounds.play("volume"); } }
+    Connections { target: Audio; function onChanged() { win.show("volume"); if (Settings.sounds.volumeFeedback) Sounds.play("volume"); } }
     Connections { target: Brightness; function onChanged() { win.show("brightness"); } }
 
     // Para probar: qs ipc call osd test volume|brightness
@@ -73,7 +73,7 @@ PanelWindow {
         width: 330
         height: 64
         radius: height / 2
-        color: Theme.alpha(Theme.surface, 0.92)
+        color: Theme.glassPanel
         opacity: Math.min(1, win.progress * 1.5)
         scale: 0.8 + 0.2 * win.progress
         transform: Translate { y: (1 - win.progress) * 36 }
@@ -133,7 +133,7 @@ PanelWindow {
                     Layout.fillWidth: true
                     implicitHeight: 10
                     radius: 5
-                    color: Theme.surfaceHighest
+                    color: Theme.glassTile
                     Rectangle {
                         id: fill
                         width: Math.max(height, parent.width * win.value)
