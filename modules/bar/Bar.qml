@@ -33,7 +33,7 @@ Variants {
             anchors.fill: parent
             visible: !bar.floating
             // translúcida: Hyprland desenfoca lo de detrás (layer_rule blur en decorators.lua)
-            color: Theme.alpha(Theme.surface, 0.55)
+            color: Theme.alpha(Theme.surface, 0.85)
         }
 
         MacBar {

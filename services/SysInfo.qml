@@ -41,6 +41,17 @@ Singleton {
     property var tempHistory: []    // °C
     property var procs: []          // [{ name, cpu, mem }] (solo con `detail`)
 
+    // GPU (AMD, sysfs: gpu_busy_percent); gpuOk = false si no hay datos
+    property bool gpuOk: false
+    property real gpuBusy: 0        // 0..1
+    property real gpuMhz: 0
+    property real gpuMaxMhz: 0
+    property real gpuVramUsedGb: 0
+    property real gpuVramTotalGb: 0
+    property real gpuPower: 0       // W
+    property string gpuPerf: ""     // auto / low / high / manual …
+    property var gpuHistory: []
+
     property var _prev: null
     property var _prevNet: null
 
@@ -80,6 +91,7 @@ Singleton {
             if (root.cpuSensor) cpuT.reload(); else thermal.reload();
             if (root.gpuSensor) gpuT.reload();
             if (root.ssdSensor) ssdT.reload();
+            if (!gpuProc.running) gpuProc.running = true;
         }
     }
 
@@ -269,6 +281,32 @@ Singleton {
                     const p = l.split("|");
                     return { name: p[0], cpu: Number(p[1].replace(",", ".")) / n, mem: Number(p[2].replace(",", ".")) };
                 });
+            }
+        }
+    }
+
+    // Estado de la GPU: busy%|MHz actual|MHz máx|VRAM usada|VRAM total|potencia µW|nivel
+    Process {
+        id: gpuProc
+        command: ["sh", "-c", "for d in /sys/class/drm/card*/device; do [ -f $d/gpu_busy_percent ] || continue; "
+            + "m=$(grep -o '[0-9]*Mhz' $d/pp_dpm_sclk 2>/dev/null | tr -d 'Mhz'); "
+            + "cur=$(grep '\\*' $d/pp_dpm_sclk 2>/dev/null | grep -o '[0-9]*Mhz' | tr -d 'Mhz'); "
+            + "max=$(echo \"$m\" | sort -n | tail -1); "
+            + "pw=$(cat $d/hwmon/hwmon*/power1_average 2>/dev/null | head -1); "
+            + "echo \"$(cat $d/gpu_busy_percent)|$cur|$max|$(cat $d/mem_info_vram_used 2>/dev/null)|$(cat $d/mem_info_vram_total 2>/dev/null)|$pw|$(cat $d/power_dpm_force_performance_level 2>/dev/null)\"; exit; done"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const p = text.trim().split("|");
+                if (p.length < 7 || p[0] === "") { root.gpuOk = false; return; }
+                root.gpuOk = true;
+                root.gpuBusy = Math.max(0, Math.min(1, Number(p[0]) / 100));
+                root.gpuMhz = Number(p[1]) || 0;
+                root.gpuMaxMhz = Number(p[2]) || 0;
+                root.gpuVramUsedGb = (Number(p[3]) || 0) / 1073741824;
+                root.gpuVramTotalGb = (Number(p[4]) || 0) / 1073741824;
+                root.gpuPower = (Number(p[5]) || 0) / 1e6;
+                root.gpuPerf = p[6];
+                root.gpuHistory = root.gpuHistory.concat([root.gpuBusy]).slice(-30);
             }
         }
     }

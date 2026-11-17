@@ -123,8 +123,9 @@ link "$REPO" "$CFG/quickshell/quantum"        # bí danh: một số comment/tà
 link "$REPO/bin/quantum-taskmgr" "$BIN/quantum-taskmgr"
 link "$REPO/apps/agentoffice/claude-agentoffice" "$BIN/claude-agentoffice"
 link "$REPO/apps/agentviz3d/claude-agentviz3d" "$BIN/claude-agentviz3d"
+link "$REPO/apps/agenthq/claude-agenthq" "$BIN/claude-agenthq"
 run mkdir -p "$HOME/.local/share/applications" "$HOME/.local/share/icons/hicolor/scalable/apps"
-for d in quantum-personalize quantum-assistant; do
+for d in quantum-personalize quantum-assistant claude-agenthq; do
   run install -Dm644 "$REPO/assets/$d.desktop" "$HOME/.local/share/applications/$d.desktop"
   run install -Dm644 "$REPO/assets/$d.svg" "$HOME/.local/share/icons/hicolor/scalable/apps/$d.svg"
 done

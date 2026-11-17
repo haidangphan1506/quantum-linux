@@ -179,8 +179,10 @@ MouseArea {
         id: panel
 
         property real closedAt: 0
+        // Fijado: el panel no se cierra al hacer clic fuera (para vigilar el sistema); se cierra con el botón de la barra o desfijando
+        property bool pinned: false
         function open(): void { if (Date.now() - closedAt > 200) visible = true; }
-        function close(): void { if (visible) { visible = false; closedAt = Date.now(); } }
+        function close(): void { pinned = false; if (visible) { visible = false; closedAt = Date.now(); } }
 
         anchor.item: root
         anchor.rect.x: root.width - implicitWidth
@@ -191,10 +193,18 @@ MouseArea {
 
         Binding { target: SysInfo; property: "detail"; value: panel.visible }
 
+        Timer {
+            id: clearTimer
+            interval: 250
+            onTriggered: if (!panel.pinned) panel.close()
+        }
+
         HyprlandFocusGrab {
             windows: root.barWindow ? [panel, root.barWindow] : [panel]
-            active: panel.visible
-            onCleared: panel.close()
+            active: panel.visible && !panel.pinned
+            // Al pulsar dentro del panel el compositor puede soltar el grab antes de entregar el clic:
+            // se espera un instante para que el pin tenga ocasión de fijarlo
+            onCleared: clearTimer.restart()
         }
 
         Rectangle {
@@ -213,6 +223,26 @@ MouseArea {
                 RowLayout {
                     Layout.fillWidth: true
                     Txt { Layout.fillWidth: true; text: I18n.t("Sistema"); font.pixelSize: 15; font.weight: Font.Bold }
+                    // Pin: mantiene el panel abierto al hacer clic fuera
+                    MouseArea {
+                        implicitWidth: 26
+                        implicitHeight: 26
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onPressed: panel.pinned = !panel.pinned
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 6
+                            color: panel.pinned ? Theme.alpha(Theme.macBlue, 0.25) : parent.containsMouse ? Theme.alpha(Theme.fg, 0.12) : "transparent"
+                        }
+                        Icon {
+                            anchors.centerIn: parent
+                            text: "push_pin"
+                            size: 16
+                            color: panel.pinned ? Theme.macBlue : Theme.fgMuted
+                            rotation: panel.pinned ? 0 : 45
+                        }
+                    }
                     Txt { text: I18n.t("Encendido ") + SysInfo.fmtUptime(SysInfo.uptime); font.pixelSize: 12; color: Theme.fgMuted }
                 }
 
@@ -240,6 +270,41 @@ MouseArea {
                         values: SysInfo.tempHistory
                         max: 100
                         accent: SysInfo.tempLevel(SysInfo.temp) === 2 ? Theme.macRed : SysInfo.tempLevel(SysInfo.temp) === 1 ? Theme.macOrange : Theme.macGreen
+                    }
+                }
+
+                // GPU: carga, frecuencia, VRAM, consumo y modo de rendimiento
+                RowLayout {
+                    visible: SysInfo.gpuOk
+                    Layout.fillWidth: true
+                    spacing: 8
+                    StatCard {
+                        icon: "developer_board"; title: "GPU"
+                        value: Math.round(SysInfo.gpuBusy * 100) + "%"
+                        sub: SysInfo.gpuMhz > 0 ? SysInfo.gpuMhz + " / " + SysInfo.gpuMaxMhz + " MHz" : I18n.t("Rendimiento")
+                        values: SysInfo.gpuHistory
+                        accent: Theme.macGreen
+                    }
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        Layout.fillHeight: true
+                        implicitHeight: gCol.implicitHeight + 20
+                        radius: 10
+                        color: Theme.popoverCard
+                        border.width: 1
+                        border.color: Theme.popoverCardBorder
+                        ColumnLayout {
+                            id: gCol
+                            anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
+                            anchors.margins: 10
+                            spacing: 6
+                            InfoRow { icon: "memory_alt"; label: "VRAM"; value: SysInfo.gpuVramUsedGb.toFixed(1) + " / " + SysInfo.gpuVramTotalGb.toFixed(1) + " GB" }
+                            Bar { value: SysInfo.gpuVramTotalGb > 0 ? SysInfo.gpuVramUsedGb / SysInfo.gpuVramTotalGb : 0; accent: Theme.macOrange }
+                            InfoRow { visible: SysInfo.gpuPower > 0; icon: "bolt"; label: I18n.t("Consumo"); value: SysInfo.gpuPower.toFixed(1) + " W" }
+                            InfoRow { visible: SysInfo.gpuTemp > 0; icon: "device_thermostat"; label: I18n.t("Temp."); value: Math.round(SysInfo.gpuTemp) + " °C"; valueColor: root.tempColor(SysInfo.gpuTemp) }
+                            InfoRow { visible: SysInfo.gpuPerf !== ""; icon: "speed"; label: I18n.t("Rendimiento"); value: SysInfo.gpuPerf }
+                        }
                     }
                 }
 

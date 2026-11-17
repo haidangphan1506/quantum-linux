@@ -156,7 +156,7 @@ vars.keybinds = {
 -- Move active window to a workspace with mainMod + SHIFT + [0-9]
 for i = 1, 10 do
     local key = i % 10 -- 10 maps to key 0
-    table.insert(vars.keybinds, { key = mainMod .. " + " .. key,         action = hl.dsp.focus({ workspace = i }) })
+    table.insert(vars.keybinds, { key = mainMod .. " + " .. key,         action = function() cael_goto_ws(i) end })
     table.insert(vars.keybinds, { key = mainMod .. " + SHIFT + " .. key, action = hl.dsp.window.move({ workspace = i }) })
 end
 

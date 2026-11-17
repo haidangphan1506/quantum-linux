@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Claude Agent HQ
+Name[vi]=Văn phòng Agent Claude
+GenericName=Quản lý agent Claude Code
+GenericName[vi]=Quản lý agent Claude Code
+Comment=Văn phòng 3D: mỗi dự án một văn phòng, xem agent đang làm gì, task pending / blocked và token đã dùng
+Exec=claude-agenthq
+Icon=claude-agenthq
+Terminal=false
+Type=Application
+Categories=Development;
+Keywords=claude;agent;ai;token;task;office;văn phòng;3d;
+StartupWMClass=org.quickshell

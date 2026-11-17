@@ -16,7 +16,17 @@ Item {
     required property var window
     property bool compact: false
 
-    readonly property var win: Wm.active && !Wm.isMinimized(Wm.active) ? Wm.active : null
+    // Al cambiar de workspace la ventana activa pasa un instante por «ninguna»: sin filtrar,
+    // los menús y el nombre de la app parpadean. Se aplica el valor solo cuando se estabiliza.
+    readonly property var rawWin: Wm.active && !Wm.isMinimized(Wm.active) ? Wm.active : null
+    property var win: null
+    onRawWinChanged: settle.restart()
+    Component.onCompleted: win = rawWin
+    Timer {
+        id: settle
+        interval: 150
+        onTriggered: root.win = root.rawWin
+    }
     readonly property string appId: win ? (win.appId ?? "") : ""
     readonly property string appName: win ? Wm.nameFor(appId, win.title ?? "") : "Quantum"
     readonly property bool isTerminal: ["kitty", "foot", "Alacritty", "alacritty", "org.wezfurlong.wezterm", "com.mitchellh.ghostty", "ghostty", "konsole", "org.gnome.Console", "xterm"].includes(appId)

@@ -56,7 +56,7 @@ Scope {
         if (!open) return;
         const t = wins[index];
         open = false;
-        if (t?.wayland) Wm.focus(t.wayland);
+        if (t?.wayland) Wm.focus(t.wayland, true);   // Alt+Tab: el cursor salta a la ventana elegida
     }
     function cancel(): void { open = false; }
 

@@ -46,6 +46,11 @@ local function no_warp(fn)
     if not ok then error(err) end
 end
 
+-- Super+1..0: chuyen workspace khong warp chuot (warp dua con tro vao cua so -> bar nhap nhay)
+function cael_goto_ws(i)
+    no_warp(function() dsp(hl.dsp.focus({ workspace = i })) end)
+end
+
 -- Dich thu nho = mot o nho nam GON trong dai dock o day man hinh (khong de cua so to chong len dock)
 local DOCK_W, DOCK_H, DOCK_BOTTOM = 72, 44, 72   -- DOCK_BOTTOM: khoang cach tu day man hinh, nam tren pill dock (khong chong len dock)
 
@@ -391,16 +396,50 @@ local function leave_fullscreen_others(target)
     end
 end
 
-function cael_activate(addr)
+-- Nho vi tri con tro trong tung cua so (toa do tuong doi goc tren-trai cua so).
+-- Truoc khi chuyen cua so: neu con tro dang nam trong cua so active thi luu lai;
+-- khi Alt+Tab vao cua so khac: dat con tro ve dung ccho cu cua cua so do (chua co thi giua cua so).
+local cursor_mem = {}
+local function inside(w, c)
+    return c.x >= w.at.x and c.x < w.at.x + w.size.x and c.y >= w.at.y and c.y < w.at.y + w.size.y
+end
+local function remember_cursor()
+    local cur, c = hl.get_active_window(), hl.get_cursor_pos()
+    if cur and c and cur.at and inside(cur, c) then
+        cursor_mem[cur.address] = { x = c.x - cur.at.x, y = c.y - cur.at.y }
+    end
+end
+
+-- warp = true (Alt+Tab): dua con tro vao cua so duoc chon, o vi tri con tro dung lan truoc.
+function cael_activate(addr, warp)
     local w = find_window(addr ~= "" and addr or nil)
     if not w then return end
     if in_min(w) then return restore(w) end
     local sel = "address:" .. w.address
+    if warp then pcall(remember_cursor) end
     leave_fullscreen_others(w)
     no_warp(function()
         dsp(hl.dsp.focus({ window = sel }))   -- tu chuyen sang workspace cua cua so neu can
         dsp(hl.dsp.window.alter_zorder({ mode = "top", window = sel }))
     end)
+    if warp then
+        -- Cho cua so len tren cung xong moi dat con tro (cua so chong nhau: neu dat ngay, pointer focus
+        -- van o cua so cu), roi nhich 1px de Hyprland tinh lai cua so duoi con tro.
+        hl.timer(function()
+            pcall(function()
+                local t = find_window(w.address) or w
+                local m = cursor_mem[w.address]
+                local x, y = t.at.x + t.size.x / 2, t.at.y + t.size.y / 2
+                if m then
+                    local mx, my = t.at.x + m.x, t.at.y + m.y
+                    if inside(t, { x = mx, y = my }) then x, y = mx, my end
+                end
+                x, y = math.floor(x), math.floor(y)
+                dsp(hl.dsp.cursor.move({ x = x + 1, y = y }))
+                dsp(hl.dsp.cursor.move({ x = x, y = y }))
+            end)
+        end, { timeout = 60, type = "oneshot" })
+    end
 end
 
 -- MO APP O CHE DO FULL (vung lam viec, van thay bar tren cung) theo mac dinh.

@@ -56,7 +56,7 @@ Mọi thứ đều đi qua IPC: `qs -c caelestia ipc call <target> <hàm>` (xem 
 | `modules/` | từng thành phần giao diện (bar, dock, lock, launcher, overview, personalize, serpantium…) |
 | `services/` | singleton: Settings, Theme, Audio, Net, Bt, Wm (cửa sổ), Updates, Weather, I18n… |
 | `components/` | widget dùng chung |
-| `apps/` | app Quickshell độc lập (`taskmgr`, `agentoffice`, `agentviz`, `agentviz3d`) |
+| `apps/` | app Quickshell độc lập (`taskmgr`, `agentoffice`, `agentviz`, `agentviz3d`, `agenthq` — văn phòng 3D quản lý agent/task/token, chạy `claude-agenthq`) |
 | `config/` | cấu hình chép vào `~/.config`: `hypr/` (Lua + hàm `cael_*` trong `hyprlands/minimize.lua`), `fish/`, `Thunar/`, `pavucontrol.ini` |
 | `pam/` | cấu hình PAM cho màn hình khoá |
 | `scripts/`, `tools/idle` | thu thập mức dùng Claude Code, phát hiện idle → screensaver |
