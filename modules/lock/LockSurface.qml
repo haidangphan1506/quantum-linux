@@ -20,7 +20,7 @@ Item {
     anchors.fill: parent
 
     // Sin animaciones (Personalizar → Ventanas): todo aparece quieto
-    readonly property bool still: Settings.windows.animations === "none"
+    readonly property bool still: Theme.animations === "none"
     readonly property real k: Theme.animMult > 0 ? Theme.animMult : 0.001
 
     // reloj de animación continuo (fondo, órbitas, resplandor)

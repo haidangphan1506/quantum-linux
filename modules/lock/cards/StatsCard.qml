@@ -51,7 +51,7 @@ LockCard {
                         opacity: 0.9
                         RotationAnimation on rotation {
                             loops: Animation.Infinite
-                            running: Settings.windows.animations !== "none"
+                            running: Theme.animations !== "none"
                             from: 0; to: 360
                             duration: 7000 + blob.index * 1300
                         }

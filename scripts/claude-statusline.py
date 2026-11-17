@@ -92,6 +92,12 @@ def main():
         parts.append(f"{L['7d']} {lim['seven_day']['used']:.0f}%")
     if rec["cost_usd"] is not None:
         parts.append(f"${rec['cost_usd']:.2f}")
+    # Jev: lần gọi tới API TypeSafe, do skill jev-router ghi vào count.json
+    try:
+        with open(os.path.expanduser("~/.local/state/jev-router/count.json"), encoding="utf-8") as f:
+            parts.append(f"Jev {int(json.load(f).get('calls', 0))}")
+    except (OSError, ValueError, TypeError):
+        pass
     print("  ·  ".join(parts))
 
 

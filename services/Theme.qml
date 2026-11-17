@@ -94,7 +94,7 @@ Singleton {
     }
 
     // Animaciones
-    readonly property string animations: Settings.windows?.animations ?? "normal"
+    readonly property string animations: Shell.gameMode ? "none" : (Settings.windows?.animations ?? "normal")
     readonly property real animMult: animations === "none" ? 0 : (animations === "fast" ? 0.7 : (animations === "smooth" ? 1.4 : 1.0))
     readonly property int animFast: Math.round(120 * animMult)
     readonly property int anim: Math.round(200 * animMult)

@@ -37,6 +37,11 @@ ColumnLayout {
             icon: "refresh"
             onClicked: Net.startScan()
         }
+        IconButton {
+            visible: !root.embedded
+            icon: "chevron_right"
+            onClicked: { Shell.wifiPage = false; Shell.btPage = true; }
+        }
     }
 
     readonly property string subtitle: {
@@ -200,6 +205,21 @@ ColumnLayout {
     }
 
     // ------------------------------------------------------------- redes
+    Flickable {
+        id: netFlick
+        Layout.fillWidth: true
+        visible: Net.networks.length > 0
+        // Altura limitada (~5 filas) para que el popup no crezca con muchas redes
+        Layout.preferredHeight: Math.min(netCol.implicitHeight, 5 * 54 + 4 * netCol.spacing)
+        contentHeight: netCol.implicitHeight
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+
+        ColumnLayout {
+            id: netCol
+            width: netFlick.width
+            spacing: 2
+
     Repeater {
         model: Net.networks
 
@@ -271,6 +291,8 @@ ColumnLayout {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: Net.select(row.modelData.name)
             }
+        }
+    }
         }
     }
 
