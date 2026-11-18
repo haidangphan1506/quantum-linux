@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
-import Quickshell.Services.UPower
 import qs.services
 import qs.components
 
@@ -29,16 +28,6 @@ MouseArea {
     // reloj de segundos para la cuenta atrás del caché (solo se usa dentro del popup)
     SystemClock { id: secClock; precision: SystemClock.Seconds }
     readonly property real cacheLeft: ClaudeUsage.cacheLeft(secClock.date.getTime() / 1000)
-
-    // batería del sistema (UPower), mismos iconos que modules/bar/Status.qml
-    readonly property var bat: UPower.displayDevice
-    readonly property bool batCharging: bat?.state === UPowerDeviceState.Charging
-    readonly property int batPct: Math.round((bat?.percentage ?? 0) * 100)
-    readonly property string batIcon: {
-        if (batCharging) return "battery_charging_full";
-        const level = Math.min(6, Math.floor((bat?.percentage ?? 0) * 7));
-        return (bat?.percentage ?? 0) > 0.95 ? "battery_full" : "battery_" + level + "_bar";
-    }
 
     // "5 h 27%": porcentaje ya usado de cada ventana. Si aún no hay lectura de los límites
     // (statusLine sin configurar o ventana reiniciada sin respuesta nueva) se muestra "—".
@@ -181,7 +170,7 @@ MouseArea {
                             ColumnLayout {
                                 id: dayCol
                                 required property int index
-                                readonly property var date: new Date((root.now - (6 - index) * 86400) * 1000)
+                                readonly property var date: new Date(((ClaudeUsage.week.start || root.now) + index * 86400 + 3600) * 1000)
                                 Layout.fillWidth: true
                                 spacing: 2
                                 Item {
@@ -193,7 +182,7 @@ MouseArea {
                                         width: Math.min(parent.width, 18)
                                         height: Math.max(2, parent.height * days.vals[dayCol.index] / days.maxV)
                                         radius: 2
-                                        color: dayCol.index === 6 ? Theme.primary : Theme.alpha(Theme.primary, 0.45)
+                                        color: dayCol.date.toDateString() === new Date(ClaudeUsage.since4.start * 1000 + 3600000).toDateString() ? Theme.primary : Theme.alpha(Theme.primary, 0.45)
                                     }
                                 }
                                 Txt {
@@ -213,6 +202,48 @@ MouseArea {
                             label: "  " + modelData.model.replace(/^claude-/, "")
                             value: ClaudeUsage.fmtTokens(modelData.tokens) + " · " + modelData.msgs + " " + I18n.t("msgs")
                             valueColor: Theme.fgMuted
+                        }
+                    }
+                }
+
+                // tokens y mensajes desde las 04:00 (reinicio diario del límite)
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: s4Col.implicitHeight + 20
+                    radius: 10
+                    color: Theme.alpha(Theme.fg, 0.05)
+                    ColumnLayout {
+                        id: s4Col
+                        anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
+                        anchors.margins: 10
+                        spacing: 4
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Txt { Layout.fillWidth: true; text: I18n.t("Desde las 04:00"); font.pixelSize: 12; font.weight: Font.DemiBold }
+                            Txt {
+                                text: ClaudeUsage.fmtTokens(ClaudeUsage.since4.tokens) + " · " + ClaudeUsage.since4.msgs + " " + I18n.t("msgs")
+                                font.pixelSize: 13; font.weight: Font.Bold; font.features: { "tnum": 1 }
+                                color: Theme.primary
+                            }
+                        }
+                        ClaudeSubRow {
+                            label: "  " + I18n.t("entrada / salida")
+                            value: ClaudeUsage.fmtTokens(ClaudeUsage.since4.input) + " / " + ClaudeUsage.fmtTokens(ClaudeUsage.since4.output)
+                            valueColor: Theme.fgMuted
+                        }
+                        ClaudeSubRow {
+                            label: "  " + I18n.t("caché: escritura / lectura")
+                            value: ClaudeUsage.fmtTokens(ClaudeUsage.since4.cache_write) + " / " + ClaudeUsage.fmtTokens(ClaudeUsage.since4.cache_read)
+                            valueColor: Theme.fgMuted
+                        }
+                        Repeater {
+                            model: (ClaudeUsage.since4.models ?? []).slice(0, 4)
+                            ClaudeSubRow {
+                                required property var modelData
+                                label: "  " + modelData.model.replace(/^claude-/, "")
+                                value: ClaudeUsage.fmtTokens(modelData.tokens) + " · " + modelData.msgs + " " + I18n.t("msgs")
+                                valueColor: Theme.fgMuted
+                            }
                         }
                     }
                 }
@@ -286,23 +317,6 @@ MouseArea {
                             icon: "code"; label: I18n.t("Líneas cambiadas")
                             value: "+" + (root.s?.lines_added ?? 0) + "  −" + (root.s?.lines_removed ?? 0)
                         }
-                        // batería del sistema: mismo icono que la barra (sacándolo de UPower), con % y estado de carga
-                        RowLayout {
-                            visible: UPower.displayDevice?.isLaptopBattery ?? false
-                            Layout.fillWidth: true
-                            spacing: 8
-                            Icon {
-                                text: root.batIcon; size: 16; fill: root.batCharging ? 1 : 0
-                                color: root.batCharging ? Theme.macGreen : Theme.fgMuted
-                            }
-                            Txt { Layout.fillWidth: true; text: I18n.t("Batería"); font.pixelSize: 13; color: Theme.fgMuted }
-                            Txt {
-                                text: root.batPct + "% · " + (root.batCharging ? I18n.t("cargando") : I18n.t("en batería"))
-                                font.pixelSize: 13; font.weight: Font.DemiBold; font.features: { "tnum": 1 }
-                                color: root.batCharging ? Theme.macGreen : Theme.fg
-                            }
-                        }
-
                         // caché del prompt: pin verde = còn caché; cuenta atrás + thanh = tiempo que queda
                         RowLayout {
                             visible: ClaudeUsage.cache.last > 0

@@ -1,6 +1,10 @@
 -- See https://wiki.hypr.land/Configuring/Basics/Window-Rules/
 -- and https://wiki.hypr.land/Configuring/Basics/Workspace-Rules/
 
+-- Mac dinh luon co 2 workspace (persistent), du khong co cua so nao
+hl.workspace_rule({ workspace = "1", persistent = true, default = true })
+hl.workspace_rule({ workspace = "2", persistent = true })
+
 -- Ref https://wiki.hypr.land/Configuring/Basics/Workspace-Rules/
 -- "Smart gaps" / "No gaps when only"
 -- uncomment all if you wish to use that.
