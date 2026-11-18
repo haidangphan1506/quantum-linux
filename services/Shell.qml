@@ -17,6 +17,7 @@ Singleton {
     property bool sessionOpen: false
     property bool wallpapersOpen: false
     property bool personalizeOpen: false
+    property bool activityOpen: false
     property bool aiOpen: false
     property bool aboutOpen: false
     property bool gameMode: false
@@ -131,6 +132,20 @@ Singleton {
         personalizeOpen = !personalizeOpen;
     }
 
+    // Activity Monitor: ventana normal del shell; si ya está abierta pero tapada, se trae al frente.
+    function activityToplevel(): var {
+        return Hyprland.toplevels.values.find(h => h.title === "Activity Monitor" && h.wayland?.appId === "org.quickshell") ?? null;
+    }
+    function toggleActivity(): void {
+        const t = activityOpen ? activityToplevel() : null;
+        if (t && Hyprland.activeToplevel !== t) {
+            const a = t.address.startsWith("0x") ? t.address : "0x" + t.address;
+            Quickshell.execDetached(["hyprctl", "eval", `cael_activate('${a}')`]);
+            return;
+        }
+        activityOpen = !activityOpen;
+    }
+
     // Ajustes del Sistema ya abierto: ir a otra página (las páginas lo usan para enlazarse)
     signal settingsGo(string page)
 
@@ -173,6 +188,7 @@ Singleton {
         function session(): void { root.toggleSession(); }
         function wallpapers(): void { root.toggleWallpapers(); }
         function personalize(): void { root.personalize(); }
+        function activityMonitor(): void { root.toggleActivity(); }
         function about(): void { root.openAbout(); }
         function nightLight(): void { root.toggleNightLight(); }
         function ai(): void { root.toggleAi(); }

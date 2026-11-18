@@ -211,6 +211,10 @@ Singleton {
         }
         // Ajustes del Sistema es parte del propio shell: se abre directo (sin `qs ... ipc`, cuyo
         // nombre de configuración depende de cómo se instaló y que Quickshell lee solo al iniciar).
+        if (app.id === "quantum-activitymonitor") {
+            Shell.toggleActivity();
+            return;
+        }
         if (app.id === "quantum-personalize") {
             Shell.personalize();
             return;

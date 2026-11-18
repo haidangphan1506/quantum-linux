@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Activity Monitor
+Name[vi]=Giám sát hoạt động
+GenericName=Performance monitor
+Comment=CPU, memory, energy, disk and network usage per process
+Comment[vi]=Xem CPU, bộ nhớ, năng lượng, ổ đĩa và mạng theo từng tiến trình
+Exec=sh -c "qs -c caelestia ipc call shell activityMonitor || qs -c quantum ipc call shell activityMonitor"
+Icon=quantum-activitymonitor
+Terminal=false
+Type=Application
+Categories=System;Monitor;
+Keywords=activity;monitor;performance;cpu;memory;ram;disk;network;task;process;
+StartupWMClass=org.quickshell

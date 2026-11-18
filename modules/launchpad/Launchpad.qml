@@ -62,7 +62,7 @@ Scope {
             readonly property var results: Apps.search(search.text)
 
             // pantalla completa (como el Launchpad de macOS) y cuadrícula de 7 x 5
-            readonly property real topPad: 120                  // hasta donde empiezan las apps
+            readonly property real topPad: 210                  // hasta donde empiezan las apps
             readonly property real gridW: Math.min(width - 160, 1400)
             readonly property real gridH: height - topPad - 110
             readonly property int cols: Math.max(4, Math.min(7, Math.floor(gridW / 150)))
@@ -71,6 +71,21 @@ Scope {
             readonly property int pageCount: Math.max(1, Math.ceil(results.length / perPage))
             readonly property real cellW: gridW / cols
             readonly property real cellH: Math.min(gridH / rows, 170)
+
+            // escritorios (workspaces) existentes, como los Spaces de macOS
+            readonly property var wsIds: Hyprland.workspaces.values.filter(w => w.id > 0).map(w => w.id).sort((a, b) => a - b)
+            readonly property int curWsId: (mon?.activeWorkspace ?? Hyprland.focusedWorkspace)?.id ?? 1
+            property int leaveTo: 0
+            function gotoWs(id: int): void {
+                leaveTo = id;
+                root.hide();
+                wsTimer.restart();
+            }
+            Timer {
+                id: wsTimer
+                interval: 60
+                onTriggered: Quickshell.execDetached(["hyprctl", "dispatch", `hl.dsp.focus({ workspace = ${win.leaveTo} })`])
+            }
 
             // selección con teclado (índice en results); -1 = ninguna
             property int sel: -1
@@ -103,6 +118,7 @@ Scope {
                 function onOpenChanged(): void {
                     if (!root.open) return;
                     search.text = "";
+                    Hyprland.refreshWorkspaces();
                     win.ctxApp = null;
                     pages.currentIndex = 0;
                     pages.positionViewAtBeginning();
@@ -129,6 +145,59 @@ Scope {
                 // como macOS: al abrir, la cuadrícula «se aleja» desde un poco más grande
                 scale: 1.12 - 0.12 * root.p
                 transformOrigin: Item.Center
+
+                // ------------------------------------------------ escritorios (Spaces)
+                Row {
+                    id: spaces
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: 96
+                    spacing: 16
+                    Repeater {
+                        model: win.wsIds
+                        Item {
+                            id: sp
+                            required property int modelData
+                            readonly property bool current: modelData === win.curWsId
+                            width: 160
+                            height: 90 + 24
+                            Rectangle {
+                                id: spThumb
+                                width: parent.width
+                                height: 90
+                                radius: 8
+                                color: Qt.rgba(1, 1, 1, 0.1)
+                                border.width: sp.current ? 2 : 1
+                                border.color: sp.current ? Theme.macBlue : Qt.rgba(1, 1, 1, 0.25)
+                                scale: spMouse.containsMouse ? 1.04 : 1
+                                Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                                Image {
+                                    anchors.fill: parent
+                                    anchors.margins: 2
+                                    visible: Settings.appearance.wallpaper.startsWith("/")
+                                    source: visible ? Wallpaper.still(Settings.appearance.wallpaper) : ""
+                                    sourceSize: Qt.size(320, 200)
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                    opacity: 0.85
+                                }
+                            }
+                            Txt {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.bottom: parent.bottom
+                                text: I18n.t("Escritorio") + " " + sp.modelData
+                                color: "white"
+                                font.weight: sp.current ? Font.DemiBold : Font.Normal
+                            }
+                            MouseArea {
+                                id: spMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: win.gotoWs(sp.modelData)
+                            }
+                        }
+                    }
+                }
 
                 // ------------------------------------------------ buscador
                 Rectangle {

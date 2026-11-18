@@ -9,6 +9,7 @@ import qs.services
 import "modules"
 import "modules/bar"
 import "modules/launcher"
+import "modules/activitymonitor"
 import "modules/controlcenter"
 import "modules/wallpapers"
 import "modules/notifications"
@@ -76,6 +77,7 @@ ShellRoot {
             ControlCenter {}
             WallpaperPicker {}
             Personalize {}
+            ActivityMonitor {}
             About {}
             Assistant {}
             SessionMenu {}

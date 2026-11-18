@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Widgets
 import qs.services
@@ -23,6 +24,11 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
     color: Theme.alpha(Theme.scrim, 0.22 * card.enter)
 
+    // Escritorios (workspaces) activos: los que existen en Hyprland (id > 0), sin el minimizado
+    readonly property var wsIds: Hyprland.workspaces.values.filter(w => w.id > 0).map(w => w.id)
+    readonly property int wsCount: wsIds.length
+    readonly property int wsCurrent: (Hyprland.focusedMonitor?.activeWorkspace ?? Hyprland.focusedWorkspace)?.id ?? 1
+
     readonly property string user: Quickshell.env("USER") ?? ""
 
     onOpenChanged: {
@@ -34,6 +40,7 @@ PanelWindow {
             return;
         search.text = "";
         search.forceActiveFocus();
+        Hyprland.refreshWorkspaces();
         if (clipMode)
             Clipboard.refresh();
         ctxApp = null;
@@ -166,6 +173,27 @@ PanelWindow {
                             else if (e.key === Qt.Key_Left && !win.clipMode && search.cursorPosition === 0) grid.currentIndex = Math.max(0, grid.currentIndex - 1);
                             else return;
                             e.accepted = true;
+                        }
+                    }
+
+                    Rectangle {
+                        visible: !win.clipMode
+                        implicitHeight: 28
+                        implicitWidth: wsRow.implicitWidth + 20
+                        radius: height / 2
+                        color: Theme.alpha(Theme.primary, 0.14)
+                        Row {
+                            id: wsRow
+                            anchors.centerIn: parent
+                            spacing: 6
+                            Icon { anchors.verticalCenter: parent.verticalCenter; text: "desktop_windows"; size: 16; color: Theme.primary }
+                            Txt {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: I18n.t("Escritorio") + " " + win.wsCurrent + "/" + win.wsCount
+                                font.pixelSize: Theme.textSmall + 1
+                                font.weight: Font.DemiBold
+                                color: Theme.primary
+                            }
                         }
                     }
 

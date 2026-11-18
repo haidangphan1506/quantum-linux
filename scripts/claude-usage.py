@@ -18,6 +18,8 @@ STATE = os.path.expanduser("~/.local/state/quantum/claude")
 API_CACHE = os.path.join(STATE, "api-usage.cache")
 API_TTL = 600  # s: cada cuánto se consulta la API cuando no hay sesión de Claude Code activa
 CREDS = os.path.expanduser("~/.claude/.credentials.json")
+WEEK_START_DAY = 2  # miércoles (lunes = 0)
+RESET_HOUR = 4  # hora local a la que se reinicia el límite cada día
 BLOCK = 5 * 3600
 WEEK = 7 * 24 * 3600
 CACHE_TTL_5M = 300    # s: caché de prompt efímero por defecto de Anthropic
@@ -101,12 +103,33 @@ def log_usage(now):
         hours = max((now - cur["first"]) / 3600, 1 / 6)  # mínimo 10 min para no disparar la tasa
         block["burn_per_h"] = int(cur["tokens"] / hours)
 
+    # Ciclo diario: el límite del usuario se reinicia cada día a las 04:00 (hora local)
+    d4 = datetime.fromtimestamp(now).replace(hour=RESET_HOUR, minute=0, second=0, microsecond=0).timestamp()
+    if d4 > now:
+        d4 -= 86400
+    since = _blank()
+    since["start"] = int(d4)
+    since["models"] = {}
+    for e in entries:
+        if e["ts"] >= d4:
+            _add(since, e)
+            n = e["model"] or "?"
+            if not n.startswith("<"):
+                mm = since["models"].setdefault(n, {"model": n, "tokens": 0, "msgs": 0})
+                mm["tokens"] += e["tok"]
+                mm["msgs"] += 1
+    since["models"] = sorted(since["models"].values(), key=lambda m: m["tokens"], reverse=True)
+
+    # Semana: empieza el último miércoles a las 04:00; 7 columnas (mié … mar), las futuras a 0
+    w0 = d4 - ((datetime.fromtimestamp(d4).weekday() - WEEK_START_DAY) % 7) * 86400
+    w0 = datetime.fromtimestamp(w0).replace(hour=RESET_HOUR, minute=0, second=0, microsecond=0).timestamp()
     week = _blank()
+    week["start"] = int(w0)
     models = {}
-    # tokens por día (local), del más antiguo (hace 6 días) a hoy
-    today = datetime.fromtimestamp(now).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
     daily = [0] * 7
     for e in entries:
+        if e["ts"] < w0:
+            continue
         _add(week, e)
         name = e["model"] or "?"
         if name.startswith("<"):  # mensajes sintéticos
@@ -114,8 +137,7 @@ def log_usage(now):
         mm = models.setdefault(name, {"model": name, "tokens": 0, "msgs": 0})
         mm["tokens"] += e["tok"]
         mm["msgs"] += 1
-        ago = 0 if e["ts"] >= today else int((today - e["ts"]) // 86400) + 1
-        d = 6 - ago
+        d = int((e["ts"] - w0) // 86400)
         if 0 <= d < 7:
             daily[d] += e["tok"]
     week["daily"] = daily
@@ -130,7 +152,7 @@ def log_usage(now):
             cache = {"last": int(e["ts"]), "ttl": ttl, "left": max(0, int(e["ts"] + ttl - now))}
             break
 
-    return {"block": block, "week": week, "cache": cache}
+    return {"block": block, "week": week, "cache": cache, "since4": since}
 
 
 def api_limits(now):

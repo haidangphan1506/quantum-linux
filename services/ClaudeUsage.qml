@@ -17,7 +17,9 @@ Singleton {
     property int sessions5h: 0
     property real cost5h: 0
     property var block: ({ active: false, reset: 0, start: 0, burn_per_h: 0, tokens: 0, msgs: 0, input: 0, output: 0, cache_write: 0, cache_read: 0 })
-    property var week: ({ tokens: 0, msgs: 0, input: 0, output: 0, cache_write: 0, cache_read: 0, daily: [0, 0, 0, 0, 0, 0, 0], models: [] })
+    property var week: ({ start: 0, tokens: 0, msgs: 0, input: 0, output: 0, cache_write: 0, cache_read: 0, daily: [0, 0, 0, 0, 0, 0, 0], models: [] })
+    // tokens y mensajes desde el último reinicio diario (04:00)
+    property var since4: ({ start: 0, tokens: 0, msgs: 0, input: 0, output: 0, cache_write: 0, cache_read: 0, models: [] })
     // último uso del caché del prompt (epoch s) y su TTL (s); last = 0 si no se sabe
     property var cache: ({ last: 0, ttl: 300 })
 
@@ -128,6 +130,7 @@ Singleton {
                     root.block = d.block ?? root.block;
                     root.week = d.week ?? root.week;
                     root.cache = d.cache ?? root.cache;
+                    root.since4 = d.since4 ?? root.since4;
                     root.ready = true;
                 } catch (e) {
                     root.ready = false;
