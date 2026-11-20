@@ -18,34 +18,45 @@ ColumnLayout {
     // ------------------------------------------------------------- Dock
     Group {
         title: Serp.on && Settings.ui.serpApps !== "dock" ? I18n.t("Dock (no se usa con Serpantium)") : I18n.t("Dock")
-        OptionRow {
-            title: I18n.t("Tamaño")
-            Slider {
-                implicitWidth: 240
-                from: 0; to: 2; step: 1; ticks: 3
-                value: Math.max(0, page.sizes.indexOf(Settings.dock.size))
-                minText: I18n.t("Pequeño"); maxText: I18n.t("Grande")
-                onMoved: v => Settings.set("dock", "size", page.sizes[Math.round(v)])
-            }
-        }
-        OptionRow {
-            title: I18n.t("Ampliación")
-            RowLayout {
-                spacing: 12
+        // Tamaño y Ampliación lado a lado, con el título encima (como macOS)
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.topMargin: 10
+            Layout.bottomMargin: 10
+            spacing: 28
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                spacing: 2
+                Txt { text: I18n.t("Tamaño") }
                 Slider {
-                    visible: Settings.dock.magnify
-                    implicitWidth: 200
-                    from: 0.15; to: 1; step: 0.05; live: true
-                    value: Settings.dock.magnifyAmount
-                    minText: I18n.t("Mín."); maxText: I18n.t("Máx.")
-                    onMoved: v => Settings.set("dock", "magnifyAmount", v)
+                    Layout.fillWidth: true
+                    from: 0; to: 2; step: 1; ticks: 3
+                    value: Math.max(0, page.sizes.indexOf(Settings.dock.size))
+                    minText: I18n.t("Pequeño"); maxText: I18n.t("Grande")
+                    onMoved: v => Settings.set("dock", "size", page.sizes[Math.round(v)])
                 }
-                Toggle { checked: Settings.dock.magnify; onToggled: c => Settings.set("dock", "magnify", c) }
+            }
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                spacing: 2
+                Txt { text: I18n.t("Ampliación") }
+                Slider {
+                    Layout.fillWidth: true
+                    from: 0; to: 1; step: 0.05; live: true
+                    value: Settings.dock.magnify ? Settings.dock.magnifyAmount : 0
+                    minText: I18n.t("No"); maxText: I18n.t("Grande")
+                    onMoved: v => {
+                        if (v < 0.05) Settings.set("dock", "magnify", false);
+                        else Settings.setMany({ dock: { magnify: true, magnifyAmount: Math.max(0.15, v) } });
+                    }
+                }
             }
         }
         OptionRow {
             title: I18n.t("Posición en la pantalla")
-            Segmented {
+            Choice {
                 options: [{ v: "left", t: I18n.t("Izquierda") }, { v: "bottom", t: I18n.t("Abajo") }, { v: "right", t: I18n.t("Derecha") }, { v: "top", t: I18n.t("Arriba") }]
                 value: Settings.dock.position
                 onPicked: v => Settings.set("dock", "position", v)
@@ -168,17 +179,6 @@ ColumnLayout {
             Toggle {
                 checked: Settings.windows.animations !== "none"
                 onToggled: c => Settings.set("windows", "animations", c ? "smooth" : "none")
-            }
-        }
-        OptionRow {
-            advanced: true
-            title: I18n.t("Grosor del borde")
-            Slider {
-                implicitWidth: 200
-                from: 0; to: 4; step: 1; ticks: 5
-                value: Settings.windows.borderSize
-                text: Math.round(_shown) + " px"
-                onMoved: v => Settings.set("windows", "borderSize", Math.round(v))
             }
         }
     }

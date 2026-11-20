@@ -253,6 +253,10 @@ Singleton {
                 property real panelOpacity: 0.86
                 property bool blur: true
                 property real textScale: 1.0
+                property bool darkerBars: false          // colores más oscuros en barra y Dock
+                property bool wallpaperTint: true        // el fondo tiñe las ventanas
+                property string scrollBars: "auto"       // auto | always | scrolling
+                property bool scrollJump: false          // clic en la barra: saltar a la página siguiente
                 // Efecto vidrio (Personalizar): qué partes son translúcidas con desenfoque
                 property JsonObject glass: JsonObject {
                     property bool bar: true
@@ -395,7 +399,7 @@ Singleton {
                 property var before: ({})                // fondo y colores de antes de Serpantium (para volver)
                 property bool advanced: false
                 property string style: "quantum"
-                property string page: "styles"
+                property string page: "general"
                 property string lang: "vi"               // idioma de la interfaz: vi | en (I18n)
             }
         }

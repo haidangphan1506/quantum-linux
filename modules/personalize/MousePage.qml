@@ -49,7 +49,6 @@ ColumnLayout {
     }
 
     Group {
-        title: I18n.t("Avanzado")
         OptionRow {
             title: I18n.t("Aceleración del puntero")
             help: page.m.accel ? I18n.t("El puntero llega más lejos si mueves el mouse rápido.") : I18n.t("El puntero se mueve siempre igual. Ideal para juegos.")

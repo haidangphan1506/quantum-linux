@@ -119,6 +119,7 @@ Singleton {
         const dev = wifiDevice;
         if (!dev)
             return;
+        stopScanTimer.stop();
         dev.scannerEnabled = true;
         scanning = true;
     }
@@ -130,6 +131,11 @@ Singleton {
         dev.scannerEnabled = false;
         scanning = false;
     }
+
+    // Apagar el escáner al salir de la página Wi-Fi hace que NetworkManager vacíe la lista justo
+    // mientras se destruyen las filas (~0,5 s de CPU). Se difiere; startScan() lo cancela.
+    function stopScanLater(): void { stopScanTimer.restart(); }
+    Timer { id: stopScanTimer; interval: 4000; onTriggered: root.stopScan() }
 
     // ------------------------------------------------------------------
     // Conexión

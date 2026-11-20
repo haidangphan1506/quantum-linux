@@ -56,7 +56,20 @@ Scope {
         if (!open) return;
         const t = wins[index];
         open = false;
-        if (t?.wayland) Wm.focus(t.wayland, true);   // Alt+Tab: el cursor salta a la ventana elegida
+        // Al cerrarse la capa (teclado Exclusive) Hyprland devuelve el foco a la ventana anterior:
+        // enfocar DESPUÉS, si no la elegida pierde el foco y hay que pulsar Tab otra vez.
+        pending = t?.wayland ?? null;
+        if (pending) focusLater.restart();
+    }
+    property var pending: null
+    Timer {
+        id: focusLater
+        interval: 80
+        onTriggered: {
+            // Alt+Tab: el cursor salta a la ventana elegida
+            if (root.pending) Wm.focus(root.pending, true);
+            root.pending = null;
+        }
     }
     function cancel(): void { open = false; }
 

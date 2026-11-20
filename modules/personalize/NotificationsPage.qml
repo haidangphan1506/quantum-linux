@@ -61,16 +61,30 @@ ColumnLayout {
             visible: page.apps.length === 0
             title: I18n.t("Las apps aparecen aquí cuando te envían su primer aviso.")
         }
+        // cada app: ícono, nombre y estado, con flecha ›; al pulsar se despliega su interruptor
         Repeater {
             model: page.apps
-            OptionRow {
+            ColumnLayout {
                 id: appRow
                 required property string modelData
+                required property int index
                 readonly property bool allowed: !page.muted.includes(modelData)
-                title: modelData
-                help: allowed ? I18n.t("Avisos y sonidos") : I18n.t("Desactivadas")
-                appIcon: page.iconFor(modelData)
-                Toggle { checked: appRow.allowed; onToggled: c => page.setAllowed(modelData, c) }
+                property bool open: false
+                Layout.fillWidth: true
+                spacing: 0
+                Rectangle { visible: appRow.index > 0; Layout.fillWidth: true; implicitHeight: 1; color: Theme.alpha(Theme.fg, 0.08) }
+                NavRow {
+                    title: appRow.modelData
+                    help: appRow.allowed ? I18n.t("Avisos y sonidos") : I18n.t("Desactivadas")
+                    appIcon: page.iconFor(appRow.modelData)
+                    implicitHeight: 56
+                    onClicked: appRow.open = !appRow.open
+                }
+                OptionRow {
+                    visible: appRow.open
+                    title: I18n.t("Permitir notificaciones")
+                    Toggle { checked: appRow.allowed; onToggled: c => page.setAllowed(appRow.modelData, c) }
+                }
             }
         }
     }

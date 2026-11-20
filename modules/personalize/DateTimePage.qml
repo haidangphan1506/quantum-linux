@@ -74,9 +74,5 @@ ColumnLayout {
             title: I18n.t("Formato de 24 horas")
             Toggle { checked: Settings.clock.format24h; onToggled: c => Settings.set("clock", "format24h", c) }
         }
-        NavRow {
-            title: I18n.t("Reloj de la barra de menús")
-            onClicked: Shell.settingsGo("menubar")
-        }
     }
 }

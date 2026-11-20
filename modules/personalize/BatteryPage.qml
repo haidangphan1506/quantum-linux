@@ -92,6 +92,50 @@ c=$(ls /sys/bus/platform/drivers/ideapad_acpi/*/conservation_mode 2>/dev/null | 
             iconColor: page.pct < 0.2 && !page.charging ? "#FF3B30" : "#34C759"
             Txt { visible: (page.bat?.changeRate ?? 0) !== 0; text: Math.abs(page.bat.changeRate).toFixed(1) + " W"; color: Theme.fgMuted }
         }
+    }
+
+    // ------------------------------------------------------------ salud
+    Group {
+        visible: page.present
+        help: I18n.t("La capacidad máxima mide cuánta carga aguanta la batería comparada con cuando era nueva.")
+        OptionRow {
+            id: healthRow
+            readonly property real health: page.bat?.healthSupported && page.bat.healthPercentage > 0 ? page.bat.healthPercentage
+                : Number(page.sys.design) > 0 ? Math.min(100, 100 * Number(page.sys.full) / Number(page.sys.design)) : 0
+            title: I18n.t("Salud de la batería")
+            help: health > 0 ? I18n.t("Capacidad máxima") + ": " + Math.round(health) + "%" : ""
+            Txt { text: healthRow.health === 0 ? "—" : healthRow.health >= 80 ? I18n.t("Normal") : I18n.t("Servicio recomendado"); color: Theme.fgMuted }
+        }
+    }
+
+    // ------------------------------------------------------------ energía
+    Group {
+        title: I18n.t("Modo de energía")
+        help: I18n.t("Con el modo de bajo consumo el equipo gasta menos energía: la batería dura más y el ventilador hace menos ruido.")
+        OptionRow {
+            title: I18n.t("Modo de bajo consumo")
+            Choice {
+                options: [{ v: "never", t: I18n.t("Nunca") }, { v: "always", t: I18n.t("Siempre") },
+                          { v: "battery", t: I18n.t("Solo con batería") }, { v: "adapter", t: I18n.t("Solo con el adaptador") }]
+                value: Settings.power.lowPower
+                onPicked: v => Settings.set("power", "lowPower", v)
+            }
+        }
+        OptionRow {
+            title: I18n.t("Modo de energía")
+            help: HyprApply.lowActive ? I18n.t("Ahora manda el modo de bajo consumo.") : ""
+            Segmented {
+                options: [{ v: PowerProfile.PowerSaver, t: I18n.t("Ahorro") }, { v: PowerProfile.Balanced, t: I18n.t("Equilibrado") }]
+                    .concat(PowerProfiles.hasPerformanceProfile ? [{ v: PowerProfile.Performance, t: I18n.t("Rendimiento") }] : [])
+                value: PowerProfiles.profile
+                onPicked: v => PowerProfiles.profile = v
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ gráfico
+    Group {
+        visible: page.present
         // gráfico de las últimas 24 horas
         ColumnLayout {
             Layout.fillWidth: true
@@ -145,43 +189,9 @@ c=$(ls /sys/bus/platform/drivers/ideapad_acpi/*/conservation_mode 2>/dev/null | 
         }
     }
 
-    // ------------------------------------------------------------ energía
-    Group {
-        help: I18n.t("Con el modo de bajo consumo el equipo gasta menos energía: la batería dura más y el ventilador hace menos ruido.")
-        OptionRow {
-            title: I18n.t("Modo de bajo consumo")
-            Choice {
-                options: [{ v: "never", t: I18n.t("Nunca") }, { v: "always", t: I18n.t("Siempre") },
-                          { v: "battery", t: I18n.t("Solo con batería") }, { v: "adapter", t: I18n.t("Solo con el adaptador") }]
-                value: Settings.power.lowPower
-                onPicked: v => Settings.set("power", "lowPower", v)
-            }
-        }
-        OptionRow {
-            title: I18n.t("Modo de energía")
-            help: HyprApply.lowActive ? I18n.t("Ahora manda el modo de bajo consumo.") : ""
-            Segmented {
-                options: [{ v: PowerProfile.PowerSaver, t: I18n.t("Ahorro") }, { v: PowerProfile.Balanced, t: I18n.t("Equilibrado") }]
-                    .concat(PowerProfiles.hasPerformanceProfile ? [{ v: PowerProfile.Performance, t: I18n.t("Rendimiento") }] : [])
-                value: PowerProfiles.profile
-                onPicked: v => PowerProfiles.profile = v
-            }
-        }
-    }
-
     // ------------------------------------------------------------ salud
     Group {
-        visible: page.present
-        title: I18n.t("Salud de la batería")
-        help: I18n.t("La capacidad máxima mide cuánta carga aguanta la batería comparada con cuando era nueva.")
-        OptionRow {
-            id: healthRow
-            readonly property real health: page.bat?.healthSupported && page.bat.healthPercentage > 0 ? page.bat.healthPercentage
-                : Number(page.sys.design) > 0 ? Math.min(100, 100 * Number(page.sys.full) / Number(page.sys.design)) : 0
-            title: I18n.t("Estado")
-            help: health > 0 ? I18n.t("Capacidad máxima") + ": " + Math.round(health) + "%" : ""
-            Txt { text: healthRow.health === 0 ? "—" : healthRow.health >= 80 ? I18n.t("Normal") : I18n.t("Servicio recomendado"); color: Theme.fgMuted }
-        }
+        visible: page.present && (!!page.sys.cycles || !!page.sys.conservationPath)
         OptionRow {
             visible: !!page.sys.cycles
             title: I18n.t("Ciclos de carga")

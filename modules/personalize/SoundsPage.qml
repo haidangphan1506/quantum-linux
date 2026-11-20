@@ -61,16 +61,32 @@ ColumnLayout {
     }
 
     // ---------------------------------------------------- salida y entrada
-    ColumnLayout {
+    Txt { Layout.fillWidth: true; Layout.topMargin: 8; Layout.bottomMargin: -10; Layout.leftMargin: 4; text: I18n.t("Salida y entrada"); font.weight: Font.Bold }
+
+    // pestañas a todo el ancho: la elegida en una pastilla blanca (como macOS)
+    Rectangle {
         Layout.fillWidth: true
-        Layout.topMargin: 8
-        spacing: 8
-        Txt { Layout.fillWidth: true; Layout.leftMargin: 4; text: I18n.t("Salida y entrada"); font.weight: Font.Bold }
-        Segmented {
-            Layout.alignment: Qt.AlignHCenter
-            options: [{ v: "output", t: I18n.t("Salida") }, { v: "input", t: I18n.t("Entrada") }]
-            value: page.tab
-            onPicked: v => page.tab = v
+        implicitHeight: 28
+        radius: 7
+        color: Theme.alpha(Theme.fg, Theme.dark ? 0.1 : 0.07)
+        Row {
+            anchors.fill: parent
+            anchors.margins: 2
+            Repeater {
+                model: [{ v: "output", t: I18n.t("Salida") }, { v: "input", t: I18n.t("Entrada") }]
+                Rectangle {
+                    id: tb
+                    required property var modelData
+                    readonly property bool on: page.tab === modelData.v
+                    width: parent.width / 2; height: parent.height
+                    radius: 5
+                    color: on ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.22) : "white") : "transparent"
+                    border.width: on && !Theme.dark ? 1 : 0
+                    border.color: Qt.rgba(0, 0, 0, 0.06)
+                    Txt { anchors.centerIn: parent; text: tb.modelData.t; font.weight: tb.on ? Font.DemiBold : Font.Normal }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: page.tab = tb.modelData.v }
+                }
+            }
         }
     }
 
@@ -85,36 +101,46 @@ ColumnLayout {
 
     Group {
         Layout.topMargin: 0
-        OptionRow {
-            visible: page.tab === "output"
-            title: I18n.t("Volumen de salida")
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.topMargin: 8
+            Layout.bottomMargin: 8
+            spacing: 6
             RowLayout {
+                Layout.fillWidth: true
                 spacing: 12
+                Txt { Layout.fillWidth: true; text: page.tab === "output" ? I18n.t("Volumen de salida") : I18n.t("Volumen de entrada") }
                 Slider {
-                    implicitWidth: 240
+                    visible: page.tab === "output"
+                    implicitWidth: 260
                     from: 0; to: 1; step: 0.01; live: true
                     value: Audio.muted ? 0 : Audio.volume
                     minIcon: "volume_mute"; maxIcon: "volume_up"
                     onMoved: v => Audio.setVolume(v)
                 }
-                Txt { text: I18n.t("Silencio"); color: Theme.fgMuted }
-                Toggle { checked: Audio.muted; onToggled: Audio.toggleMute() }
-            }
-        }
-        OptionRow {
-            visible: page.tab === "input"
-            title: I18n.t("Volumen de entrada")
-            RowLayout {
-                spacing: 12
                 Slider {
-                    implicitWidth: 240
+                    visible: page.tab === "input"
+                    implicitWidth: 260
                     from: 0; to: 1; step: 0.01; live: true
                     value: page.micVolume
                     minIcon: "mic_none"; maxIcon: "mic"
                     onMoved: v => { if (Audio.source?.audio) Audio.source.audio.volume = v; }
                 }
-                Txt { text: I18n.t("Silencio"); color: Theme.fgMuted }
-                Toggle { checked: Audio.micMuted; onToggled: Audio.toggleMic() }
+            }
+            // casilla «Silencio» debajo, a la derecha
+            RowLayout {
+                id: mute
+                Layout.alignment: Qt.AlignRight
+                readonly property bool on: page.tab === "output" ? Audio.muted : Audio.micMuted
+                spacing: 6
+                Rectangle {
+                    implicitWidth: 16; implicitHeight: 16; radius: 4
+                    color: mute.on ? Theme.accent : "transparent"
+                    border.width: 1; border.color: mute.on ? Theme.accent : Theme.alpha(Theme.fg, 0.35)
+                    Icon { anchors.centerIn: parent; visible: mute.on; text: "check"; size: 12; color: "white" }
+                }
+                Txt { text: I18n.t("Silencio") }
+                TapHandler { onTapped: page.tab === "output" ? Audio.toggleMute() : Audio.toggleMic() }
             }
         }
     }
