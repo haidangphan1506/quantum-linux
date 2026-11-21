@@ -1,0 +1,23 @@
+#!/bin/sh
+# Quantum Store (cửa hàng ứng dụng pacman + AUR, Quickshell). Nếu đã mở: đưa cửa sổ lên trên (không mở thêm).
+#   quantum-store                     mở trang Khám phá
+#   quantum-store search <từ khoá>    tìm
+#   quantum-store detail <gói>        xem một gói
+#   quantum-store updates|installed   mở thẳng trang đó
+TITLE="Quantum Store"
+APP="$(dirname "$(readlink -f "$0")")/shell.qml"
+case "$1" in
+    search|detail|category) ARG="$1:$2" ;;
+    updates|installed|discover) ARG="$1" ;;
+    *) ARG="" ;;
+esac
+addr=$(hyprctl clients -j 2>/dev/null | python3 -I -c "
+import json,sys
+for c in json.load(sys.stdin):
+    if c.get('title') == sys.argv[1] and c.get('class') == 'org.quickshell':
+        print(c['address']); break" "$TITLE")
+if [ -n "$addr" ]; then
+    [ -n "$ARG" ] && qs -p "$APP" ipc call store open "$ARG" >/dev/null 2>&1
+    exec hyprctl eval "cael_activate('$addr')" >/dev/null
+fi
+QS_STORE_OPEN="$ARG" exec setsid qs -p "$APP" -n -d >/dev/null 2>&1 </dev/null

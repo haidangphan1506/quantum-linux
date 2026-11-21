@@ -38,9 +38,10 @@ vars.keybinds = {
     { key = "CTRL + ALT + T",               action = hl.dsp.exec_cmd(vars.terminal) },
     { key = mainMod .. " + SHIFT + RETURN", action = hl.dsp.exec_cmd(vars.terminal .. " -e btop") }, -- terminal chay btop
     { key = mainMod .. " + Q", action = hl.dsp.exec_cmd(vars.terminal) },   -- SUPER+Q: mo terminal
-    { key = mainMod .. " + C", action = hl.dsp.window.close() },             -- SUPER+C: dong rieng cua so dang focus (kill se giet ca tien trinh, dong het cua so Brave)
-    -- (Da bo copy/paste kieu macOS SUPER+C/V; ham cael_clip() ben tren van con de gan phim khac neu can,
-    --  vd: { key = mainMod .. " + SHIFT + C", action = function() cael_clip("c") end })
+    -- Copy/paste kieu macOS: cael_clip() gui CTRL+C/V (CTRL+SHIFT+C/V trong terminal)
+    { key = mainMod .. " + C", action = function() cael_clip("c") end },   -- SUPER+C: copy
+    { key = mainMod .. " + V", action = function() cael_clip("v") end },   -- SUPER+V: paste
+    { key = mainMod .. " + X", action = hl.dsp.window.close() },           -- SUPER+X: dong rieng cua so dang focus (kill se giet ca tien trinh, dong het cua so Brave)
     { key = mainMod .. " + M", action = hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'") },
     { key = mainMod .. " + E", action = hl.dsp.exec_cmd(vars.fileManager) },
     { key = "CTRL + SHIFT + Escape", action = quantum("shell activityMonitor") }, -- Activity Monitor (thay Task Manager)
@@ -70,7 +71,7 @@ vars.keybinds = {
     { key = mainMod .. " + SUPER_L", action = quantum("launchpad toggle"), opts = { release = true } }, -- Tap SUPER: Launchpad
     { key = mainMod .. " + A",         action = quantum("shell controlCenter") },  -- Trung tam dieu khien
     { key = mainMod .. " + N",         action = quantum("shell controlCenter") },  -- Thong bao
-    { key = mainMod .. " + X",         action = quantum("shell session") },        -- Menu tat may
+    { key = mainMod .. " + SHIFT + X", action = quantum("shell session") },        -- Menu tat may (SUPER+X da dung de dong app)
     { key = mainMod .. " + L",         action = quantum("lock lock") },            -- Khoa man hinh
     { key = mainMod .. " + W",         action = quantum("shell wallpapers") },     -- Chon hinh nen
     { key = mainMod .. " + I",         action = quantum("shell personalize") },    -- Personalizar

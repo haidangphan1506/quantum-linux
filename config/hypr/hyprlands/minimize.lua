@@ -28,10 +28,7 @@ local function in_min(w)
     return w and w.workspace and w.workspace.name == MIN_WS
 end
 
--- Hieu ung kieu macOS ("Scale"): cua so mo dan + co lai + bay ve dock (giua canh duoi man hinh),
--- khoi phuc thi phong to nguoc tu dock. Chi cho cua so float (cua so tile van thu nho ngay).
-local ANIM_MS   = 280     -- thoi gian truoc khi an han (khop voi animation "windows")
-local MINI_W    = 0.18    -- kich thuoc luc o dock, ti le theo cua so goc
+-- Hieu ung (genie / scale) chi cho cua so float; cua so tile van thu nho ngay.
 local saved     = {}      -- address -> { x, y, w, h } vi tri/kich thuoc goc
 local busy      = {}      -- address -> true khi dang chay hieu ung
 
@@ -69,30 +66,38 @@ local function set_geom(sel, x, y, ww, hh)
     dsp(hl.dsp.window.move({ x = x, y = y, window = sel }))
 end
 
--- Thu nho tung buoc (ease-in) vao o dock: moi buoc la mot lan resize ro rang, khong phu thuoc animation cua Hyprland.
--- Trong luc chay tat animation cua Hyprland (no_anim) de kich thuoc + do mo cap nhat ngay tung buoc,
--- cua so van thay ro luc co lai va chi mo han o cuoi. App co kich thuoc toi thieu (vd pavucontrol 294x142)
--- khong co duoc ve o dock nhung den buoc cuoi da trong suot -> khong con o nho chong len dock.
-local MIN_STEPS = 16
-local function genie_to(sel, x0, y0, w0, h0, x1, y1, w1, h1, done)
-    local i = 0
-    dsp(hl.dsp.window.set_prop({ prop = "no_anim", value = "1", window = sel }))
-    local function step()
-        i = i + 1
-        local t = i / MIN_STEPS
-        local e = t * t
-        set_geom(sel, math.floor(x0 + (x1 - x0) * e), math.floor(y0 + (y1 - y0) * e),
-                 math.floor(w0 + (w1 - w0) * e), math.floor(h0 + (h1 - h0) * e))
-        -- con dam trong nua dau, mo nhanh dan ve 0 o buoc cuoi
-        local a = 1 - t ^ 2.5
-        dsp(hl.dsp.window.set_prop({ prop = "opacity", value = string.format("%.2f", a), window = sel }))
-        if i < MIN_STEPS then
-            hl.timer(step, { timeout = math.floor(ANIM_MS / MIN_STEPS), type = "oneshot" })
-        elseif done then
-            done()
-        end
-    end
-    step()
+------------------------------------------------------------
+-- HIEU UNG THU NHO / KHOI PHUC KIEU macOS (Cai dat -> Dock -> "Thu nho cua so bang"):
+--   "genie": cua so cong lai nhu than den chui vao dock | "scale": ca cua so co deu (giu ti le) vao dock
+-- Hyprland khong bien dang duoc cua so: Quantum Shell ve hieu ung (modules/effects/GenieFx.qml,
+-- chup cua so roi ve tren lop overlay), o day chi goi no qua IPC roi an / hien cua so that.
+-- Khong co shell (IPC loi) thi cua so van thu nho / khoi phuc ngay, khong hieu ung.
+------------------------------------------------------------
+local SETTINGS = (os.getenv("XDG_CONFIG_HOME") or (os.getenv("HOME") .. "/.config")) .. "/quantum/settings.json"
+local FX_MS = { genie = 600, scale = 360 }   -- thoi gian hieu ung (ms), gan voi macOS
+
+-- Doc lai moi lan thu nho (file nho): doi trong Cai dat la ap dung ngay, khong can reload Hyprland
+local function min_effect()
+    local f = io.open(SETTINGS, "r")
+    if not f then return "genie" end
+    local txt = f:read("*a")
+    f:close()
+    local v = txt:match('"minimizeEffect"%s*:%s*"(%a+)"')
+    return (v == "scale") and "scale" or "genie"
+end
+
+-- Chieu cao thanh tieu de hyprbars ve phia tren cua so (khong nam trong w.at / w.size)
+local function bar_h(w)
+    if not (hl.plugin and hl.plugin.hyprbars) or not CAEL_BAR_HEIGHT then return 0 end
+    if cael_own_header and cael_own_header(w.class) then return 0 end
+    return CAEL_BAR_HEIGHT
+end
+
+-- Goi hieu ung trong Quantum Shell. mode: min | restore. Toa do logic cua man hinh.
+local function fx_play(addr, x, y, ww, hh, mode, eff, ms)
+    local dx, dy = dock_rect({})
+    hl.exec_cmd(string.format("qs -c caelestia ipc call genie play %s %d %d %d %d %d %d %s:%s %d",
+        addr, math.floor(x), math.floor(y), math.floor(ww), math.floor(hh), dx + math.floor(DOCK_W / 2), dy + DOCK_H, eff, mode, ms))
 end
 
 local minimize
@@ -126,15 +131,21 @@ local function minimize_impl(w)
         no_warp(function() dsp(hl.dsp.window.move({ workspace = MIN_WS, follow = false, window = sel })) end)
         return
     end
-    busy[w.address] = true
-    saved[w.address] = { x = w.at.x, y = w.at.y, w = w.size.x, h = w.size.y }
-    local x, y, tw, th = dock_rect(w)
-    genie_to(sel, w.at.x, w.at.y, w.size.x, w.size.y, x, y, tw, th, function()
-        busy[w.address] = nil
-        -- no_anim van bat (tu genie_to) luc chuyen sang workspace an: neu khong, hieu ung fade
-        -- cua Hyprland ve lai cua so nho ngay tren dock voi do dam day du -> loe len thanh 1 o nho
+    local addr = w.address
+    busy[addr] = true
+    saved[addr] = { x = w.at.x, y = w.at.y, w = w.size.x, h = w.size.y }
+    local eff = min_effect()
+    local ms = FX_MS[eff]
+    -- no_anim: luc chuyen sang workspace an Hyprland khong chay hieu ung fade cua no
+    dsp(hl.dsp.window.set_prop({ prop = "no_anim", value = "1", window = sel }))
+    -- chup ca thanh tieu de (hyprbars) phia tren cua so: hieu ung la chup man hinh
+    local top = bar_h(w)
+    fx_play(addr, w.at.x, w.at.y - top, w.size.x, w.size.y + top, "min", eff, ms)
+    -- shell an cua so that (opacity 0) khi bat dau ve; xong thi dua vao workspace an
+    hl.timer(function()
+        busy[addr] = nil
         no_warp(function() dsp(hl.dsp.window.move({ workspace = MIN_WS, follow = false, window = sel })) end)
-    end)
+    end, { timeout = ms + 140, type = "oneshot" })
 end
 
 minimize = minimize_impl
@@ -144,6 +155,8 @@ local function restore(w)
     local ws = hl.get_active_workspace()
     local sel = "address:" .. w.address
     local g = saved[w.address]
+    -- co hieu ung: cua so phai van trong suot luc quay lai workspace (shell ve hieu ung roi moi hien no)
+    if g then dsp(hl.dsp.window.set_prop({ prop = "opacity", value = "0.0", window = sel })) end
     if ws then
         for _, v in ipairs(hl.get_windows()) do
             if v.address ~= w.address and v.fullscreen and v.fullscreen ~= 0 and not in_min(v)
@@ -160,15 +173,23 @@ local function restore(w)
         dsp(hl.dsp.window.alter_zorder({ mode = "top", window = sel }))
     end)
     if g then
-        saved[w.address] = nil
-        busy[w.address] = true
-        -- 1 frame o dang nho tai dock roi phong to ve vi tri cu
+        local addr = w.address
+        saved[addr] = nil
+        busy[addr] = true
+        local eff = min_effect()
+        local ms = FX_MS[eff]
+        -- cua so van trong suot (opacity 0) o vi tri cu; shell chup chinh cua so (toplevel) va ve
+        -- hieu ung tu dock ra, xong thi hien cua so that (opacity 1)
+        set_geom(sel, g.x, g.y, g.w, g.h)
         hl.timer(function()
-            busy[w.address] = nil
+            fx_play(addr, g.x, g.y, g.w, g.h, "restore", eff, ms)
+        end, { timeout = 40, type = "oneshot" })
+        -- phong ho: shell khong chay / khong chup duoc -> van hien lai cua so
+        hl.timer(function()
+            busy[addr] = nil
             dsp(hl.dsp.window.set_prop({ prop = "opacity", value = "1.0", window = sel }))
             dsp(hl.dsp.window.set_prop({ prop = "no_anim", value = "0", window = sel }))
-            set_geom(sel, g.x, g.y, g.w, g.h)
-        end, { timeout = 30, type = "oneshot" })
+        end, { timeout = ms + 900, type = "oneshot" })
     else
         -- mat thong tin (vd vua reload config): hien lai va dua ve 75% man hinh neu dang nho
         dsp(hl.dsp.window.set_prop({ prop = "opacity", value = "1.0", window = sel }))
@@ -383,17 +404,32 @@ end
 
 -- Dock bam vao app dang mo (khong thu nho): focus + dua len tren cung, KHONG keo con tro.
 -- (wlr-foreign-toplevel activate cua Hyprland luon warp chuot nen dock goi ham nay thay the)
--- Cua so fullscreen (video) ve de len MOI cua so khac, ke ca cua so float duoc focus sau do ->
--- app khac bi che. Truoc khi chuyen sang cua so khac: thoat fullscreen cua cac cua so con lai cung workspace.
-local function leave_fullscreen_others(target)
+-- Cua so fullscreen (video YouTube...) che moi cua so khac cung workspace. Alt+Tab / dock sang app khac:
+-- KHONG thoat fullscreen; app do noi len TREN video (alter_zorder top -> allowed_over_fullscreen). Phai goi
+-- truoc focus, neu khong misc:on_focus_under_fullscreen = 2 se bo fullscreen cua video.
+-- Quay lai cua so fullscreen: day cac cua so dang noi tren no xuong (alter_zorder bottom xoa
+-- allowed_over_fullscreen) -> video lai phu kin man hinh. Rieng maximized (1) van bo maximized nhu cu.
+local function prepare_fullscreen_stack(target)
+    local sel = "address:" .. target.address
+    -- Cua so app van dang fullscreen nhung Hyprland da nha man hinh (internal 0, client 2): tra lai fullscreen that
+    -- (ban sua cu goi fullscreen_state lech internal/client -> Hyprland tat sync_fullscreen cua cua so, tu do
+    --  YouTube bam F chi doi trang thai phia app; bat lai sync de fullscreen cua app lai phu kin man hinh)
+    if (target.fullscreen or 0) == 0 and (target.fullscreen_client or 0) == 2 then
+        dsp(hl.dsp.window.set_prop({ prop = "sync_fullscreen", value = "1", window = sel }))
+        dsp(hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = "set", window = sel }))
+    end
+    local target_fs = (target.fullscreen or 0) == 2 or (target.fullscreen_client or 0) == 2
     local ws = target.workspace and target.workspace.id
     for _, v in ipairs(hl.get_windows()) do
-        if v.address ~= target.address and v.fullscreen and v.fullscreen ~= 0
-            and not in_min(v) and v.workspace and v.workspace.id == ws then
-            local mode = (v.fullscreen == 1) and "maximized" or "fullscreen"
-            dsp(hl.dsp.window.fullscreen({ mode = mode, action = "toggle", window = "address:" .. v.address }))
+        if v.address ~= target.address and not in_min(v) and v.workspace and v.workspace.id == ws then
+            if v.fullscreen == 1 then
+                dsp(hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle", window = "address:" .. v.address }))
+            elseif target_fs and (v.fullscreen or 0) == 0 and v.allowed_over_fullscreen then
+                dsp(hl.dsp.window.alter_zorder({ mode = "bottom", window = "address:" .. v.address }))
+            end
         end
     end
+    if not target_fs then dsp(hl.dsp.window.alter_zorder({ mode = "top", window = sel })) end
 end
 
 -- Nho vi tri con tro trong tung cua so (toa do tuong doi goc tren-trai cua so).
@@ -417,10 +453,9 @@ function cael_activate(addr, warp)
     if in_min(w) then return restore(w) end
     local sel = "address:" .. w.address
     if warp then pcall(remember_cursor) end
-    leave_fullscreen_others(w)
+    prepare_fullscreen_stack(w)   -- zorder truoc focus: giu fullscreen cua video cung workspace
     no_warp(function()
         dsp(hl.dsp.focus({ window = sel }))   -- tu chuyen sang workspace cua cua so neu can
-        dsp(hl.dsp.window.alter_zorder({ mode = "top", window = sel }))
     end)
     if warp then
         -- Cho cua so len tren cung xong moi dat con tro (cua so chong nhau: neu dat ngay, pointer focus
@@ -468,7 +503,7 @@ hl.on("window.open", function(w)
     end, { timeout = 60, type = "oneshot" })
 end)
 
--- Vuot 3 ngon trai/phai: chuyen qua lai giua cac cua so ("tab") trong workspace hien tai.
+-- (Khong con gan cu chi: 3 ngon ngang gio mo trinh chuyen ALT+TAB, xem misc.lua.) Chuyen qua lai giua cac cua so trong workspace hien tai.
 -- Thu tu = thu tu mo cua so (stable_id), vong tron; focus + dua len tren, khong keo chuot.
 -- dir = 1 (cua so ke tiep) | -1 (cua so truoc)
 function cael_cycle(dir)

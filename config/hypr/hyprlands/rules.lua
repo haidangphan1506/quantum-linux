@@ -65,6 +65,15 @@ hl.window_rule({
     move  = "(monitor_w*0.125) (monitor_h*0.125+30)",
 })
 
+-- Quantum Learn (apps/learn): tự vẽ header có nút đỏ/vàng/xanh như Brave -> mở full vùng làm việc
+-- (giống own-header-size trong titlebar.lua; rule sau đè size/move của quickshell-3-4)
+hl.window_rule({
+    name  = "quantum-learn-full",
+    match = { class = "^org\\.quickshell$", title = "^Quantum Learn$", modal = false },
+    size  = "(monitor_w-24) (monitor_h-54)",
+    move  = "12 42",
+})
+
 -- «Acerca de este equipo»: ventana pequeña, 2/5 del ancho de la pantalla
 hl.window_rule({
     name  = "size-about",

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Quantum Learn: tờ giấy kem, viền mực, bóng đổ cứng, dấu nhắc $_ trên nền xanh pastel -->
+  <rect x="14" y="16" width="102" height="102" rx="22" fill="#1d1b18"/>
+  <rect x="10" y="10" width="102" height="102" rx="22" fill="#f4ebe0" stroke="#1d1b18" stroke-width="4"/>
+  <path d="M10 44h102" stroke="#1d1b18" stroke-width="4"/>
+  <circle cx="30" cy="27" r="5" fill="#d0683a"/>
+  <circle cx="46" cy="27" r="5" fill="#e0a33a"/>
+  <circle cx="62" cy="27" r="5" fill="#7fc278"/>
+  <rect x="26" y="74" width="62" height="20" rx="4" fill="#cfe3b2"/>
+  <path d="M30 58l14 12-14 12" fill="none" stroke="#1d1b18" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M54 84h30" stroke="#1d1b18" stroke-width="7" stroke-linecap="round"/>
+</svg>

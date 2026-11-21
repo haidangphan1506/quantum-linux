@@ -34,7 +34,7 @@ Singleton {
         appearance: { mode: "light", dynamicColors: false, accent: "#6A5CFF", panelOpacity: 0.86, blur: true, textScale: 1.0,
                       glass: { bar: true, dock: true, panels: true, windows: false }, windowOpacity: 0.9 },
         layout: { topBar: { floating: true, showApp: true, showSysMon: true, showNetSpeed: true, showClaude: true } },
-        dock: { floating: true, align: "center", size: "medium", autohide: false, showSearch: true, showStart: true, showTray: true, showUpdates: true },
+        dock: { floating: true, align: "center", size: "medium", autohide: false, showSearch: true, showStart: true, showTray: true, showUpdates: true, showDownloads: true },
         clock: { format24h: true, showDate: true, showSeconds: false },
         lock: { left: ["weather", "fetch", "media"], right: ["stats", "notifs"], showNotifContent: false, city: "" },
         windows: { tiling: false, corners: "soft", animations: "normal", openAnimation: "zoom", minimizeAnimation: "zoom", buttonsLeft: false,
@@ -166,6 +166,12 @@ Singleton {
 
     function setPinned(list: var): void {
         adapter.dock.pinned = list;
+        root.save();
+    }
+
+    // Archivos y carpetas fijados al lado de la papelera (no son parte de los estilos)
+    function setStacks(list: var): void {
+        adapter.dock.stacks = list;
         root.save();
     }
 
@@ -324,7 +330,7 @@ Singleton {
                 // apps fijadas en la barra de tareas (ids de .desktop)
                 property var pinned: ["quantum-files", "firefox", "kitty", "quantum-center", "quantum-personalize"]
                 property string position: "bottom"       // bottom | top | left | right
-                property string minimizeEffect: "genie"  // genie | scale | suck: cómo se oculta y muestra una app desde el dock (Hyprland, minimize.lua)
+                property string minimizeEffect: "genie"  // genie | scale: cómo se minimiza y restaura una ventana (minimize.lua + GenieFx)
                 property bool floating: true
                 property string align: "center"          // center | left
                 property string size: "medium"           // small | medium | large
@@ -333,6 +339,8 @@ Singleton {
                 property bool showStart: true
                 property bool showTray: true
                 property bool showUpdates: true
+                property bool showDownloads: true        // carpeta Descargas junto a la papelera
+                property var stacks: []                  // archivos y carpetas fijados junto a la papelera (rutas; se sueltan desde el gestor de archivos)
                 property bool magnify: true              // ampliación al pasar el mouse (como macOS)
                 property real magnifyAmount: 0.55        // cuánto crece el ícono (0.1..1)
                 property bool showIndicators: true       // punto bajo las apps abiertas

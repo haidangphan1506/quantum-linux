@@ -109,6 +109,13 @@ hl.plugin.hyprbars.add_button({   -- xanh: zoom 3/4 man hinh <-> full (giong bam
 
 CAEL_BAR_HEIGHT = 30                  -- = bar_height ben duoi
 
+-- Quantum Learn tu ve header co nut cua so -> khong them thanh hyprbars (size/move: rules.lua)
+hl.window_rule({
+    name  = "own-header-quantum-learn",
+    match = { class = "^org\\.quickshell$", title = "^Quantum Learn$" },
+    ["hyprbars:no_bar"] = true,
+})
+
 -- Rule: app co header rieng -> khong co thanh hyprbars, mo full vung lam viec
 for _, e in ipairs(CAEL_OWN_HEADER_LIST) do
     hl.window_rule({

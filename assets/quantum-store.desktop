@@ -1,0 +1,14 @@
+[Desktop Entry]
+Name=Quantum Store
+Name[vi]=Cửa hàng Quantum
+GenericName=App Store
+GenericName[vi]=Cửa hàng ứng dụng
+Comment=Browse, install and remove apps from the Arch repositories and the AUR
+Comment[vi]=Tìm, cài và gỡ ứng dụng từ kho Arch và AUR
+Exec=quantum-store
+Icon=Appstore
+Terminal=false
+Type=Application
+Categories=System;PackageManager;
+Keywords=store;app;install;package;pacman;paru;aur;software;cửa hàng;cài đặt;
+StartupWMClass=org.quickshell

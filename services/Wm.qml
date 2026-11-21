@@ -33,6 +33,10 @@ Singleton {
                 return DesktopEntries.byId("claude-agentoffice") ?? DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
             if (title === "Activity Monitor")
                 return DesktopEntries.byId("quantum-activitymonitor") ?? DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
+            if (title === "Quantum Store")
+                return DesktopEntries.byId("quantum-store") ?? DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
+            if (title === "Quantum Learn")
+                return DesktopEntries.byId("quantum-learn") ?? DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
             if (title === root.hqTitle)
                 return DesktopEntries.byId("claude-agenthq") ?? DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
             return DesktopEntries.byId("quantum-personalize") ?? DesktopEntries.heuristicLookup(appId);
@@ -48,8 +52,15 @@ Singleton {
     // demás abiertas. Cada grupo: { id, name, icon, entry, pinned, wins }.
     // Se cachea y solo se recalcula cuando cambia el estado real (evita parpadeo).
     property var groups: []
+    // true mientras se arrastra un icono del dock: recalcular recrearía los botones a mitad del arrastre;
+    // los cambios quedan pendientes y se aplican al soltar
+    property bool holdGroups: false
+    property bool groupsPending: false
+    onHoldGroupsChanged: if (!holdGroups && groupsPending) updateGroups()
 
     function updateGroups(): void {
+        if (root.holdGroups) { root.groupsPending = true; return; }
+        root.groupsPending = false;
         const pinned = (Settings.dock.pinned ?? []).slice();
         const out = [];
         const byId = {};
@@ -137,6 +148,8 @@ Singleton {
 
     function nameFor(appId: string, title): string {
         if (appId === "org.quickshell" && title === "Activity Monitor") return "Activity Monitor";
+        // apps aparte (su propio proceso de Quickshell): el nombre es el título de su ventana
+        if (appId === "org.quickshell" && (title === "Quantum Store" || title === "Quantum Learn" || title === root.hqTitle)) return title;
         if (appId === "org.quickshell" && title !== root.officeTitle) return I18n.t("Ajustes del Sistema");
         return root.entryFor(appId, title)?.name ?? appId;
     }

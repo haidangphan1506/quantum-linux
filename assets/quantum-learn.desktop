@@ -1,0 +1,14 @@
+[Desktop Entry]
+Name=Quantum Learn
+Name[vi]=Học VPS Linux
+GenericName=Linux Course
+GenericName[vi]=Khoá học Linux
+Comment=Step-by-step VPS Linux course: theory, quizzes, simulated terminal labs and debugging
+Comment[vi]=Khoá học VPS Linux theo từng bước: lý thuyết, quiz, thực hành trên terminal mô phỏng và sửa lỗi
+Exec=quantum-learn
+Icon=quantum-learn
+Terminal=false
+Type=Application
+Categories=Education;
+Keywords=learn;course;linux;vps;terminal;bash;nginx;học;khoá học;
+StartupWMClass=org.quickshell

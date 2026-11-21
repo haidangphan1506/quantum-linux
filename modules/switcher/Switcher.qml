@@ -12,6 +12,9 @@ import qs.components
 //   mantener Alt + Tab: siguiente     ·  Alt soltado: ir a la seleccionada
 //   ←/→, ratón (hover + clic), Enter = ir, Esc = cancelar
 // Las teclas las manda Hyprland (variable.lua) por IPC: switcher next | commit | cancel.
+// Gesto de 3 dedos (hyprlands/misc.lua): switcher swipe <id> <seq> <pasos+1000> … swipeEnd <id> <seq> <pasos+1000> <ir>
+//   Cada mensaje es un proceso `qs ipc` aparte y pueden llegar desordenados: seq descarta los viejos,
+//   los pasos son absolutos (no +1/-1) y el fin trae la posición final, así que el resultado no depende del orden.
 Scope {
     id: root
 
@@ -45,6 +48,7 @@ Scope {
             index = list.length > 1 ? (step > 0 ? 1 : list.length - 1) : 0;
             Shell.closeAll();
             stepped = false;
+            openedAt = Date.now();
             open = true;
             resort.restart();
             return;
@@ -56,6 +60,7 @@ Scope {
         if (!open) return;
         const t = wins[index];
         open = false;
+        gActive = false;
         // Al cerrarse la capa (teclado Exclusive) Hyprland devuelve el foco a la ventana anterior:
         // enfocar DESPUÉS, si no la elegida pierde el foco y hay que pulsar Tab otra vez.
         pending = t?.wayland ?? null;
@@ -71,7 +76,42 @@ Scope {
             root.pending = null;
         }
     }
-    function cancel(): void { open = false; }
+    function cancel(): void { open = false; gActive = false; }
+    property double openedAt: 0
+
+    // ---------------------------------------------------------------- gesto de 3 dedos
+    property string gId: ""         // gesto actual
+    property int gSeq: 0            // último mensaje aplicado
+    property int gSteps: 0          // pasos desde la ventana anterior (+ derecha, − izquierda)
+    property bool gActive: false
+    property var gEnded: []         // gestos ya terminados: se ignora lo que llegue tarde
+    property int gPendingEnd: 0     // 1 = ir, -1 = cancelar, cuando termine de reordenar
+    function applySteps(): void {
+        const n = wins.length;
+        index = n > 1 ? (((1 + gSteps) % n) + n) % n : 0;
+    }
+    function swipe(gid: string, seq: int, steps: int): bool {
+        if (gEnded.indexOf(gid) >= 0) return false;
+        if (gid !== gId) { gId = gid; gSeq = 0; }
+        if (seq <= gSeq) return false;
+        gSeq = seq;
+        gSteps = steps - 1000;
+        if (!open) next(1);
+        if (!open) return false;
+        gActive = true;
+        applySteps();
+        return true;
+    }
+    function swipeEnd(gid: string, seq: int, steps: int, go: bool): void {
+        if (gEnded.indexOf(gid) >= 0) return;
+        swipe(gid, seq, steps);
+        gEnded = [gid].concat(gEnded).slice(0, 8);
+        if (!open) { gActive = false; return; }
+        // el orden por uso reciente aún no llegó (refreshToplevels es asíncrono): esperar a resort
+        if (resort.running) { gPendingEnd = go ? 1 : -1; return; }
+        gActive = false;
+        go ? commit() : cancel();
+    }
 
     // focusHistoryID llega con refreshToplevels (asíncrono): reordenar poco después de abrir,
     // si el usuario aún no se movió
@@ -80,11 +120,20 @@ Scope {
         id: resort
         interval: 150
         onTriggered: {
-            if (!root.open || root.stepped) return;
+            if (!root.open) return;
+            if (root.stepped && !root.gActive) return;
             const list = root.collect();
-            if (list.length === 0) return;
-            root.wins = list;
-            root.index = list.length > 1 ? 1 : 0;
+            if (list.length > 0) {
+                root.wins = list;
+                if (root.gActive) root.applySteps();
+                else root.index = list.length > 1 ? 1 : 0;
+            }
+            if (root.gPendingEnd !== 0) {
+                const go = root.gPendingEnd > 0;
+                root.gPendingEnd = 0;
+                root.gActive = false;
+                go ? root.commit() : root.cancel();
+            }
         }
     }
 
@@ -94,6 +143,8 @@ Scope {
         function prev(): void { root.next(-1); }
         function commit(): void { root.commit(); }
         function cancel(): void { root.cancel(); }
+        function swipe(gid: string, seq: int, steps: int): void { root.swipe(gid, seq, steps); }
+        function swipeEnd(gid: string, seq: int, steps: int, go: bool): void { root.swipeEnd(gid, seq, steps, go); }
         function status(): string {
             return `open=${root.open} index=${root.index} active=${Hyprland.activeToplevel?.title ?? "-"} wins=`
                 + root.wins.map(t => `${t.wayland?.appId}(${t.lastIpcObject?.focusHistoryID})`).join(",");
@@ -218,7 +269,13 @@ Scope {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onEntered: { root.stepped = true; root.index = cell.index; }
+                                // solo si el ratón se mueve de verdad: al abrirse (y con la animación) la
+                                // miniatura bajo el cursor quieto recibía "entered" y robaba la selección
+                                onPositionChanged: {
+                                    if (root.gActive || Date.now() - root.openedAt < 300 || cell.sel) return;
+                                    root.stepped = true;
+                                    root.index = cell.index;
+                                }
                                 onClicked: { root.index = cell.index; root.commit(); }
                             }
                         }

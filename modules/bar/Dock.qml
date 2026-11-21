@@ -40,7 +40,52 @@ Variants {
         // Ocultar automáticamente: se asoma al llevar el mouse al borde
         readonly property bool autohide: Settings.dock.autohide
         property bool hovering: false
-        readonly property bool revealed: !autohide || hovering || popup || Shell.clipboardOpen
+        // también mientras se arrastra un icono (si no, al sacarlo de la barra para quitarlo se escondía)
+        // también mientras se arrastra un icono (o un stack), con un stack abierto o mientras se suelta un archivo encima
+        readonly property bool revealed: !autohide || hovering || popup || Shell.clipboardOpen || taskbar.dragFrom >= 0
+                                         || stackDrag || stackOpen || dropping
+
+        // ---- Stacks: archivos y carpetas fijados junto a la papelera (como macOS)
+        property bool stackDrag: false
+        readonly property bool stackOpen: stackPopup.visible
+        function openStack(item: Item, path: string, title: string): void { closeMenu(); hoverGroup = null; stackPopup.openStack(item, path, title); }
+        function openStackMenu(item: Item): void { closeMenu(); hoverGroup = null; stackPopup.openMenu(item); }
+        function removeStack(path: string): void { Settings.setStacks((Settings.dock.stacks ?? []).filter(p => p !== path)); }
+
+        // Soltar archivos o carpetas desde el gestor de archivos (Thunar, Nautilus…) sobre el dock: se fijan.
+        // Se acepta como COPIA: con «mover» el gestor de archivos podría borrar el original.
+        readonly property bool dropping: cardDrop.containsDrag || peekDrop.containsDrag || dropHold.running
+        Timer { id: dropHold; interval: 600 }   // el hueco entre la franja del borde y la barra no la esconde
+        function dropPaths(urls: var): var {
+            const out = [];
+            for (const u of urls ?? []) {
+                let s = String(u);
+                if (!s.startsWith("file://")) continue;
+                s = s.slice(7);
+                if (!s.startsWith("/")) s = s.slice(s.indexOf("/"));   // file://host/ruta
+                try { s = decodeURIComponent(s); } catch (e) {}
+                if (s.length > 1) s = s.replace(/\/+$/, "");
+                if (s && !out.includes(s)) out.push(s);
+            }
+            return out;
+        }
+        function dropEnter(drag: var): void {
+            if (!drag.hasUrls || dropPaths(drag.urls).length === 0) { drag.accepted = false; return; }
+            drag.accept(Qt.CopyAction);
+        }
+        function dropDone(drop: var): void {
+            dropHold.stop();
+            const paths = dropPaths(drop.urls);
+            if (paths.length === 0) { drop.accepted = false; return; }
+            drop.accept(Qt.CopyAction);
+            addStacks(paths);
+        }
+        function addStacks(paths: var): void {
+            const list = (Settings.dock.stacks ?? []).slice();
+            for (const p of paths)
+                if (p && !list.includes(p) && p !== downloads.path) list.push(p);
+            Settings.setStacks(list);
+        }
 
         // Estado del globo (nombre o lista de ventanas) y del menú contextual
         property var hoverGroup: null
@@ -98,6 +143,8 @@ Variants {
         mask: Region {
             item: dock.menuGroup !== null ? catcher : dock.revealed ? cardArea : peek
             Region { item: dock.popup && dock.menuGroup === null ? bubble : null }
+            // mientras se arrastra un archivo, también la franja del borde (para no perder el arrastre al asomarse)
+            Region { item: dock.dropping ? peek : null }
         }
 
         // Zona de clics de la barra: la misma caja que la tarjeta pero SIN su animación.
@@ -121,6 +168,14 @@ Variants {
             height: dock.vertical ? dock.height : 3
             // al asomarse, se vuelve a esconder sola salvo que el mouse suba a la barra
             HoverHandler { onHoveredChanged: if (hovered) { dock.hovering = true; revealTimer.interval = 1500; revealTimer.restart(); } }
+            // un archivo arrastrado hasta el borde también asoma la barra
+            DropArea {
+                id: peekDrop
+                anchors.fill: parent
+                onEntered: drag => dock.dropEnter(drag)
+                onExited: dropHold.restart()
+                onDropped: drop => dock.dropDone(drop)
+            }
         }
         Timer {
             id: revealTimer
@@ -137,6 +192,15 @@ Variants {
             function click(i: int): void { taskbar.buttonAt(i)?.clicked(); }
             function launch(i: int): void { taskbar.buttonAt(i)?.middleClicked(); }
             function clear(): void { dock.closeMenu(); dock.hoverGroup = null; dock.hoverItem = null; }
+            // stack de Descargas: abanico o menú del clic derecho; stackClose lo cierra
+            function stack(): void { dock.openStack(downloads, downloads.path, downloads.label); }
+            function stackMenu(): void { dock.openStackMenu(downloads); }
+            function stackClose(): void { stackPopup.close(); }
+            // fijar un archivo o carpeta como si se soltara sobre el dock
+            function pin(path: string): void { dock.addStacks([path]); }
+            function unpin(path: string): void { dock.removeStack(path); }
+            // clic en el stack fijado número i (0 = el primero)
+            function stackClick(i: int): void { stackRep.itemAt(i)?.clicked(); }
         }
 
         // Clic fuera del menú: lo cierra
@@ -221,8 +285,21 @@ Variants {
             readonly property bool startShown: Settings.dock.showStart
             readonly property bool searchShown: Settings.dock.showSearch
             readonly property bool dividerShown: (Settings.dock.showStart || Settings.dock.showSearch)
-            // elementos visibles de la fila (Inicio, Buscar, divisor, las apps, divisor y papelera): GridLayout necesita el conteo
-            readonly property int itemCount: Math.max(1, (startShown ? 1 : 0) + (searchShown ? 1 : 0) + (dividerShown ? 1 : 0) + 1 + 3)
+            readonly property bool downloadsShown: Settings.dock.showDownloads
+            readonly property bool dropSlotShown: cardDrop.containsDrag
+            // elementos visibles de la fila (Inicio, Buscar, divisor, las apps, divisor, stacks, hueco al soltar,
+            // descargas y papelera): GridLayout necesita el conteo
+            readonly property int itemCount: Math.max(1, (startShown ? 1 : 0) + (searchShown ? 1 : 0) + (dividerShown ? 1 : 0) + 1 + 2
+                                                         + stackRep.count + (dropSlotShown ? 1 : 0) + (downloadsShown ? 1 : 0))
+
+            // soltar archivos o carpetas encima de la barra: se fijan junto a la papelera
+            DropArea {
+                id: cardDrop
+                anchors.fill: parent
+                onEntered: drag => dock.dropEnter(drag)
+                onExited: dropHold.restart()
+                onDropped: drop => dock.dropDone(drop)
+            }
             GridLayout {
                 id: row
                 flow: dock.vertical ? GridLayout.TopToBottom : GridLayout.LeftToRight
@@ -282,10 +359,39 @@ Variants {
                     implicitHeight: dock.vertical ? 1 : Math.round(34 * Theme.dockScale)
                     color: Theme.alpha(Theme.fg, 0.2)
                 }
-                FilesButton {}
+                // archivos y carpetas fijados (soltados desde el gestor de archivos)
+                Repeater {
+                    id: stackRep
+                    model: Settings.dock.stacks ?? []
+                    // dentro del delegado «dock: dock» se referiría a su propia propiedad (undefined):
+                    // se pasa la ventana por aquí
+                    readonly property var dockWindow: dock
+                    StackButton {
+                        required property var modelData
+                        dock: stackRep.dockWindow
+                        path: modelData
+                        onRemoveRequested: dock.removeStack(modelData)
+                    }
+                }
+                // hueco donde caerá lo que se está soltando
+                Rectangle {
+                    visible: card.dropSlotShown
+                    implicitWidth: Math.round(50 * Theme.dockScale)
+                    implicitHeight: Math.round(50 * Theme.dockScale)
+                    radius: Theme.radiusSmall
+                    color: Theme.alpha(Theme.primary, 0.15)
+                    border.width: 2
+                    border.color: Theme.alpha(Theme.primary, 0.7)
+                    Icon { anchors.centerIn: parent; text: "add"; size: Math.round(26 * Theme.dockScale); color: Theme.primary }
+                }
+                // carpeta de descargas al lado de la papelera, como macOS (un stack más)
+                DownloadsButton { id: downloads; dock: dock; visible: card.downloadsShown }
                 TrashButton {}
             }
         }
+
+        // abanico de un stack (y su menú del clic derecho): capa propia, más alta que el dock
+        StackPopup { id: stackPopup; dock: dock }
 
         // ------------------------------------------------ globo al pasar el mouse
         Card {

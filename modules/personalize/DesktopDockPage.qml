@@ -61,6 +61,16 @@ ColumnLayout {
                 onPicked: v => Settings.set("dock", "position", v)
             }
         }
+        // como macOS: «Minimizar ventanas con» Efecto genio / Efecto de escala.
+        // Lo aplica hyprlands/minimize.lua (lee settings.json en cada minimizado) con modules/effects/GenieFx.qml
+        OptionRow {
+            title: I18n.t("Minimizar ventanas con")
+            Choice {
+                options: [{ v: "genie", t: I18n.t("Efecto genio") }, { v: "scale", t: I18n.t("Efecto de escala") }]
+                value: Settings.dock.minimizeEffect === "scale" ? "scale" : "genie"
+                onPicked: v => Settings.set("dock", "minimizeEffect", v)
+            }
+        }
         OptionRow {
             title: I18n.t("Doble clic en la barra de título de una ventana para")
             Choice {
@@ -104,6 +114,7 @@ ColumnLayout {
         }
         OptionRow { title: I18n.t("Botón de Inicio (Launchpad)"); Toggle { checked: Settings.dock.showStart; onToggled: c => Settings.set("dock", "showStart", c) } }
         OptionRow { title: I18n.t("Botón de búsqueda"); Toggle { checked: Settings.dock.showSearch; onToggled: c => Settings.set("dock", "showSearch", c) } }
+        OptionRow { title: I18n.t("Carpeta Descargas junto a la papelera"); Toggle { checked: Settings.dock.showDownloads; onToggled: c => Settings.set("dock", "showDownloads", c) } }
         OptionRow { title: I18n.t("Aviso de actualizaciones"); Toggle { checked: Settings.dock.showUpdates; onToggled: c => Settings.set("dock", "showUpdates", c) } }
     }
 
