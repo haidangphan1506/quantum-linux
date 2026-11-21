@@ -55,11 +55,12 @@ PKGS=(
   # Qt6 mà các module QML import (Quick3D cho agentviz3d/agentoffice, Multimedia cho wallpaper động)
   qt6-declarative qt6-5compat qt6-multimedia qt6-quick3d qt6-svg qt6-wayland qt6-shadertools
   # âm thanh, mạng, bluetooth, nguồn
-  pipewire pipewire-pulse pipewire-alsa wireplumber libpulse
+  pipewire pipewire-pulse pipewire-alsa wireplumber libpulse swh-plugins   # swh: limiter cho sink Boost/Mono
   networkmanager nm-connection-editor bluez bluez-utils blueman
   upower power-profiles-daemon brightnessctl
   # công cụ shell gọi trực tiếp
   kitty cliphist wl-clipboard grim slurp playerctl libnotify jq curl git python
+  nodejs   # backend của Quantum Learn (chạy shell mô phỏng của khoá học)
   pacman-contrib fastfetch ffmpeg xdg-utils
   # ứng dụng + font
   fish eza starship zoxide direnv swappy thunar exo xdg-user-dirs
@@ -123,11 +124,15 @@ link "$REPO" "$CFG/quickshell/quantum"        # bí danh: một số comment/tà
 link "$REPO/apps/agentoffice/claude-agentoffice" "$BIN/claude-agentoffice"
 link "$REPO/apps/agentviz3d/claude-agentviz3d" "$BIN/claude-agentviz3d"
 link "$REPO/apps/agenthq/claude-agenthq" "$BIN/claude-agenthq"
+link "$REPO/apps/store/quantum-store" "$BIN/quantum-store"
+link "$REPO/apps/learn/quantum-learn" "$BIN/quantum-learn"
 run mkdir -p "$HOME/.local/share/applications" "$HOME/.local/share/icons/hicolor/scalable/apps"
-for d in quantum-personalize claude-agenthq quantum-activitymonitor; do
+for d in quantum-personalize claude-agenthq quantum-activitymonitor quantum-store quantum-learn; do
   run install -Dm644 "$REPO/assets/$d.desktop" "$HOME/.local/share/applications/$d.desktop"
   run install -Dm644 "$REPO/assets/$d.svg" "$HOME/.local/share/icons/hicolor/scalable/apps/$d.svg"
 done
+# Quantum Store dùng icon App Store của MacTahoe (Icon=Appstore); không có theme đó thì dùng icon riêng trong hicolor
+run install -Dm644 "$REPO/assets/quantum-store.svg" "$HOME/.local/share/icons/hicolor/scalable/apps/Appstore.svg"
 run gtk-update-icon-cache -qf "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
 # statusLine của Claude Code: ghi % giới hạn 5 h / 7 ngày để ClaudeMeter trên thanh hiển thị (không ghi đè statusLine có sẵn)
 if ! ((DRY)) && command -v python3 >/dev/null 2>&1; then
@@ -156,6 +161,7 @@ EXTRA_PKGS=(
   htop btop pavucontrol networkmanager unzip
   docker docker-compose                    # nmcli nằm trong networkmanager
   lazygit lazydocker
+  archlinux-appstream-data libjxl          # Quantum Store: icon/ảnh/danh mục ứng dụng (+ djxl đổi icon .jxl sang PNG)
   hyprlauncher hyprshutdown                # Super+R / Super+M trong config (repo hoặc AUR)
 )
 install_extras() {
@@ -234,6 +240,8 @@ if ((DOTS)); then
   put "$REPO/config/fish"    "$CFG/fish"
   put "$REPO/config/Thunar"  "$CFG/Thunar"
   put "$REPO/config/pavucontrol.ini" "$CFG/pavucontrol.ini"
+  # sink ảo Boost (+6 dB, limiter) và Mono cho tai nghe - xem config/pipewire/pipewire.conf.d/quantum-audio.conf
+  put "$REPO/config/pipewire/pipewire.conf.d/quantum-audio.conf" "$CFG/pipewire/pipewire.conf.d/quantum-audio.conf"
   # Nút cửa sổ kiểu macOS (đỏ/vàng/xanh, bên trái) cho app GTK và Brave/Chromium (theme GTK)
   for v in 3 4; do
     put "$REPO/config/gtk/quantum-window-buttons-gtk$v.css" "$CFG/gtk-$v.0/quantum-window-buttons.css"

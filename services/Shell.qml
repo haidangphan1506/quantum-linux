@@ -134,6 +134,12 @@ Singleton {
         activityOpen = !activityOpen;
     }
 
+    // Quantum Store: app aparte (apps/store, su propio proceso de Quickshell). El launcher
+    // trae al frente la ventana si ya está abierta. arg: "" | "updates" | "installed" | "search" + q…
+    function openStore(arg: string, value: string): void {
+        Quickshell.execDetached([Quickshell.shellDir + "/apps/store/quantum-store", arg ?? "", value ?? ""]);
+    }
+
     // Ajustes del Sistema ya abierto: ir a otra página (las páginas lo usan para enlazarse)
     signal settingsGo(string page)
 
@@ -176,6 +182,7 @@ Singleton {
         function wallpapers(): void { root.toggleWallpapers(); }
         function personalize(): void { root.personalize(); }
         function activityMonitor(): void { root.toggleActivity(); }
+        function store(): void { root.openStore("", ""); }
         function about(): void { root.openAbout(); }
         function nightLight(): void { root.toggleNightLight(); }
         function sound(name: string): void { Sounds.play(name); }

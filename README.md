@@ -41,9 +41,9 @@ Cấu hình Hyprland nằm ở `config/hypr/` (`hyprland.lua` nạp các module 
 
 ### Phím tắt chính (`config/hypr/variable.lua`)
 
-**Terminal (kitty chạy fish): `Super+Enter`, `Super+Q`, `Ctrl+Alt+T`**; `Super+Shift+Enter` mở terminal chạy btop · `Super+Q` mở terminal · `Super+C` kill app đang focus (đã bỏ copy/paste kiểu macOS) ·
+**Terminal (kitty chạy fish): `Super+Enter`, `Super+Q`, `Ctrl+Alt+T`**; `Super+Shift+Enter` mở terminal chạy btop · `Super+Q` mở terminal · `Super+C` copy · `Super+V` paste · `Super+X` đóng app đang focus ·
  `Super+E` file manager · `Super+Space`/`Super+R` Spotlight · tap `Super` Launchpad · `Super+Shift+R` quay toàn màn hình · `Super+Alt+R` quay vùng chọn (bấm lại để dừng, lưu ở `~/Videos/Recordings`) · `Super+Shift+V` lịch sử clipboard · `Ctrl+Shift+Esc` Activity Monitor ·
-`Super+A` control center · `Super+X` menu phiên · `Super+L` khoá · `Super+W` hình nền ·
+`Super+A` control center · `Super+Shift+X` menu phiên · `Super+L` khoá · `Super+W` hình nền ·
 `Super+I` Personalize · `Super+Shift+V` clipboard · `Super+S` chụp vùng · `Alt+Tab` chuyển cửa sổ ·
 `Ctrl+Shift+Esc` Task Manager · `Super+1..0` workspace · cử chỉ 3/4 ngón (touchpad).
 Mọi thứ đều đi qua IPC: `qs -c caelestia ipc call <target> <hàm>` (xem `grep -rn IpcHandler .`).

@@ -42,8 +42,29 @@ GridLayout {
     readonly property real dragOut: outSign * dragCross
     readonly property real unpinDist: Math.round(60 * Theme.dockScale)
     readonly property bool unpinning: dragFrom >= 0 && dragPinned && dragOut > unpinDist
+    // hasta dónde puede seguir al mouse hacia afuera: lo que queda de la ventana del dock (360 px)
+    // por encima de la barra; una app sin fijar apenas se despega (no se puede quitar)
+    readonly property real maxOut: Math.max(unpinDist + 20, 360 - dock.barH - dock.gap - Math.round(70 * Theme.dockScale))
     readonly property real slot: (rep.itemAt(0) ? (vertical ? rep.itemAt(0).height : rep.itemAt(0).width) : 46) + (vertical ? rowSpacing : columnSpacing)
-    readonly property int dragTo: dragFrom < 0 ? -1 : Math.max(0, Math.min(rep.count - 1, dragFrom + Math.round(dragAlong / slot)))
+    // posición de caída: el botón cuyo centro (en el layout) queda más cerca del centro del arrastrado
+    // (tiene en cuenta el margen del divisor entre fijadas y abiertas, que un paso fijo no ve)
+    readonly property int dragTo: {
+        if (dragFrom < 0) return -1;
+        const a = rep.itemAt(dragFrom);
+        if (!a) return dragFrom;
+        const at = (vertical ? a.y + a.height / 2 : a.x + a.width / 2) + dragAlong;
+        let best = dragFrom, bestD = 1e9;
+        for (let i = 0; i < rep.count; i++) {
+            const b = rep.itemAt(i);
+            if (!b) continue;
+            const d = Math.abs((vertical ? b.y + b.height / 2 : b.x + b.width / 2) - at);
+            if (d < bestD) { bestD = d; best = i; }
+        }
+        return best;
+    }
+    // mientras se arrastra, la lista de apps no se recalcula (recrearía los botones y cortaría el arrastre)
+    onDragFromChanged: Wm.holdGroups = dragFrom >= 0
+    function resetDrag(): void { dragFrom = -1; dragAlong = 0; dragCross = 0; dragPinned = false; }
 
     Repeater {
         id: rep
@@ -60,7 +81,10 @@ GridLayout {
             // posicion del icono para el efecto genie (solo el dock de la pantalla principal)
             property string regId: ""
             Component.onCompleted: if (root.dock.modelData === Quickshell.screens[0]) { regId = g.id; DockTargets.register(regId, btn); }
-            Component.onDestruction: DockTargets.unregister(regId, btn)
+            Component.onDestruction: {
+                DockTargets.unregister(regId, btn);
+                if (btn.dragging) root.resetDrag();
+            }
 
             active: focused
             flat: true
@@ -86,8 +110,7 @@ GridLayout {
             draggable: true
             z: dragging ? 10 : 0
             // al soltar fuera de la barra, una app fijada se quita; si no, se reordena
-            opacity: btn.index === root.dragFrom && root.unpinning ? 0.4 : 1
-            Behavior on opacity { NumberAnimation { duration: Theme.animFast } }
+            readonly property bool unpinHere: btn.index === root.dragFrom && root.unpinning
             onDragMoved: (dx, dy) => {
                 root.dragFrom = index;
                 root.dragAlong = root.vertical ? dy : dx;
@@ -96,28 +119,34 @@ GridLayout {
                 root.dock.closeMenu(); root.dock.hoverGroup = null;
             }
             onDropped: {
+                const id = g.id;
+                const from = index;
                 const to = root.dragTo;
                 const unpin = root.unpinning;
-                root.dragFrom = -1; root.dragAlong = 0; root.dragCross = 0; root.dragPinned = false;
-                if (unpin) Wm.togglePin(g.id);
-                else if (to !== index) Wm.moveGroup(g.id, to);
+                root.resetDrag();
+                if (unpin) Wm.togglePin(id);
+                else if (to !== from) Wm.moveGroup(id, to);
             }
             transform: Translate {
+                id: shift
                 // desplazamiento a lo largo de la barra (reordenar)
                 readonly property real along: {
                     if (root.dragFrom < 0) return 0;
                     if (btn.index === root.dragFrom) return root.dragAlong;
+                    // fuera del dock (se va a quitar) los demás vuelven a su sitio: no se reordena
+                    if (root.unpinning) return 0;
                     const f = root.dragFrom, t = root.dragTo;
                     if (f < t && btn.index > f && btn.index <= t) return -root.slot;
                     if (f > t && btn.index < f && btn.index >= t) return root.slot;
                     return 0;
                 }
                 // la app arrastrada sigue al mouse también hacia afuera (sin entrar a la barra)
-                readonly property real cross: btn.index === root.dragFrom ? root.outSign * Math.max(0, Math.min(2 * root.unpinDist, root.dragOut)) : 0
+                readonly property real cross: btn.index === root.dragFrom
+                    ? root.outSign * Math.max(0, Math.min(root.dragPinned ? root.maxOut : root.unpinDist / 2, root.dragOut)) : 0
                 x: root.vertical ? cross : along
                 y: root.vertical ? along : cross
-                Behavior on x { enabled: !btn.dragging && !root.vertical; NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
-                Behavior on y { enabled: !btn.dragging && root.vertical; NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
+                Behavior on x { enabled: !btn.dragging; NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
+                Behavior on y { enabled: !btn.dragging; NumberAnimation { duration: Theme.anim; easing.type: Easing.OutCubic } }
             }
 
             onClicked: {
@@ -159,7 +188,8 @@ GridLayout {
                 size: Math.round(38 * Theme.dockScale)
                 // kitty: icono de Terminal de macOS (el del tema trae el gato)
                 name: ["kitty", "kitty-open"].includes(btn.g.icon) ? "utilities-terminal" : btn.g.icon
-                opacity: btn.running && btn.g.wins.every(w => Wm.isMinimized(w)) ? 0.6 : 1
+                opacity: (btn.running && btn.g.wins.every(w => Wm.isMinimized(w)) ? 0.6 : 1) * (btn.unpinHere ? 0.45 : 1)
+                Behavior on opacity { NumberAnimation { duration: Theme.animFast } }
                 // como macOS: el icono salta varias veces mientras la app abre, con una pausa entre saltos
                 // (el salto se mueve hacia el lado del borde del dock)
                 property real lift: 0
@@ -180,14 +210,39 @@ GridLayout {
                 // magnificación continua: cuanto más cerca del mouse, más grande (suavizado de Hermite),
                 // así el icono crece y se achica mientras el mouse pasa de una app a otra
                 readonly property real near: {
-                    const c = root.vertical ? btn.y + btn.height / 2 : btn.x + btn.width / 2;
+                    // incluye el desplazamiento del arrastre: el icono arrastrado sigue grande bajo el mouse
+                    const c = root.vertical ? btn.y + shift.y + btn.height / 2 : btn.x + shift.x + btn.width / 2;
                     const d = Math.abs(c - root.pointerRow);
                     const t = Math.max(0, 1 - d / (Math.round(130 * Theme.dockScale)));
                     return t * t * (3 - 2 * t);
                 }
                 transformOrigin: root.dock.edgeOrigin
-                scale: (1 + (Settings.dock.magnify ? Settings.dock.magnifyAmount : 0) * near) * (btn.pressed ? 0.92 : 1)
+                scale: (1 + (Settings.dock.magnify ? Settings.dock.magnifyAmount : 0) * near) * (btn.pressed && !btn.dragging ? 0.92 : 1)
                 Behavior on scale { NumberAnimation { duration: 90; easing.type: Easing.OutQuad } }
+            }
+
+            // Sacada del dock (como macOS «Quitar»): un cartel junto al icono avisa que al soltar se desfija
+            Rectangle {
+                id: unpinTag
+                z: 5
+                opacity: btn.unpinHere ? 1 : 0
+                visible: opacity > 0
+                Behavior on opacity { NumberAnimation { duration: Theme.animFast } }
+                width: unpinText.implicitWidth + 16
+                height: unpinText.implicitHeight + 8
+                radius: height / 2
+                color: Theme.alpha(Theme.surface, 0.92)
+                border.width: 1
+                border.color: Theme.alpha(Theme.fg, 0.15)
+                // del lado de afuera del icono (arriba con el dock abajo, a la derecha con el dock a la izquierda…)
+                x: root.vertical ? (root.outSign > 0 ? btn.width + 6 : -width - 6) : (btn.width - width) / 2
+                y: root.vertical ? (btn.height - height) / 2 : (root.outSign > 0 ? btn.height + 6 : -height - 6)
+                Txt {
+                    id: unpinText
+                    anchors.centerIn: parent
+                    text: I18n.t("Quitar de la barra")
+                    font.weight: Font.DemiBold
+                }
             }
 
             // Indicador como en macOS: un punto en el borde del dock si la app está abierta

@@ -57,7 +57,7 @@ Singleton {
     }
 
     readonly property string inputLua: {
-        const tp = `touchpad = { natural_scroll = ${t.natural}, ["tap-to-click"] = ${t.tapToClick}, disable_while_typing = ${t.disableWhileTyping}, ` +
+        const tp = `touchpad = { natural_scroll = ${t.natural}, tap_to_click = ${t.tapToClick}, disable_while_typing = ${t.disableWhileTyping}, ` +
                    `scroll_factor = ${num(t.scrollSpeed)}, clickfinger_behavior = ${t.clickMethod === "clickfinger"} }`;
         let lua = `hl.config({ input = { sensitivity = ${num(m.speed)}, accel_profile = "${m.accel ? "adaptive" : "flat"}", ` +
                   `natural_scroll = ${m.natural}, scroll_factor = ${num(m.scrollSpeed)}, left_handed = ${m.leftHanded}, ` +

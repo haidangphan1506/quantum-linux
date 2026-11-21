@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1fa2ff"/><stop offset="1" stop-color="#0a5cff"/></linearGradient>
+  </defs>
+  <rect x="6" y="6" width="116" height="116" rx="27" fill="url(#g)"/>
+  <rect x="6.5" y="6.5" width="115" height="115" rx="26.5" fill="none" stroke="#ffffff" stroke-opacity=".22"/>
+  <!-- túi mua sắm -->
+  <path d="M46 48v-6a18 18 0 0 1 36 0v6" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/>
+  <path d="M32 48h64l-5 50a8 8 0 0 1-8 7H45a8 8 0 0 1-8-7z" fill="#ffffff"/>
+  <!-- mũi tên tải về -->
+  <path d="M64 60v28M52 76l12 12 12-12" fill="none" stroke="#0a6cff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
