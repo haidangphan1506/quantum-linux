@@ -17,8 +17,16 @@ ColumnLayout {
 
     // Como en macOS: mientras la página está abierta se busca y el equipo es visible
     property bool wasDiscoverable: false
+    // La búsqueda dura 15 s y se detiene sola (el spinner se detiene con ella)
+    function scan(): void { Bt.startScan(); scanTimer.restart(); }
+    Timer { id: scanTimer; interval: 15000; onTriggered: Bt.stopScan() }
+    Connections {
+        target: Bt
+        function onEnabledChanged(): void { if (Bt.enabled) scanTimer.restart(); else scanTimer.stop(); }
+    }
+
     Component.onCompleted: {
-        Bt.startScan();
+        page.scan();
         if (ad && Bt.enabled) { wasDiscoverable = ad.discoverable; ad.discoverable = true; }
     }
     Component.onDestruction: {
@@ -64,192 +72,175 @@ ColumnLayout {
     }
 
     // ------------------------------------------------------------ adaptador
-    PageHero {
-        icon: "bluetooth"
-        color: "#007AFF"
-        title: "Bluetooth"
-        text: I18n.t("Conecta accesorios como auriculares, teclados, mouse y mandos para escuchar música, escribir o jugar.")
-    }
-
     Group {
-        help: !Bt.available ? I18n.t("No se encontró un adaptador Bluetooth")
-            : Bt.enabled ? I18n.t("Este equipo es visible como «") + (page.ad?.name ?? "") + I18n.t("» mientras los ajustes de Bluetooth están abiertos.") : ""
         OptionRow {
             visible: Bt.available
             title: "Bluetooth"
+            help: I18n.t("Conecta accesorios como auriculares, teclados, mouse y mandos para escuchar música, escribir o jugar.")
+            icon: "bluetooth"
+            iconColor: "#007AFF"
             Toggle { checked: Bt.enabled; onToggled: c => { if (page.ad) page.ad.enabled = c; } }
         }
-    }
-
-    Group {
-        visible: Bt.available && Bt.enabled
-        advanced: true
-        title: I18n.t("Este equipo")
         OptionRow {
-            title: I18n.t("Nombre del equipo")
-            NameField {
-                implicitWidth: 300
-                value: page.ad?.name ?? ""
-                placeholder: I18n.t("Nombre que ven los demás")
-                onSaved: t => Quickshell.execDetached(["busctl", "set-property", "org.bluez", page.ad.dbusPath, "org.bluez.Adapter1", "Alias", "s", t])
-            }
+            visible: !Bt.available
+            title: I18n.t("No se encontró un adaptador Bluetooth")
+            icon: "bluetooth_disabled"
+            iconColor: "#8E8E93"
         }
-        OptionRow {
-            title: I18n.t("Permitir emparejar")
-            help: I18n.t("Si se apaga, ningún dispositivo nuevo puede emparejarse.")
-            Toggle { checked: page.ad?.pairable ?? false; onToggled: c => page.ad.pairable = c }
+        // nota de visibilidad dentro del recuadro, como en macOS
+        Item {
+            visible: Bt.available && Bt.enabled
+            Layout.fillWidth: true
+            implicitHeight: visNote.implicitHeight + 20
+            Rectangle { width: parent.width; height: 1; color: Theme.alpha(Theme.fg, 0.08) }
+            Txt {
+                id: visNote
+                anchors.left: parent.left; anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                text: I18n.t("Este equipo es visible como «") + (page.ad?.name ?? "") + I18n.t("» mientras los ajustes de Bluetooth están abiertos.")
+                color: Theme.fgMuted
+                font.pixelSize: Theme.textSmall
+                wrapMode: Text.WordWrap
+                elide: Text.ElideNone
+            }
         }
     }
 
     // ------------------------------------------------------ dispositivos
-    component DeviceCard: Rectangle {
+    component DeviceCard: ColumnLayout {
         id: card
         required property var modelData
+        required property int index
         readonly property var dev: modelData
         readonly property bool isPaired: dev.paired || dev.bonded
         readonly property bool open: isPaired && page.expanded === dev.address
 
-        required property int index
         Layout.fillWidth: true
-        implicitHeight: col.implicitHeight + 8
-        color: "transparent"
-        // línea entre filas, como las listas de macOS
-        Rectangle { visible: card.index > 0; width: parent.width; height: 1; color: Theme.alpha(Theme.fg, 0.08) }
+        spacing: 0
+        Rectangle { visible: card.index > 0; Layout.fillWidth: true; implicitHeight: 1; color: Theme.alpha(Theme.fg, 0.08) }
 
-        ColumnLayout {
-            id: col
-            anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
-            anchors.topMargin: 4
-            spacing: 10
+        // fila principal
+        Item {
+            Layout.fillWidth: true
+            implicitHeight: 56
 
-            // fila principal
-            Item {
-                Layout.fillWidth: true
-                implicitHeight: 46
+            HoverHandler { id: hov }
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: Bt.activate(card.dev)
+            }
 
-                MouseArea {
-                    id: head
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: card.isPaired ? page.expanded = (card.open ? "" : card.dev.address) : Bt.activate(card.dev)
-                }
+            RowLayout {
+                anchors.fill: parent
+                spacing: 12
 
-                RowLayout {
-                    anchors.fill: parent
-                    spacing: 12
-
-                    Rectangle {
-                        implicitWidth: 32; implicitHeight: 32; radius: 16
-                        color: card.dev.connected ? "#007AFF" : Theme.alpha(Theme.fg, 0.1)
-                        Icon {
-                            anchors.centerIn: parent
-                            text: Bt.deviceIcon(card.dev)
-                            size: 18
-                            color: card.dev.connected ? "white" : Theme.fg
-                            SequentialAnimation on opacity {
-                                running: Bt.busy(card.dev)
-                                loops: Animation.Infinite
-                                NumberAnimation { to: 0.3; duration: 500 }
-                                NumberAnimation { to: 1; duration: 500 }
-                            }
+                Item {
+                    implicitWidth: 34; implicitHeight: 34
+                    Icon {
+                        anchors.centerIn: parent
+                        text: Bt.deviceIcon(card.dev)
+                        size: 30
+                        fill: 1
+                        color: card.dev.connected ? Theme.fg : Theme.alpha(Theme.fg, 0.75)
+                        SequentialAnimation on opacity {
+                            running: Bt.busy(card.dev)
+                            loops: Animation.Infinite
+                            NumberAnimation { to: 0.3; duration: 500 }
+                            NumberAnimation { to: 1; duration: 500 }
                         }
                     }
-                    ColumnLayout {
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 1
+                    Txt { Layout.fillWidth: true; text: card.dev.name; elide: Text.ElideRight }
+                    RowLayout {
+                        visible: card.isPaired
                         Layout.fillWidth: true
-                        spacing: 1
-                        Txt { Layout.fillWidth: true; text: card.dev.name; elide: Text.ElideRight }
+                        spacing: 4
                         Txt {
-                            Layout.fillWidth: true
-                            text: Bt.hint(card.dev) + (card.dev.blocked ? " · " + I18n.t("Bloqueado") : card.dev.trusted && card.isPaired ? " · " + I18n.t("De confianza") : "")
+                            text: (card.dev.connected ? I18n.t("Conectado") : Bt.busy(card.dev) ? Bt.hint(card.dev) : I18n.t("No conectado")) + (card.dev.blocked ? " · " + I18n.t("Bloqueado") : "")
                             color: Theme.fgMuted
                             font.pixelSize: Theme.textSmall
                         }
+                        Txt { visible: card.dev.connected && card.dev.batteryAvailable; text: "–"; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
+                        Icon {
+                            visible: card.dev.connected && card.dev.batteryAvailable
+                            text: card.dev.battery > 0.8 ? "battery_full" : card.dev.battery > 0.3 ? "battery_4_bar" : "battery_1_bar"
+                            size: 16; color: Theme.fgMuted
+                        }
+                        Txt { visible: card.dev.connected && card.dev.batteryAvailable; text: Math.round(card.dev.battery * 100) + "%"; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
+                        Item { Layout.fillWidth: true }
                     }
-                    // batería
-                    RowLayout {
-                        visible: card.dev.batteryAvailable
-                        spacing: 2
-                        Icon { text: card.dev.battery > 0.8 ? "battery_full" : card.dev.battery > 0.3 ? "battery_4_bar" : "battery_1_bar"; size: 18; color: Theme.fgMuted }
-                        Txt { text: Math.round(card.dev.battery * 100) + "%"; color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
-                    }
-                    PillButton {
-                        implicitHeight: 28
-                        visible: !card.isPaired || !card.open
-                        text: !card.isPaired ? I18n.t("Emparejar") : card.dev.connected ? I18n.t("Desconectar") : I18n.t("Conectar")
-                        primary: !card.dev.connected
-                        enabled_: !Bt.busy(card.dev) && !card.dev.blocked
-                        onClicked: Bt.activate(card.dev)
-                    }
-                    Icon {
-                        visible: card.isPaired
-                        text: card.open ? "expand_less" : "info"
-                        size: 20
-                        color: Theme.fgMuted
+                }
+                PillButton {
+                    implicitHeight: 28
+                    visible: hov.hovered || Bt.busy(card.dev)
+                    text: !card.isPaired ? I18n.t("Conectar") : card.dev.connected ? I18n.t("Desconectar") : I18n.t("Conectar")
+                    enabled_: !Bt.busy(card.dev) && !card.dev.blocked
+                    onClicked: Bt.activate(card.dev)
+                }
+                // botón (i) de detalles
+                Item {
+                    visible: card.isPaired
+                    implicitWidth: 28; implicitHeight: 28
+                    Icon { anchors.centerIn: parent; text: card.open ? "expand_less" : "info"; size: 22; color: Theme.fgMuted }
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: page.expanded = card.open ? "" : card.dev.address
                     }
                 }
             }
+        }
 
-            // detalles (solo emparejados)
-            ColumnLayout {
-                visible: card.open
-                Layout.fillWidth: true
-                Layout.leftMargin: 8
-                Layout.rightMargin: 8
-                Layout.bottomMargin: 6
-                spacing: 12
+        // detalles (solo emparejados)
+        ColumnLayout {
+            visible: card.open
+            Layout.fillWidth: true
+            Layout.bottomMargin: 8
+            spacing: 0
 
-                Txt {
-                    text: I18n.t("Dirección: ") + card.dev.address + (card.dev.icon ? "  ·  " + card.dev.icon : "")
-                    color: Theme.fgMuted
-                    font.pixelSize: Theme.textSmall
-                }
-
+            OptionRow {
+                title: I18n.t("Nombre")
                 NameField {
-                    Layout.fillWidth: true
+                    implicitWidth: 300
                     value: card.dev.name
                     placeholder: card.dev.deviceName
                     onSaved: t => card.dev.name = t
                 }
-
-                OptionRow {
-                    title: I18n.t("De confianza")
-                    help: I18n.t("Se conecta solo, sin pedir permiso.")
-                    Toggle { checked: card.dev.trusted; onToggled: c => card.dev.trusted = c }
-                }
-                OptionRow {
-                    title: I18n.t("Bloquear")
-                    help: I18n.t("Rechaza cualquier conexión de este dispositivo.")
-                    Toggle { checked: card.dev.blocked; onToggled: c => card.dev.blocked = c }
-                }
-                OptionRow {
-                    advanced: true
-                    title: I18n.t("Puede despertar el equipo")
-                    help: I18n.t("Para teclados y mouse: salir de la suspensión al usarlo.")
-                    Toggle { checked: card.dev.wakeAllowed; onToggled: c => card.dev.wakeAllowed = c }
-                }
-
+            }
+            OptionRow {
+                title: I18n.t("Dirección")
+                Txt { text: card.dev.address + (card.dev.icon ? "  ·  " + card.dev.icon : ""); color: Theme.fgMuted }
+            }
+            OptionRow {
+                title: I18n.t("De confianza")
+                help: I18n.t("Se conecta solo, sin pedir permiso.")
+                Toggle { checked: card.dev.trusted; onToggled: c => card.dev.trusted = c }
+            }
+            OptionRow {
+                title: I18n.t("Bloquear")
+                help: I18n.t("Rechaza cualquier conexión de este dispositivo.")
+                Toggle { checked: card.dev.blocked; onToggled: c => card.dev.blocked = c }
+            }
+            OptionRow {
+                title: ""
                 RowLayout {
-                    Layout.fillWidth: true
                     spacing: 8
-                    PillButton {
-                        text: card.dev.connected ? I18n.t("Desconectar") : I18n.t("Conectar")
-                        icon: card.dev.connected ? "link_off" : "link"
-                        primary: !card.dev.connected
-                        enabled_: !Bt.busy(card.dev) && !card.dev.blocked
-                        onClicked: Bt.activate(card.dev)
-                    }
                     PillButton {
                         visible: card.dev.connected
                         text: I18n.t("Enviar archivo")
                         icon: "upload_file"
+                        implicitHeight: 28
                         onClicked: Quickshell.execDetached(["blueman-sendto", "--device=" + card.dev.address])
                     }
-                    Item { Layout.fillWidth: true }
                     PillButton {
-                        text: I18n.t("Olvidar")
+                        text: I18n.t("Olvidar este dispositivo…")
                         icon: "delete"
                         danger: true
+                        implicitHeight: 28
                         onClicked: { page.expanded = ""; Bt.forget(card.dev); }
                     }
                 }
@@ -260,41 +251,77 @@ ColumnLayout {
     Group {
         visible: Bt.enabled
         title: I18n.t("Mis dispositivos")
-        help: Bt.paired.length === 0 ? I18n.t("Todavía no hay dispositivos emparejados.") : I18n.t("Toca un dispositivo para ver sus opciones.")
-        icon: "devices"
-
-        ColumnLayout {
-            Layout.fillWidth: true
-            spacing: 0
-            Repeater {
-                model: Bt.paired
-                delegate: DeviceCard {}
-            }
+        Repeater {
+            model: Bt.paired
+            delegate: DeviceCard {}
+        }
+        OptionRow {
+            visible: Bt.paired.length === 0
+            title: I18n.t("Todavía no hay dispositivos emparejados.")
+            dim: true
         }
     }
 
-    Group {
+    ColumnLayout {
         visible: Bt.enabled
-        title: I18n.t("Dispositivos cercanos")
-        help: Bt.discovering ? I18n.t("Buscando dispositivos… Pon el dispositivo en modo de emparejamiento.") : I18n.t("Pulsa buscar para encontrar dispositivos cercanos.")
-        icon: "bluetooth_searching"
+        Layout.fillWidth: true
+        spacing: 6
 
-        OptionRow {
-            title: Bt.nearby.length + I18n.t(" encontrados")
-            PillButton {
-                implicitHeight: 28
-                text: Bt.discovering ? I18n.t("Detener") : I18n.t("Buscar")
-                icon: Bt.discovering ? "stop" : "search"
-                onClicked: Bt.discovering ? Bt.stopScan() : Bt.startScan()
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.topMargin: 8
+            Layout.leftMargin: 4
+            Layout.rightMargin: 8
+            Txt { Layout.fillWidth: true; text: I18n.t("Dispositivos cercanos"); font.weight: Font.Bold }
+            // indicador de búsqueda (clic: detener / buscar)
+            Item {
+                implicitWidth: Bt.discovering ? 24 : refreshTxt.implicitWidth; implicitHeight: 24
+                Txt {
+                    id: refreshTxt
+                    visible: !Bt.discovering
+                    anchors.centerIn: parent
+                    text: I18n.t("Actualizar lista")
+                    color: Theme.primary
+                    font.pixelSize: Theme.textSmall
+                }
+                // spinner de rayos como en macOS
+                Item {
+                    id: spin
+                    visible: Bt.discovering
+                    anchors.centerIn: parent
+                    width: 20; height: 20
+                    property int step: 0
+                    Timer { interval: 90; repeat: true; running: Bt.discovering; onTriggered: spin.step = (spin.step + 1) % 8 }
+                    Repeater {
+                        model: 8
+                        Rectangle {
+                            required property int index
+                            width: 2.5; height: 6; radius: 1.2
+                            x: 10 - width / 2; y: 1
+                            transform: Rotation { origin.x: 1.25; origin.y: 9; angle: index * 45 }
+                            color: Theme.fgMuted
+                            opacity: Bt.discovering ? 0.2 + 0.8 * (((spin.step - index) % 8 + 8) % 8 === 0 ? 1 : 1 - (((spin.step - index) % 8 + 8) % 8) / 8) : 0.4
+                        }
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: { if (Bt.discovering) { Bt.stopScan(); scanTimer.stop(); } else page.scan(); }
+                }
             }
         }
 
-        ColumnLayout {
-            Layout.fillWidth: true
-            spacing: 0
+        Group {
+            Layout.topMargin: 0
             Repeater {
                 model: Bt.nearby
                 delegate: DeviceCard {}
+            }
+            OptionRow {
+                visible: Bt.nearby.length === 0
+                title: Bt.discovering ? I18n.t("Buscando dispositivos… Pon el dispositivo en modo de emparejamiento.") : I18n.t("No hay dispositivos cercanos")
+                dim: true
             }
         }
     }
@@ -313,19 +340,6 @@ ColumnLayout {
             spacing: 10
             Icon { text: Bt.statusError ? "error" : "check"; size: 18; color: Bt.statusError ? Theme.error : Theme.primary }
             Txt { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: Bt.status; color: Bt.statusError ? Theme.error : Theme.fg; font.pixelSize: Theme.textSmall }
-        }
-    }
-
-    // ------------------------------------------------------------ avanzado
-    Group {
-        advanced: true
-        title: I18n.t("Más herramientas")
-        help: I18n.t("Para lo que no está aquí: perfiles de audio, red por Bluetooth, etc.")
-        icon: "build"
-        RowLayout {
-            spacing: 8
-            PillButton { text: "Blueman"; icon: "open_in_new"; onClicked: Quickshell.execDetached(["blueman-manager"]) }
-            PillButton { text: I18n.t("Enviar archivo"); icon: "upload_file"; onClicked: Quickshell.execDetached(["blueman-sendto"]) }
         }
     }
 }

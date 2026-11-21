@@ -20,7 +20,6 @@ Rectangle {
     readonly property bool light: get("appearance", "mode") === "light"
     readonly property color accent: get("appearance", "dynamicColors") ? Theme.primaryContainer : get("appearance", "accent")
     readonly property string wallpaper: v.appearance?.wallpaper ?? ""
-    readonly property bool single: get("layout", "style") === "single"
     readonly property bool dockFloat: get("dock", "floating")
     readonly property bool dockLeft: get("dock", "align") === "left"
     readonly property bool topFloat: get("layout", "topBar", "floating")
@@ -64,7 +63,6 @@ Rectangle {
 
     // barra superior
     Rectangle {
-        visible: !root.single
         x: root.topFloat ? 6 * root.k : 0
         y: root.topFloat ? 5 * root.k : 0
         width: parent.width - 2 * x
@@ -130,7 +128,7 @@ Rectangle {
     // barra de tareas
     Rectangle {
         id: dockBar
-        readonly property bool full: root.single || !root.dockFloat
+        readonly property bool full: !root.dockFloat
         readonly property real gap: root.dockFloat ? 5 * root.k : 0
         height: 15 * root.k
         width: full ? root.width - 2 * gap : 92 * root.k
@@ -151,13 +149,6 @@ Rectangle {
                     color: index === 0 ? root.accent : Qt.rgba(0.6, 0.6, 0.7, index === 3 ? 0.9 : 0.5)
                 }
             }
-        }
-        Rectangle {
-            visible: root.single
-            anchors.right: parent.right; anchors.rightMargin: 6 * root.k
-            anchors.verticalCenter: parent.verticalCenter
-            width: 26 * root.k; height: 3 * root.k; radius: height / 2
-            color: root.ink; opacity: 0.6
         }
     }
 }

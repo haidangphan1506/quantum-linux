@@ -12,40 +12,50 @@ ColumnLayout {
     id: page
     spacing: 16
 
-    readonly property bool single: Settings.layout.style === "single"
     readonly property var sizes: ["small", "medium", "large"]
 
     // ------------------------------------------------------------- Dock
     Group {
-        title: Serp.on && Settings.ui.serpApps !== "dock" ? I18n.t("Dock (no se usa con Serpantium)") : I18n.t("Dock")
-        OptionRow {
-            title: I18n.t("Tamaño")
-            Slider {
-                implicitWidth: 240
-                from: 0; to: 2; step: 1; ticks: 3
-                value: Math.max(0, page.sizes.indexOf(Settings.dock.size))
-                minText: I18n.t("Pequeño"); maxText: I18n.t("Grande")
-                onMoved: v => Settings.set("dock", "size", page.sizes[Math.round(v)])
-            }
-        }
-        OptionRow {
-            title: I18n.t("Ampliación")
-            RowLayout {
-                spacing: 12
+        title: I18n.t("Dock")
+        // Tamaño y Ampliación lado a lado, con el título encima (como macOS)
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.topMargin: 10
+            Layout.bottomMargin: 10
+            spacing: 28
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                spacing: 2
+                Txt { text: I18n.t("Tamaño") }
                 Slider {
-                    visible: Settings.dock.magnify
-                    implicitWidth: 200
-                    from: 0.15; to: 1; step: 0.05; live: true
-                    value: Settings.dock.magnifyAmount
-                    minText: I18n.t("Mín."); maxText: I18n.t("Máx.")
-                    onMoved: v => Settings.set("dock", "magnifyAmount", v)
+                    Layout.fillWidth: true
+                    from: 0; to: 2; step: 1; ticks: 3
+                    value: Math.max(0, page.sizes.indexOf(Settings.dock.size))
+                    minText: I18n.t("Pequeño"); maxText: I18n.t("Grande")
+                    onMoved: v => Settings.set("dock", "size", page.sizes[Math.round(v)])
                 }
-                Toggle { checked: Settings.dock.magnify; onToggled: c => Settings.set("dock", "magnify", c) }
+            }
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                spacing: 2
+                Txt { text: I18n.t("Ampliación") }
+                Slider {
+                    Layout.fillWidth: true
+                    from: 0; to: 1; step: 0.05; live: true
+                    value: Settings.dock.magnify ? Settings.dock.magnifyAmount : 0
+                    minText: I18n.t("No"); maxText: I18n.t("Grande")
+                    onMoved: v => {
+                        if (v < 0.05) Settings.set("dock", "magnify", false);
+                        else Settings.setMany({ dock: { magnify: true, magnifyAmount: Math.max(0.15, v) } });
+                    }
+                }
             }
         }
         OptionRow {
             title: I18n.t("Posición en la pantalla")
-            Segmented {
+            Choice {
                 options: [{ v: "left", t: I18n.t("Izquierda") }, { v: "bottom", t: I18n.t("Abajo") }, { v: "right", t: I18n.t("Derecha") }, { v: "top", t: I18n.t("Arriba") }]
                 value: Settings.dock.position
                 onPicked: v => Settings.set("dock", "position", v)
@@ -76,37 +86,7 @@ ColumnLayout {
     // ------------------------------------------------- barra de tareas (Quantum)
     Group {
         title: I18n.t("Barra de tareas")
-        help: Serp.on ? I18n.t("Serpantium: barra de píldoras arriba, paneles oscuros y tonos rosados.")
-                      : I18n.t("Caelestial: barra de menús arriba, Dock y paneles de vidrio.")
         OptionRow {
-            title: I18n.t("Estilo del escritorio")
-            Segmented {
-                options: [{ v: "caelestial", t: "Caelestial" }, { v: "serpantium", t: "Serpantium" }]
-                value: Settings.ui.shell
-                onPicked: v => Serp.choose(v, false)
-            }
-        }
-        OptionRow {
-            visible: Serp.on
-            title: I18n.t("Tus apps")
-            Segmented {
-                options: [{ v: "bar", t: I18n.t("En la barra de arriba") }, { v: "dock", t: I18n.t("Dock abajo") }]
-                value: Settings.ui.serpApps === "dock" ? "dock" : "bar"
-                onPicked: v => Settings.setUi("serpApps", v)
-            }
-        }
-        OptionRow {
-            visible: !Serp.on
-            title: I18n.t("Distribución")
-            help: page.single ? I18n.t("Como en Windows: apps, bandeja y hora en una barra.") : I18n.t("Hora y estado arriba, apps abajo.")
-            Segmented {
-                options: [{ v: "split", t: I18n.t("Barra de menús + Dock") }, { v: "single", t: I18n.t("Una sola barra") }]
-                value: Settings.layout.style
-                onPicked: v => Settings.setPath("layout.style", v)
-            }
-        }
-        OptionRow {
-            visible: !Serp.on
             title: I18n.t("Forma")
             Segmented {
                 options: [{ v: true, t: I18n.t("Flotante") }, { v: false, t: I18n.t("Pegada al borde") }]
@@ -115,7 +95,6 @@ ColumnLayout {
             }
         }
         OptionRow {
-            visible: !Serp.on
             title: I18n.t("Posición de las apps")
             Segmented {
                 options: [{ v: "center", t: I18n.t("Al centro") }, { v: "left", t: I18n.t("Al inicio") }]
@@ -123,9 +102,9 @@ ColumnLayout {
                 onPicked: v => Settings.set("dock", "align", v)
             }
         }
-        OptionRow { visible: !Serp.on; title: I18n.t("Botón de Inicio (Launchpad)"); Toggle { checked: Settings.dock.showStart; onToggled: c => Settings.set("dock", "showStart", c) } }
-        OptionRow { visible: !Serp.on; title: I18n.t("Botón de búsqueda"); Toggle { checked: Settings.dock.showSearch; onToggled: c => Settings.set("dock", "showSearch", c) } }
-        OptionRow { visible: !Serp.on; title: I18n.t("Aviso de actualizaciones"); Toggle { checked: Settings.dock.showUpdates; onToggled: c => Settings.set("dock", "showUpdates", c) } }
+        OptionRow { title: I18n.t("Botón de Inicio (Launchpad)"); Toggle { checked: Settings.dock.showStart; onToggled: c => Settings.set("dock", "showStart", c) } }
+        OptionRow { title: I18n.t("Botón de búsqueda"); Toggle { checked: Settings.dock.showSearch; onToggled: c => Settings.set("dock", "showSearch", c) } }
+        OptionRow { title: I18n.t("Aviso de actualizaciones"); Toggle { checked: Settings.dock.showUpdates; onToggled: c => Settings.set("dock", "showUpdates", c) } }
     }
 
     // ------------------------------------------------- navegador predeterminado
@@ -168,17 +147,6 @@ ColumnLayout {
             Toggle {
                 checked: Settings.windows.animations !== "none"
                 onToggled: c => Settings.set("windows", "animations", c ? "smooth" : "none")
-            }
-        }
-        OptionRow {
-            advanced: true
-            title: I18n.t("Grosor del borde")
-            Slider {
-                implicitWidth: 200
-                from: 0; to: 4; step: 1; ticks: 5
-                value: Settings.windows.borderSize
-                text: Math.round(_shown) + " px"
-                onMoved: v => Settings.set("windows", "borderSize", Math.round(v))
             }
         }
     }

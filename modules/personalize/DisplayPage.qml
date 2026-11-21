@@ -10,7 +10,7 @@ import qs.components
 // Night Shift (horario y calidez) y ajustes de color. Lo aplica HyprApply en Hyprland.
 ColumnLayout {
     id: page
-    spacing: 16
+    spacing: 22
 
     readonly property var d: Settings.display
     property var monitors: []
@@ -68,45 +68,47 @@ ColumnLayout {
     Timer { id: tick; interval: 1000; repeat: true; onTriggered: { page.countdown--; if (page.countdown <= 0) page.revert(); } }
     Timer { id: reloadT; interval: 700; onTriggered: page.load() }
 
-    // ----------------------------------------------------------- pantalla
-    Segmented {
-        visible: page.monitors.length > 1
+    // ----------------------------------------------------------- pantallas
+    // Cada pantalla como miniatura con su nombre debajo; la elegida va en negrita (como macOS)
+    Row {
         Layout.alignment: Qt.AlignHCenter
-        options: page.monitors.map(m => ({ v: m.name, t: m.description ? m.description.split(" ").slice(0, 2).join(" ") : m.name }))
-        value: page.sel
-        onPicked: v => page.sel = v
-    }
-
-    ColumnLayout {
-        Layout.fillWidth: true
         Layout.topMargin: 6
-        spacing: 4
-        Item { Layout.fillWidth: true }    // ocupa todo el ancho: así se centra
-        Rectangle {
-            Layout.alignment: Qt.AlignHCenter
-            implicitWidth: 150; implicitHeight: page.mon ? Math.round(150 * page.mon.height / page.mon.width) : 94
-            radius: 8
-            color: "#1c1c1e"
-            Rectangle {
-                anchors.fill: parent; anchors.margins: 5; radius: 4
-                gradient: Gradient {
-                    GradientStop { position: 0; color: "#64a8ff" }
-                    GradientStop { position: 1; color: "#7b5cff" }
+        Layout.bottomMargin: 6
+        spacing: 28
+        Repeater {
+            model: page.monitors
+            Column {
+                id: mt
+                required property var modelData
+                readonly property bool on: page.mon && page.mon.name === modelData.name
+                readonly property real w: Math.max(90, Math.min(140, Math.round(modelData.width / 14)))
+                spacing: 8
+                Item {
+                    width: mt.w; height: 96
+                    Rectangle {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottom: parent.bottom
+                        width: mt.w; height: Math.round(mt.w * mt.modelData.height / mt.modelData.width)
+                        radius: 5
+                        color: "#1c1c1e"
+                        border.width: mt.on ? 2 : 0
+                        border.color: Theme.primary
+                        Rectangle {
+                            anchors.fill: parent; anchors.margins: 3; radius: 3
+                            gradient: Gradient {
+                                GradientStop { position: 0; color: "#64a8ff" }
+                                GradientStop { position: 1; color: "#7b5cff" }
+                            }
+                        }
+                    }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: page.sel = mt.modelData.name }
+                }
+                Txt {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: mt.modelData.description ? mt.modelData.description.split(" ").slice(0, 2).join(" ") : mt.modelData.name
+                    font.weight: mt.on ? Font.Bold : Font.Normal
                 }
             }
-        }
-        Txt {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.topMargin: 6
-            text: page.mon ? (page.mon.description || page.mon.name) : "—"
-            font.weight: Font.Bold
-        }
-        Txt {
-            Layout.alignment: Qt.AlignHCenter
-            visible: !!page.mon
-            text: page.mon ? page.mon.width + " × " + page.mon.height + " · " + Math.round(page.mon.refreshRate) + " Hz" : ""
-            color: Theme.fgMuted
-            font.pixelSize: Theme.textSmall
         }
     }
 
@@ -125,45 +127,31 @@ ColumnLayout {
         }
     }
 
+    // resoluciones (escalas) como lista; la elegida resaltada en gris
     Group {
         visible: page.scales.length > 1
-        title: I18n.t("Tamaño")
-        RowLayout {
+        ColumnLayout {
             Layout.fillWidth: true
-            Layout.topMargin: 12
-            Layout.bottomMargin: 10
-            spacing: 10
+            Layout.topMargin: 6
+            Layout.bottomMargin: 6
+            spacing: 0
             Repeater {
-                model: page.scales
-                ColumnLayout {
-                    id: sc
+                model: page.scales.slice().reverse()
+                Rectangle {
+                    id: rs
                     required property real modelData
-                    required property int index
                     readonly property bool on: page.mon && Math.abs(page.mon.scale - modelData) < 0.01
                     Layout.fillWidth: true
-                    spacing: 5
-                    Rectangle {
-                        Layout.alignment: Qt.AlignHCenter
-                        implicitWidth: 76; implicitHeight: 50; radius: 6
-                        color: Theme.alpha(Theme.fg, 0.05)
-                        border.width: sc.on ? 3 : 1
-                        border.color: sc.on ? Theme.primary : Theme.alpha(Theme.fg, 0.15)
-                        Txt {
-                            anchors.centerIn: parent
-                            text: "Aa"
-                            font.pixelSize: Math.round(9 * sc.modelData + 4)
-                            font.weight: Font.DemiBold
-                        }
-                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: page.tryScale(sc.modelData) }
-                    }
+                    implicitHeight: 30
+                    radius: 6
+                    color: on ? Theme.alpha(Theme.fg, 0.1) : "transparent"
                     Txt {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: sc.index === 0 ? I18n.t("Texto más grande") : sc.index === page.scales.length - 1 ? I18n.t("Más espacio")
-                            : Math.round(page.mon.width / sc.modelData) + " × " + Math.round(page.mon.height / sc.modelData)
-                        font.pixelSize: Theme.textSmall - 1
-                        color: sc.on ? Theme.fg : Theme.fgMuted
-                        font.weight: sc.on ? Font.DemiBold : Font.Normal
+                        anchors.verticalCenter: parent.verticalCenter
+                        x: 10
+                        text: page.mon ? Math.round(page.mon.width / rs.modelData) + " × " + Math.round(page.mon.height / rs.modelData) + (rs.modelData === 1 ? " (" + I18n.t("Nativa") + ")" : "") : ""
+                        font.weight: rs.on ? Font.DemiBold : Font.Normal
                     }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: page.tryScale(rs.modelData) }
                 }
             }
         }

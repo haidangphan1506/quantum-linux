@@ -21,6 +21,16 @@ ColumnLayout {
     Layout.fillWidth: true
     spacing: 0
 
+    // cabecera de la tabla: Nombre · Tipo
+    RowLayout {
+        visible: dl.nodes.length > 0
+        Layout.fillWidth: true
+        Layout.topMargin: 6
+        spacing: 10
+        Txt { Layout.fillWidth: true; text: I18n.t("Nombre"); color: Theme.fgMuted; font.pixelSize: Theme.textSmall; font.weight: Font.DemiBold }
+        Txt { Layout.preferredWidth: Math.round(dl.width * 0.38); text: I18n.t("Tipo"); color: Theme.fgMuted; font.pixelSize: Theme.textSmall; font.weight: Font.DemiBold }
+    }
+
     Repeater {
         model: dl.nodes
         Item {
@@ -29,20 +39,19 @@ ColumnLayout {
             required property int index
             readonly property bool on: dl.current === modelData
             Layout.fillWidth: true
-            implicitHeight: 40
+            implicitHeight: 32
             Rectangle { visible: dev.index > 0; width: parent.width; height: 1; color: Theme.alpha(Theme.fg, 0.08) }
             Rectangle {
                 anchors.fill: parent; anchors.topMargin: 3; anchors.bottomMargin: 3
                 anchors.leftMargin: -8; anchors.rightMargin: -8
                 radius: 6
-                color: dev.on ? Theme.alpha("#007aff", 0.14) : devArea.containsMouse ? Theme.alpha(Theme.fg, 0.04) : "transparent"
+                color: dev.on ? Theme.alpha(Theme.fg, 0.1) : devArea.containsMouse ? Theme.alpha(Theme.fg, 0.04) : "transparent"
             }
             RowLayout {
                 anchors.fill: parent
                 spacing: 10
-                Txt { Layout.fillWidth: true; text: dl.nodeName(dev.modelData); elide: Text.ElideRight }
-                Txt { text: dl.kind(dev.modelData); color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
-                Icon { text: "check"; size: 18; color: "#007aff"; opacity: dev.on ? 1 : 0 }
+                Txt { Layout.fillWidth: true; text: dl.nodeName(dev.modelData); elide: Text.ElideRight; font.weight: dev.on ? Font.DemiBold : Font.Normal }
+                Txt { Layout.preferredWidth: Math.round(dl.width * 0.38); text: dl.kind(dev.modelData); font.weight: dev.on ? Font.DemiBold : Font.Normal }
             }
             MouseArea {
                 id: devArea

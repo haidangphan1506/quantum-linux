@@ -19,9 +19,9 @@ MouseArea {
     hoverEnabled: true
     cursorShape: Qt.PointingHandCursor
     acceptedButtons: Qt.LeftButton | Qt.RightButton
-    // clic: panel de detalle · clic derecho: Quản lý tác vụ (apps/taskmgr, như Task Manager)
+    // clic: panel de detalle · clic derecho: Monitor de actividad
     onClicked: e => {
-        if (e.button === Qt.RightButton) { panel.close(); Quickshell.execDetached([Quickshell.env("HOME") + "/.local/bin/quantum-taskmgr"]); }
+        if (e.button === Qt.RightButton) { panel.close(); Shell.toggleActivity(); }
         else panel.visible ? panel.close() : panel.open();
     }
 

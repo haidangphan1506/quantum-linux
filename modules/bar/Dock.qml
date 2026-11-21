@@ -25,10 +25,8 @@ Variants {
         readonly property bool vertical: pos === "left" || pos === "right"
 
         // Aspecto (Personalizar)
-        // «una sola barra» (bandeja y reloj dentro del dock) solo existe abajo
-        readonly property bool single: !Serp.on && Settings.layout.style === "single" && pos === "bottom"
-        readonly property bool floating: Serp.on || Settings.dock.floating
-        readonly property bool full: single || !floating          // ocupa todo el borde
+        readonly property bool floating: Settings.dock.floating
+        readonly property bool full: !floating          // ocupa todo el borde
         // Como el dock de macOS: barra alta en forma de píldora, con iconos grandes
         readonly property int barH: Math.round(64 * Theme.dockScale)
         // posición del mouse sobre la barra (-1 fuera) a lo largo de la barra: los iconos crecen según la distancia
@@ -36,13 +34,13 @@ Variants {
         readonly property Item cardItem: card
         readonly property int gap: floating ? 8 : 0
         // «A la izquierda» (en vertical: arriba): las apps se alinean al principio de la barra
-        readonly property bool alignLeft: !Serp.on && Settings.dock.align === "left"
+        readonly property bool alignLeft: Settings.dock.align === "left"
         // lado de la pantalla hacia el que se dibuja el icono al crecer (el lado del borde)
         readonly property int edgeOrigin: pos === "top" ? Item.Top : pos === "left" ? Item.Left : pos === "right" ? Item.Right : Item.Bottom
         // Ocultar automáticamente: se asoma al llevar el mouse al borde
         readonly property bool autohide: Settings.dock.autohide
         property bool hovering: false
-        readonly property bool revealed: !autohide || hovering || popup || Shell.launcherOpen
+        readonly property bool revealed: !autohide || hovering || popup || Shell.clipboardOpen
 
         // Estado del globo (nombre o lista de ventanas) y del menú contextual
         property var hoverGroup: null
@@ -67,8 +65,7 @@ Variants {
         }
 
         // Alto de la barra de arriba (el dock arriba/izquierda/derecha queda debajo de ella)
-        readonly property int topInset: !Serp.on && (Settings.layout.style !== "single" || pos !== "bottom")
-                                        ? (Settings.layout.topBar.floating ? 54 : 30) : 0
+        readonly property int topInset: Settings.layout.topBar.floating ? 54 : 30
         // Punto de un item del dock en coordenadas de pantalla, como si el dock estuviera visible
         // (para el efecto genie: DockTargets). Se mide respecto a la tarjeta sin su transform.
         function screenPoint(item: Item, px: real, py: real): point {
@@ -221,11 +218,11 @@ Variants {
             }
 
             // Apps en fila (horizontal) o en columna (vertical)
-            readonly property bool startShown: Settings.dock.showStart && !Serp.on
-            readonly property bool searchShown: Settings.dock.showSearch && !Serp.on
-            readonly property bool dividerShown: (Settings.dock.showStart || Settings.dock.showSearch) && !Serp.on
+            readonly property bool startShown: Settings.dock.showStart
+            readonly property bool searchShown: Settings.dock.showSearch
+            readonly property bool dividerShown: (Settings.dock.showStart || Settings.dock.showSearch)
             // elementos visibles de la fila (Inicio, Buscar, divisor, las apps, divisor y papelera): GridLayout necesita el conteo
-            readonly property int itemCount: Math.max(1, (startShown ? 1 : 0) + (searchShown ? 1 : 0) + (dividerShown ? 1 : 0) + 1 + 2)
+            readonly property int itemCount: Math.max(1, (startShown ? 1 : 0) + (searchShown ? 1 : 0) + (dividerShown ? 1 : 0) + 1 + 3)
             GridLayout {
                 id: row
                 flow: dock.vertical ? GridLayout.TopToBottom : GridLayout.LeftToRight
@@ -244,7 +241,7 @@ Variants {
                 columnSpacing: 6
 
                 DockButton {
-                    visible: Settings.dock.showStart && !Serp.on
+                    visible: Settings.dock.showStart
                     tip: "Launchpad"
                     active: Shell.launchpadOpen
                     // abre la cuadrícula de apps a pantalla completa (modules/launchpad); otro clic la cierra
@@ -259,13 +256,13 @@ Variants {
                     }
                 }
                 DockButton {
-                    visible: Settings.dock.showSearch && !Serp.on
+                    visible: Settings.dock.showSearch
                     tip: I18n.t("Buscar")
-                    onClicked: Shell.toggleLauncher(false)
+                    onClicked: Shell.toggleSpotlight()
                     AppIcon { anchors.centerIn: parent; name: "system-search"; fallback: ""; glyph: "search"; size: Math.round(38 * Theme.dockScale) }
                 }
                 Rectangle {
-                    visible: (Settings.dock.showStart || Settings.dock.showSearch) && !Serp.on
+                    visible: (Settings.dock.showStart || Settings.dock.showSearch)
                     Layout.leftMargin: dock.vertical ? 0 : 4
                     Layout.rightMargin: dock.vertical ? 0 : 4
                     Layout.topMargin: dock.vertical ? 4 : 0
@@ -285,17 +282,8 @@ Variants {
                     implicitHeight: dock.vertical ? 1 : Math.round(34 * Theme.dockScale)
                     color: Theme.alpha(Theme.fg, 0.2)
                 }
+                FilesButton {}
                 TrashButton {}
-            }
-
-            // Modo «una sola barra»: bandeja, estado, hora y apagado a la derecha
-            SystemArea {
-                visible: dock.single
-                anchors.right: parent.right
-                anchors.rightMargin: 8
-                anchors.verticalCenter: parent.verticalCenter
-                window: dock
-                compact: dock.width < 1300
             }
         }
 

@@ -6,7 +6,7 @@ import Quickshell.Io
 import qs.services
 
 // Avisa cuando hay actualizaciones. Usa checkupdates (copia aparte de la base de
-// pacman: no toca el sistema ni pide contraseña) y revisa cada 3 horas.
+// pacman: no toca el sistema ni pide contraseña) y revisa cada 3 días.
 Singleton {
     id: root
 
@@ -67,17 +67,23 @@ Singleton {
         }
     }
 
-    // Abre una terminal que actualiza todo (con instantánea previa gracias a snap-pac)
+    // Abre una terminal con paru / pacman (solo Arch + Hyprland + Caelestia, sin quantum-update).
+    // Al terminar el comando se vuelve a revisar solo (IPC inmediato + al cerrarse la terminal).
     function update(): void {
-        // sin quantum-update (Arch normal): una terminal con paru / pacman, y al terminar vuelve a revisar
-        Quickshell.execDetached(["sh", "-c", "command -v quantum-update >/dev/null && exec quantum-update; " +
-            "exec kitty --title 'Actualización de software' sh -c 'if command -v paru >/dev/null; then paru -Syu; else sudo pacman -Syu; fi; " +
-            "qs -c caelestia ipc call updates check >/dev/null 2>&1; printf \"\\nListo. Pulsa Enter para cerrar.\"; read _'"]);
+        if (!updateProc.running) updateProc.running = true;
+    }
+    Process {
+        id: updateProc
+        command: ["kitty", "--title", "Actualización de software", "sh", "-c",
+            "if command -v paru >/dev/null; then paru -Syu; else sudo pacman -Syu; fi; " +
+            "qs -c caelestia ipc call updates check >/dev/null 2>&1; " +
+            "printf '\\nListo. Pulsa Enter para cerrar.'; read _"]
+        onExited: { root.check(); root.checkReboot(); }
     }
 
-    // primera revisión 2 min después de iniciar sesión, luego cada 3 horas
+    // primera revisión 2 min después de iniciar sesión, luego cada 3 días
     Timer { interval: 120000; running: true; onTriggered: root.check() }
-    Timer { interval: 3 * 3600 * 1000; running: true; repeat: true; onTriggered: root.check() }
+    Timer { interval: 3 * 24 * 3600 * 1000; running: true; repeat: true; onTriggered: root.check() }
 
     // quantum-update avisa al terminar: qs -c quantum ipc call updates check
     IpcHandler {
@@ -88,7 +94,7 @@ Singleton {
 
     Process {
         id: proc
-        command: ["sh", "-c", "checkupdates 2>/dev/null; pacman -Sl quantum 2>/dev/null | awk '{print \"#\" $2}'"]
+        command: ["sh", "-c", "checkupdates 2>/dev/null"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const quantum = {};

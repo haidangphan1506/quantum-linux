@@ -23,46 +23,11 @@ Rectangle {
         color: Theme.alpha(Theme.fg, 0.08)
     }
 
-    // pie: Deshacer, Restablecer y Avanzado (en macOS no hay botones a la derecha del título)
-    Rectangle {
-        id: foot
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 44
-        color: "transparent"
-        Rectangle { width: parent.width; height: 1; color: Theme.alpha(Theme.fg, 0.08) }
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 10
-            anchors.rightMargin: 12
-            spacing: 2
-            ToolBtn { icon: "undo"; enabled_: Settings.changed; onClicked: Settings.undo() }
-            ToolBtn {
-                icon: side.host.confirmReset ? "warning" : "restart_alt"
-                danger: side.host.confirmReset
-                onClicked: {
-                    if (!side.host.confirmReset) { side.host.confirmReset = true; resetTimer.restart(); return; }
-                    side.host.confirmReset = false;
-                    Settings.resetAll();
-                }
-                Timer { id: resetTimer; interval: 3000; onTriggered: side.host.confirmReset = false }
-            }
-            Item { Layout.fillWidth: true }
-            Txt { text: I18n.t("Avanzado"); color: Theme.fgMuted; font.pixelSize: Theme.textSmall }
-            Toggle {
-                Layout.leftMargin: 4
-                checked: Settings.ui.advanced
-                onToggled: c => Settings.setUi("advanced", c)
-            }
-        }
-    }
-
     Flickable {
         anchors.fill: parent
         anchors.margins: 10
         anchors.topMargin: 14
-        anchors.bottomMargin: 54
+        anchors.bottomMargin: 10
         contentHeight: col.implicitHeight
         clip: true
         boundsBehavior: Flickable.StopAtBounds
@@ -153,8 +118,8 @@ Rectangle {
                     Layout.topMargin: newGroup && side.host.query === "" ? 17 : 0
                     implicitHeight: 34
                     radius: 7
-                    // como el ejemplo: la página elegida en gris, no en azul
-                    color: on ? Theme.alpha(Theme.fg, 0.1) : navArea.containsMouse ? Theme.alpha(Theme.fg, 0.05) : "transparent"
+                    // la página elegida va en azul de acento con texto blanco, como macOS
+                    color: on ? Theme.accent : navArea.containsMouse ? Theme.alpha(Theme.fg, 0.05) : "transparent"
                     // línea fina que separa los grupos
                     Rectangle {
                         visible: nav.newGroup && side.host.query === ""
@@ -179,7 +144,8 @@ Rectangle {
                         Txt {
                             Layout.fillWidth: true
                             text: nav.modelData.t
-                            color: Theme.fg
+                            color: nav.on ? "white" : Theme.fg
+                            font.weight: nav.on ? Font.Medium : Font.Normal
                             elide: Text.ElideRight
                         }
                     }

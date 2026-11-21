@@ -20,7 +20,6 @@ Singleton {
     property alias clock: adapter.clock
     property alias ui: adapter.ui
     property alias lock: adapter.lock
-    property alias ai: adapter.ai
     property alias sounds: adapter.sounds
     property alias display: adapter.display
     property alias mouse: adapter.mouse
@@ -34,7 +33,7 @@ Singleton {
     readonly property var defaults: ({
         appearance: { mode: "light", dynamicColors: false, accent: "#6A5CFF", panelOpacity: 0.86, blur: true, textScale: 1.0,
                       glass: { bar: true, dock: true, panels: true, windows: false }, windowOpacity: 0.9 },
-        layout: { style: "split", topBar: { floating: true, showApp: true, showSysMon: true, showClaude: true } },
+        layout: { topBar: { floating: true, showApp: true, showSysMon: true, showNetSpeed: true, showClaude: true } },
         dock: { floating: true, align: "center", size: "medium", autohide: false, showSearch: true, showStart: true, showTray: true, showUpdates: true },
         clock: { format24h: true, showDate: true, showSeconds: false },
         lock: { left: ["weather", "fetch", "media"], right: ["stats", "notifs"], showNotifContent: false, city: "" },
@@ -152,14 +151,6 @@ Singleton {
         applyTheme();
     }
 
-    // Aplica un estilo (valores parciales) sobre los de fábrica; el fondo se conserva
-    // salvo que el estilo traiga uno.
-    function applyStyle(id: string, values: var): void {
-        const v = _deepMerge(defaults, values || {});
-        v.ui = { style: id };
-        setMany(v);
-    }
-
     // Vuelve todo lo visual a como viene Quantum (incluido el fondo).
     function resetAll(): void {
         const v = _deepMerge(defaults, { appearance: { wallpaper: "quantum:live" } });
@@ -199,7 +190,7 @@ Singleton {
 
     Process {
         id: themeProc
-        command: ["quantum-theme", "apply"]
+        command: ["sh", "-c", "command -v quantum-theme >/dev/null && exec quantum-theme apply; exit 0"]
     }
 
     // Quien prefiere editar archivos: ~/.config/quantum/wayfire-user.ini se aplica al guardarlo
@@ -253,6 +244,10 @@ Singleton {
                 property real panelOpacity: 0.86
                 property bool blur: true
                 property real textScale: 1.0
+                property bool darkerBars: false          // colores más oscuros en barra y Dock
+                property bool wallpaperTint: true        // el fondo tiñe las ventanas
+                property string scrollBars: "auto"       // auto | always | scrolling
+                property bool scrollJump: false          // clic en la barra: saltar a la página siguiente
                 // Efecto vidrio (Personalizar): qué partes son translúcidas con desenfoque
                 property JsonObject glass: JsonObject {
                     property bool bar: true
@@ -344,11 +339,11 @@ Singleton {
                 property bool animateOpen: true          // el ícono rebota al abrir una app
             }
             property JsonObject layout: JsonObject {
-                property string style: "split"           // split (barra arriba + dock) | single (una barra abajo)
                 property JsonObject topBar: JsonObject {
                     property bool floating: true
                     property bool showApp: true
                     property bool showSysMon: true   // temperatura, CPU y RAM en la barra
+                    property bool showNetSpeed: true // velocidad de subida/bajada de la red
                     property bool showClaude: true   // uso de Claude Code (5 h y 7 días)
                     property bool showSpotlight: true // botón de búsqueda (Spotlight)
                 }
@@ -375,10 +370,6 @@ Singleton {
             property JsonObject power: JsonObject {
                 property string lowPower: "never"        // never | always | battery | adapter
             }
-            // Asistente con IA local (Ollama): modelo elegido ("" = el primero instalado)
-            property JsonObject ai: JsonObject {
-                property string model: ""
-            }
             // Sonidos del sistema
             property JsonObject sounds: JsonObject {
                 property string pack: "quantum"          // quantum | cristal | zen | espacial | minimo | burbujas | piano | synthwave
@@ -388,14 +379,10 @@ Singleton {
                 property bool volumeFeedback: true       // sonar al cambiar el volumen
             }
             property JsonObject ui: JsonObject {
-                property bool welcomed: false            // ya pasó por la bienvenida del primer inicio
-                property string shell: "caelestial"      // caelestial | serpantium (paso 3 de la bienvenida)
                 property bool filesPinned: false         // ya se cambió Nautilus por Archivos en la barra
-                property string serpApps: "bar"          // Serpantium: apps en la barra de arriba (bar) o en un dock abajo (dock)
-                property var before: ({})                // fondo y colores de antes de Serpantium (para volver)
                 property bool advanced: false
                 property string style: "quantum"
-                property string page: "styles"
+                property string page: "general"
                 property string lang: "vi"               // idioma de la interfaz: vi | en (I18n)
             }
         }

@@ -40,28 +40,43 @@ ColumnLayout {
         }
     }
 
-    // repetición: macOS va de «Desactivado/Lenta» a «Rápida»; Hyprland en teclas por segundo
+    // repetición y retardo lado a lado, con el título encima (como macOS)
     Group {
-        OptionRow {
-            title: I18n.t("Repetición de teclas")
-            Slider {
-                implicitWidth: 260
-                from: 5; to: 60; step: 1
-                value: page.k.repeatRate
-                minText: I18n.t("Lenta"); maxText: I18n.t("Rápida")
-                onMoved: v => Settings.set("keyboard", "repeatRate", Math.round(v))
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.topMargin: 10
+            Layout.bottomMargin: 10
+            spacing: 28
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                spacing: 2
+                Txt { text: I18n.t("Repetición de teclas") }
+                Slider {
+                    Layout.fillWidth: true
+                    from: 5; to: 60; step: 1
+                    value: page.k.repeatRate
+                    minText: I18n.t("Lenta"); maxText: I18n.t("Rápida")
+                    onMoved: v => Settings.set("keyboard", "repeatRate", Math.round(v))
+                }
+            }
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                spacing: 2
+                Txt { text: I18n.t("Retardo hasta repetir") }
+                Slider {
+                    Layout.fillWidth: true
+                    from: 0; to: 1; step: 0.02
+                    value: (1000 - page.k.repeatDelay) / 850
+                    minText: I18n.t("Largo"); maxText: I18n.t("Corto")
+                    onMoved: v => Settings.set("keyboard", "repeatDelay", Math.round(1000 - v * 850))
+                }
             }
         }
-        OptionRow {
-            title: I18n.t("Retardo hasta repetir")
-            Slider {
-                implicitWidth: 260
-                from: 0; to: 1; step: 0.02
-                value: (1000 - page.k.repeatDelay) / 850
-                minText: I18n.t("Largo"); maxText: I18n.t("Corto")
-                onMoved: v => Settings.set("keyboard", "repeatDelay", Math.round(1000 - v * 850))
-            }
-        }
+    }
+
+    Group {
         OptionRow {
             title: I18n.t("Prueba aquí")
             Rectangle {
@@ -80,16 +95,21 @@ ColumnLayout {
         }
         OptionRow {
             visible: page.kbdMax > 0
-            title: I18n.t("Luz del teclado")
-            Segmented {
-                options: Array.from({ length: page.kbdMax + 1 }, (_, i) => ({ v: i, t: i === 0 ? I18n.t("Apagada") : page.kbdMax === 2 ? (i === 1 ? I18n.t("Baja") : I18n.t("Alta")) : String(i) }))
+            title: I18n.t("Brillo del teclado")
+            Slider {
+                implicitWidth: 240
+                from: 0; to: page.kbdMax; step: 1; live: false
                 value: page.kbdNow
-                onPicked: v => { kbdSet.command = ["brightnessctl", "-d", "*kbd_backlight*", "set", String(v)]; kbdSet.running = true; }
+                minIcon: "keyboard"; maxIcon: "keyboard"
+                onMoved: v => { kbdSet.command = ["brightnessctl", "-d", "*kbd_backlight*", "set", String(Math.round(v))]; kbdSet.running = true; }
             }
         }
-        NavRow {
-            title: I18n.t("Atajos de teclado…")
-            value: page.showShortcuts ? I18n.t("Ocultar") : ""
+        PillButton {
+            Layout.alignment: Qt.AlignRight
+            Layout.topMargin: 6
+            Layout.bottomMargin: 10
+            implicitHeight: 28
+            text: I18n.t("Atajos de teclado…")
             onClicked: { page.showShortcuts = !page.showShortcuts; if (page.showShortcuts && page.shortcuts.length === 0) keys.running = true; }
         }
     }

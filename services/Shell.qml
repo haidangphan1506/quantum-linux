@@ -10,15 +10,13 @@ import Quickshell.Hyprland
 Singleton {
     id: root
 
-    property bool launcherOpen: false
-    property bool clipboardMode: false
+    property bool clipboardOpen: false
     property bool spotlightOpen: false
     property bool controlCenterOpen: false
     property bool sessionOpen: false
     property bool wallpapersOpen: false
     property bool personalizeOpen: false
     property bool activityOpen: false
-    property bool aiOpen: false
     property bool aboutOpen: false
     property bool gameMode: false
 
@@ -44,22 +42,19 @@ Singleton {
     signal lockRequested
 
     function closeAll(): void {
-        launcherOpen = false;
+        clipboardOpen = false;
         spotlightOpen = false;
         controlCenterOpen = false;
         sessionOpen = false;
         wallpapersOpen = false;
-        aiOpen = false;
         wifiPage = false;
         btPage = false;
-        Serp.panel = "";
     }
 
-    function toggleLauncher(clipboard: bool): void {
-        const opening = !launcherOpen || clipboardMode !== clipboard;
+    function toggleClipboard(): void {
+        const opening = !clipboardOpen;
         closeAll();
-        clipboardMode = clipboard;
-        launcherOpen = opening;
+        clipboardOpen = opening;
     }
 
     function toggleSpotlight(): void {
@@ -69,7 +64,6 @@ Singleton {
     }
 
     function toggleControlCenter(): void {
-        if (Serp.on) { const p = Serp.panel; closeAll(); Serp.panel = p; Serp.toggle("control"); return; }
         const opening = !controlCenterOpen;
         closeAll();
         controlCenterOpen = opening;
@@ -104,12 +98,6 @@ Singleton {
     function lock(): void {
         closeAll();
         lockRequested();
-    }
-
-    function toggleAi(): void {
-        const opening = !aiOpen;
-        closeAll();
-        aiOpen = opening;
     }
 
     // Personalizar es una ventana normal: abrirla no cierra ni la cierran los paneles.
@@ -168,7 +156,7 @@ Singleton {
     // Modo juego: quita todas las animaciones (shell + Hyprland) y efectos para ganar FPS.
     function setGameMode(on: bool): void {
         gameMode = on;
-        Quickshell.execDetached(["quantum-theme", "gamemode", on ? "on" : "off"]);
+        Quickshell.execDetached(["sh", "-c", "command -v quantum-theme >/dev/null && exec quantum-theme gamemode " + (on ? "on" : "off") + "; exit 0"]);
         // Hyprland: desactiva (o restaura) todas las animaciones, blur y sombras del compositor
         Quickshell.execDetached(["hyprctl", "eval",
             `hl.config({ animations = { enabled = ${!on} }, decoration = { blur = { enabled = ${!on} }, shadow = { enabled = ${!on} } } })`]);
@@ -177,11 +165,10 @@ Singleton {
     IpcHandler {
         target: "shell"
 
-        function launcher(): void { root.toggleLauncher(false); }
         function swipe(dir: string): void { root.swipe(dir); }
         function swipeState(): string { return `overview=${root.overviewOpen} launchpad=${root.launchpadOpen}`; }
         function spotlight(): void { root.toggleSpotlight(); }
-        function clipboard(): void { root.toggleLauncher(true); }
+        function clipboard(): void { root.toggleClipboard(); }
         function controlCenter(): void { root.toggleControlCenter(); }
         function wifi(): void { root.openWifi(); }
         function bluetooth(): void { root.openBluetooth(); }
@@ -191,7 +178,6 @@ Singleton {
         function activityMonitor(): void { root.toggleActivity(); }
         function about(): void { root.openAbout(); }
         function nightLight(): void { root.toggleNightLight(); }
-        function ai(): void { root.toggleAi(); }
         function sound(name: string): void { Sounds.play(name); }
         function lock(): void { root.lock(); }
         function gameMode(): void { root.setGameMode(!root.gameMode); }

@@ -25,7 +25,7 @@ Rectangle {
         Txt {
             Layout.fillWidth: true
             Layout.leftMargin: 10
-            text: head.host.page.t
+            text: head.host.page.ht ?? head.host.page.t
             font.pixelSize: Theme.textNormal + 3
             font.weight: Font.Bold
             elide: Text.ElideRight

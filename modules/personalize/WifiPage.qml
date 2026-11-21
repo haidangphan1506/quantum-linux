@@ -13,11 +13,40 @@ ColumnLayout {
     spacing: 16
 
     Component.onCompleted: Net.startScan()
-    Component.onDestruction: if (!Shell.wifiPage) Net.stopScan()
+    Component.onDestruction: if (!Shell.wifiPage) Net.stopScanLater()
 
     readonly property var current: Net.networks.find(n => n.connected) ?? null
-    readonly property var known: Net.networks.filter(n => n.known && !n.connected).sort((a, b) => Net.signalOf(b) - Net.signalOf(a))
-    readonly property var others: Net.networks.filter(n => !n.known && !n.connected && n.name).sort((a, b) => Net.signalOf(b) - Net.signalOf(a))
+
+    // Las listas NO son bindings: con ~80 redes, cada cambio de señal de cualquiera volvía a
+    // filtrar/ordenar y el Repeater recreaba todas las filas (CPU ~100 % y ~1 s de retraso al
+    // entrar o salir). Se recalculan cada 2 s y solo se reemplazan si cambian las redes o el orden.
+    property var known: []
+    property var others: []
+    property int hiddenCount: 0
+    property bool showAll: false
+    readonly property int maxOthers: showAll ? 60 : 10   // pocas filas al abrir: crear/destruir cada una cuesta
+    function sameList(a: var, b: var): bool {
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+        return true;
+    }
+    function refreshLists(): void {
+        const bySignal = (a, b) => Net.signalOf(b) - Net.signalOf(a);
+        const all = Net.networks;
+        const k = all.filter(n => n.known && !n.connected).sort(bySignal);
+        const oAll = all.filter(n => !n.known && !n.connected && n.name).sort(bySignal);
+        const o = oAll.slice(0, maxOthers);
+        hiddenCount = oAll.length - o.length;
+        if (!sameList(k, known)) known = k;
+        if (!sameList(o, others)) others = o;
+    }
+    Timer {
+        interval: 2000
+        repeat: true
+        running: true
+        triggeredOnStart: true
+        onTriggered: page.refreshLists()
+    }
     property bool details: false
     property var info: ({})
 
@@ -97,19 +126,18 @@ ColumnLayout {
         help: Net.status !== "" ? Net.status : ""
         Repeater { model: page.others; delegate: WifiNetRow {} }
         OptionRow {
+            visible: page.hiddenCount > 0 || page.showAll
+            title: page.showAll ? I18n.t("Mostrar menos") : I18n.t("Mostrar más") + " (" + page.hiddenCount + ")"
+            PillButton {
+                text: page.showAll ? I18n.t("Menos") : I18n.t("Más")
+                implicitHeight: 28
+                onClicked: { page.showAll = !page.showAll; page.refreshLists(); }
+            }
+        }
+        OptionRow {
             visible: page.others.length === 0
             title: Net.scanning ? I18n.t("Buscando redes…") : I18n.t("No hay otras redes")
             PillButton { text: I18n.t("Buscar"); icon: "refresh"; implicitHeight: 28; onClicked: Net.startScan() }
-        }
-    }
-
-    Group {
-        advanced: true
-        title: I18n.t("Avanzado")
-        OptionRow {
-            title: I18n.t("Editor de conexiones")
-            help: I18n.t("VPN, IP fija, redes empresariales y más opciones de NetworkManager.")
-            PillButton { text: I18n.t("Abrir…"); implicitHeight: 28; onClicked: Quickshell.execDetached(["nm-connection-editor"]) }
         }
     }
 }

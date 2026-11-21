@@ -59,7 +59,7 @@ hl.layer_rule({
     ignore_alpha = 0.05,
 })
 
--- Control Center (Wi-Fi, am luong...) + Assistant (Quantum Shell, namespace quantum-panel):
+-- Control Center (Wi-Fi, am luong...) (Quantum Shell, namespace quantum-panel):
 -- kinh mo kieu macOS. Layer phu ca man hinh nhung trong suot -> ignore_alpha chi blur o panel.
 hl.layer_rule({
     name  = "blur-quantum-panel",

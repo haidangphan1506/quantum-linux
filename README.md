@@ -1,9 +1,9 @@
 # Quantum Shell (Caelestia)
 
 Desktop shell viết bằng [Quickshell](https://quickshell.org) (QML) cho **Hyprland** trên **Arch Linux**:
-thanh menu kiểu macOS + dock, launcher, Launchpad, Mission Control (overview), control center,
+thanh menu kiểu macOS + dock, Spotlight, Launchpad, Mission Control (overview), control center,
 màn hình khoá (PAM), thông báo, OSD, screensaver, bộ chuyển cửa sổ Alt+Tab, hiệu ứng genie, trang
-*Personalize* (màu, bar, dock, âm thanh, ngôn ngữ…), hai giao diện **Caelestial** / **Serpantium**, cùng các app phụ
+*Personalize* (màu, bar, dock, âm thanh, ngôn ngữ…), cùng các app phụ
 (Task Manager, Claude Agents City/Viz).
 
 ## Cài đặt nhanh
@@ -42,7 +42,7 @@ Cấu hình Hyprland nằm ở `config/hypr/` (`hyprland.lua` nạp các module 
 ### Phím tắt chính (`config/hypr/variable.lua`)
 
 **Terminal (kitty chạy fish): `Super+Enter`, `Super+Q`, `Ctrl+Alt+T`**; `Super+Shift+Enter` mở terminal chạy btop · `Super+Q` mở terminal · `Super+C` kill app đang focus (đã bỏ copy/paste kiểu macOS) ·
- `Super+E` file manager · `Super+R` hyprlauncher · `Super+Space`/tap `Super` launcher ·
+ `Super+E` file manager · `Super+Space`/`Super+R` Spotlight · tap `Super` Launchpad · `Super+Shift+R` quay toàn màn hình · `Super+Alt+R` quay vùng chọn (bấm lại để dừng, lưu ở `~/Videos/Recordings`) · `Super+Shift+V` lịch sử clipboard · `Ctrl+Shift+Esc` Activity Monitor ·
 `Super+A` control center · `Super+X` menu phiên · `Super+L` khoá · `Super+W` hình nền ·
 `Super+I` Personalize · `Super+Shift+V` clipboard · `Super+S` chụp vùng · `Alt+Tab` chuyển cửa sổ ·
 `Ctrl+Shift+Esc` Task Manager · `Super+1..0` workspace · cử chỉ 3/4 ngón (touchpad).
@@ -53,10 +53,10 @@ Mọi thứ đều đi qua IPC: `qs -c caelestia ipc call <target> <hàm>` (xem 
 | Thư mục | Nội dung |
 |---|---|
 | `shell.qml` | điểm vào: Splash → nạp lười toàn bộ desktop |
-| `modules/` | từng thành phần giao diện (bar, dock, lock, launcher, overview, personalize, serpantium…) |
+| `modules/` | từng thành phần giao diện (bar, dock, lock, launcher [clipboard + Spotlight], launchpad, overview, personalize…) |
 | `services/` | singleton: Settings, Theme, Audio, Net, Bt, Wm (cửa sổ), Updates, Weather, I18n… |
 | `components/` | widget dùng chung |
-| `apps/` | app Quickshell độc lập (`taskmgr`, `agentoffice`, `agentviz`, `agentviz3d`, `agenthq` — văn phòng 3D quản lý agent/task/token, chạy `claude-agenthq`) |
+| `apps/` | app Quickshell độc lập (`agentoffice`, `agentviz`, `agentviz3d`, `agenthq` — văn phòng 3D quản lý agent/task/token, chạy `claude-agenthq`) |
 | `config/` | cấu hình chép vào `~/.config`: `hypr/` (Lua + hàm `cael_*` trong `hyprlands/minimize.lua`), `fish/`, `Thunar/`, `pavucontrol.ini` |
 | `pam/` | cấu hình PAM cho màn hình khoá |
 | `scripts/`, `tools/idle` | thu thập mức dùng Claude Code, phát hiện idle → screensaver |

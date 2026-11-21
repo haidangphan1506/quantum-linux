@@ -20,7 +20,6 @@ Variants {
 
         screen: modelData
         // en «una sola barra» el dock trae la bandeja y la hora; si el dock se mueve a otro borde, esta barra vuelve
-        visible: Settings.layout.style !== "single" || Settings.dock.position !== "bottom"
         WlrLayershell.namespace: "quantum-bar"
         anchors { top: true; left: true; right: true }
         // pegada = barra de menús estilo macOS (MacBar.qml), fina

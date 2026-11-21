@@ -29,9 +29,46 @@ ColumnLayout {
         }
     }
 
-    Segmented {
+    // cabecera y vista previa: el trackpad con dos puntos, y una pantalla de ejemplo
+    Txt { visible: page.hasTouchpad; text: I18n.t("Trackpad"); font.weight: Font.Bold; font.pixelSize: Theme.textNormal + 2 }
+    RowLayout {
         visible: page.hasTouchpad
-        Layout.alignment: Qt.AlignHCenter
+        Layout.fillWidth: true
+        spacing: 16
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredWidth: 1
+            implicitHeight: 144
+            radius: 8
+            color: Theme.alpha(Theme.fg, 0.05)
+            border.width: 1; border.color: Theme.alpha(Theme.fg, 0.08)
+            Rectangle {
+                anchors.centerIn: parent
+                width: 130; height: 84; radius: 14
+                color: "transparent"
+                border.width: 2; border.color: Theme.alpha(Theme.fg, 0.25)
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 4
+                    Repeater { model: 2; Rectangle { width: 10; height: 10; radius: 5; color: Theme.primary; opacity: 0.8 } }
+                }
+            }
+        }
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredWidth: 1
+            implicitHeight: 144
+            radius: 8
+            gradient: Gradient {
+                GradientStop { position: 0; color: "#64a8ff" }
+                GradientStop { position: 1; color: "#7b5cff" }
+            }
+            Rectangle { anchors.centerIn: parent; width: parent.width * 0.62; height: parent.height * 0.62; radius: 6; color: Qt.rgba(1, 1, 1, 0.85) }
+        }
+    }
+
+    TabBar {
+        visible: page.hasTouchpad
         options: [{ v: "point", t: I18n.t("Apuntar y hacer clic") }, { v: "scroll", t: I18n.t("Desplazarse y zoom") }, { v: "gestures", t: I18n.t("Más gestos") }]
         value: page.tab
         onPicked: v => page.tab = v
@@ -98,13 +135,23 @@ ColumnLayout {
     }
 
     // ------------------------------------------------- más gestos
+    // Solo informativo: los gestos se definen en Hyprland, aquí se muestran como en macOS.
     Group {
         visible: page.hasTouchpad && page.tab === "gestures"
         Layout.topMargin: 0
         help: I18n.t("Los gestos se configuran en ~/.config/hypr/hyprlands/misc.lua.")
-        OptionRow { title: I18n.t("Mission Control"); help: I18n.t("Desliza hacia arriba con tres dedos"); icon: "view_quilt"; iconColor: "#8E8E93" }
-        OptionRow { title: I18n.t("Launchpad"); help: I18n.t("Desliza hacia abajo con tres dedos"); icon: "apps"; iconColor: "#8E8E93" }
-        OptionRow { title: I18n.t("Pasar de una ventana a otra"); help: I18n.t("Desliza a la izquierda o a la derecha con tres dedos"); icon: "tab"; iconColor: "#8E8E93" }
-        OptionRow { title: I18n.t("Pasar de un escritorio a otro"); help: I18n.t("Desliza a la izquierda o a la derecha con cuatro dedos"); icon: "swap_horiz"; iconColor: "#8E8E93" }
+        Repeater {
+            model: [
+                { t: I18n.t("Mission Control"), v: I18n.t("Desliza hacia arriba con tres dedos") },
+                { t: I18n.t("Launchpad"), v: I18n.t("Desliza hacia abajo con tres dedos") },
+                { t: I18n.t("Pasar de una ventana a otra"), v: I18n.t("Desliza a la izquierda o a la derecha con tres dedos") },
+                { t: I18n.t("Pasar de un escritorio a otro"), v: I18n.t("Desliza a la izquierda o a la derecha con cuatro dedos") },
+            ]
+            OptionRow {
+                required property var modelData
+                title: modelData.t
+                Txt { text: modelData.v; color: Theme.fgMuted; font.pixelSize: Theme.textSmall + 1 }
+            }
+        }
     }
 }
