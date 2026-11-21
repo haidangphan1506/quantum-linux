@@ -41,6 +41,14 @@ Singleton {
     property bool btPage: false
     signal lockRequested
 
+    // Vista previa (Quick Look) de imágenes y videos: el dock (carpetas en pila) y el menú la piden aquí.
+    // Siempre abre (no alterna), así un doble clic no la abre y la cierra.
+    signal previewRequested(string path)
+    function canPreview(path: string): bool {
+        return /\.(png|jpe?g|webp|gif|bmp|svg|avif|tiff?|mp4|webm|mkv|mov|m4v|avi)$/i.test(path ?? "");
+    }
+    function preview(path: string): void { previewRequested(path); }
+
     function closeAll(): void {
         clipboardOpen = false;
         spotlightOpen = false;
@@ -174,6 +182,7 @@ Singleton {
         function swipe(dir: string): void { root.swipe(dir); }
         function swipeState(): string { return `overview=${root.overviewOpen} launchpad=${root.launchpadOpen}`; }
         function spotlight(): void { root.toggleSpotlight(); }
+        function preview(file: string): void { root.preview(file); }
         function clipboard(): void { root.toggleClipboard(); }
         function controlCenter(): void { root.toggleControlCenter(); }
         function wifi(): void { root.openWifi(); }

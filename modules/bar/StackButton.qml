@@ -40,6 +40,7 @@ DockButton {
     function open(): void {
         if (missing) return;
         if (isDir) dock.openStack(btn, path, label);
+        else if (Shell.canPreview(path)) Shell.preview(path);
         else Quickshell.execDetached(["xdg-open", path]);
     }
     onClicked: { dock.closeMenu(); dock.hoverGroup = null; refresh(); open(); }

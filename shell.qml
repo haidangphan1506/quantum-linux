@@ -25,6 +25,7 @@ import "modules/switcher"
 import "modules/launchpad"
 import "modules/about"
 import "modules/effects"
+import "modules/preview"
 
 // Quantum Shell: el escritorio de Quantum Linux.
 // Primero aparece la pantalla de carga (liviana) y el resto se carga de fondo, sin
@@ -57,6 +58,7 @@ ShellRoot {
             Popups {}
             Osd {}
             Screenshot {}
+            Preview {}
             ClipboardHistory {}
             Spotlight {}
             ControlCenter {}

@@ -25,6 +25,13 @@ MouseArea {
         return Math.round(b) + " B/s";
     }
 
+    // Semáforo por velocidad: verde ≥ 1 MB/s, amarillo ≥ 128 KB/s, rojo por debajo
+    function speedColor(b: real): color {
+        if (b >= 1048576) return Theme.macGreen;
+        if (b >= 131072) return Theme.macOrange;
+        return Theme.macRed;
+    }
+
     Rectangle {
         anchors.fill: parent
         radius: 5
@@ -44,9 +51,10 @@ MouseArea {
             RowLayout {
                 required property var modelData
                 spacing: 1
-                Icon { text: modelData.icon; size: 14; color: Theme.fgMuted }
+                Icon { text: modelData.icon; size: 14; color: root.speedColor(modelData.value) }
                 Txt {
                     text: root.fmt(modelData.value)
+                    color: root.speedColor(modelData.value)
                     font.pixelSize: 13
                     font.features: { "tnum": 1 }
                     horizontalAlignment: Text.AlignLeft

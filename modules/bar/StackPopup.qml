@@ -70,6 +70,7 @@ PanelWindow {
     }
     function openPath(p: string, isDir: bool): void {
         if (isDir) Quickshell.execDetached(["sh", Quickshell.shellDir + "/scripts/open-folder.sh", p]);
+        else if (Shell.canPreview(p)) Shell.preview(p);
         else Quickshell.execDetached(["xdg-open", p]);
         close();
     }
