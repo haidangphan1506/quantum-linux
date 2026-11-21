@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Widgets
 import qs.services
 import qs.components
 
@@ -233,7 +234,6 @@ GridLayout {
             id: mbtn
             required property var modelData
             flat: true
-            implicitWidth: Math.round(46 * Theme.dockScale)
             onClicked: { root.dock.closeMenu(); root.dock.hoverGroup = null; Wm.restore(modelData.win); }
             onHoveredChanged: {
                 if (hovered) {
@@ -244,20 +244,37 @@ GridLayout {
                     root.dock.scheduleHide();
                 }
             }
-            // miniatura de ventana con la insignia de la app, como en macOS
-            Rectangle {
+            // miniatura real de la ventana (preview en vivo) con la insignia de la app, como en macOS
+            implicitWidth: Math.round(64 * Theme.dockScale)
+            ClippingRectangle {
                 anchors.centerIn: parent
-                width: Math.round(38 * Theme.dockScale)
-                height: Math.round(30 * Theme.dockScale)
+                width: Math.round(56 * Theme.dockScale)
+                height: Math.round(38 * Theme.dockScale)
                 radius: 6
                 color: Theme.alpha(Theme.fg, 0.1)
                 border.width: 1
                 border.color: Theme.alpha(Theme.fg, 0.25)
+                ScreencopyView {
+                    id: shot
+                    anchors.fill: parent
+                    captureSource: mbtn.modelData.win
+                    live: true
+                }
+                // sin captura disponible: se queda el icono de la app
                 AppIcon {
+                    visible: !shot.hasContent
                     anchors.centerIn: parent
                     size: Math.round(22 * Theme.dockScale)
                     name: mbtn.modelData.icon
                 }
+            }
+            AppIcon {
+                visible: shot.hasContent
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: 2
+                size: Math.round(20 * Theme.dockScale)
+                name: mbtn.modelData.icon
             }
         }
     }

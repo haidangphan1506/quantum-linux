@@ -12,6 +12,7 @@ RowLayout {
     property bool compact: false
     spacing: 4
 
+    RecordIndicator {}
     Tray { window: root.window; visible: Settings.dock.showTray }
     // actualizaciones disponibles
     Rectangle {
@@ -58,6 +59,11 @@ RowLayout {
             cursorShape: Qt.PointingHandCursor
             onClicked: Updates.rebootAsk = true
         }
+    }
+    Loader {
+        active: Settings.layout.topBar.showNetSpeed
+        visible: active
+        sourceComponent: NetSpeed {}
     }
     Loader {
         active: Settings.layout.topBar.showSysMon

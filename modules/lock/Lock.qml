@@ -4,7 +4,6 @@ import Quickshell.Wayland
 import Quickshell.Services.Pam
 import Quickshell.Io
 import qs.services
-import "../serpantium"
 
 // Pantalla de bloqueo (protocolo seguro de Wayland + PAM).
 Scope {
@@ -97,12 +96,7 @@ Scope {
 
         WlSessionLockSurface {
             color: Theme.surface
-            Loader {
-                anchors.fill: parent
-                sourceComponent: Serp.on ? serpSurface : normalSurface
-                Component { id: normalSurface; LockSurface { lock: root } }
-                Component { id: serpSurface; SerpLock { lock: root } }
-            }
+            LockSurface { anchors.fill: parent; lock: root }
         }
     }
 
@@ -119,12 +113,7 @@ Scope {
             anchors { top: true; bottom: true; left: true; right: true }
             exclusionMode: ExclusionMode.Ignore
             color: Theme.surface
-            Loader {
-                anchors.fill: parent
-                sourceComponent: Serp.on ? serpPreview : normalPreview
-                Component { id: normalPreview; LockSurface { lock: root; preview: true; onClosePreview: { root.password = ""; root.leave(); } } }
-                Component { id: serpPreview; SerpLock { lock: root; preview: true; onClosePreview: { root.password = ""; root.leave(); } } }
-            }
+            LockSurface { anchors.fill: parent; lock: root; preview: true; onClosePreview: { root.password = ""; root.leave(); } }
         }
     }
 

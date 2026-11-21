@@ -57,7 +57,9 @@ Scope {
             required property ShellScreen modelData
 
             screen: modelData
-            visible: root.active || fade.opacity > 0.001
+            property real reveal: 0            // 0→1: zoom vào ma trận lúc thoát
+            property bool exiting: false
+            visible: root.active || exiting || fade.opacity > 0.001
             color: "transparent"
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.namespace: "quantum-screensaver"
@@ -68,7 +70,7 @@ Scope {
             Item {
                 id: fade
                 anchors.fill: parent
-                opacity: root.active ? 1 : 0
+                opacity: (root.active || win.exiting) ? 1 : 0
                 Behavior on opacity {
                     NumberAnimation {
                         duration: root.active ? 1400 : 220
@@ -82,7 +84,8 @@ Scope {
                     visible: false
                     columns: 8
                     Repeater {
-                        model: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789$#@*"
+                        // đúng 64 ký tự (lưới 8x8): chữ Latin, chữ số và vài ký hiệu — không dùng katakana
+                        model: Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789#@*")
                         Item {
                             required property string modelData
                             width: 72
@@ -91,8 +94,9 @@ Scope {
                                 anchors.centerIn: parent
                                 text: parent.modelData
                                 color: "white"
-                                font.family: "Noto Serif"
-                                font.pixelSize: 42
+                                font.family: "Noto Sans Mono"
+                                font.weight: Font.DemiBold
+                                font.pixelSize: 50
                             }
                         }
                     }
@@ -112,8 +116,9 @@ Scope {
                     property real time: 0
                     property size res: Qt.size(width, height)
                     property real cscale: Math.max(0.8, height / 1200)
+                    property real reveal: win.reveal
                     property variant atlas: atlas
-                    fragmentShader: Quickshell.shellDir + "/shaders/matrix.frag.qsb"
+                    fragmentShader: Quickshell.shellDir + "/shaders/matrix.v2.frag.qsb"
                 }
                 FrameAnimation {
                     running: win.visible
@@ -137,7 +142,44 @@ Scope {
                 Keys.onPressed: root.stop()
             }
 
-            onVisibleChanged: if (!visible) catcher.last = Qt.point(-1, -1)
+            onVisibleChanged: {
+                if (!visible) catcher.last = Qt.point(-1, -1);
+                // atlas es live:false y Qt libera su textura al ocultar la ventana: sin esto
+                // las siguientes veces se ven rayas sin caracteres (solo la 1.ª vez salía bien).
+                else atlas.scheduleUpdate();
+            }
+
+            // Đang thoát: cho chuột/phím xuyên qua cửa sổ xuống màn hình chính
+            mask: root.active ? null : emptyMask
+            Region { id: emptyMask }
+
+            NumberAnimation {
+                id: revealAnim
+                target: win
+                property: "reveal"
+                from: 0; to: 1
+                duration: 1400
+                easing.type: Easing.InOutSine
+                onFinished: win.exiting = false   // giữ reveal = 1 (trong suốt hẳn) đến lần bật sau, tránh chớp lại ma trận
+            }
+
+            // Mỗi lần bật bắt đầu từ cùng một thời điểm: xem trước và lúc chờ thật luôn giống nhau
+            // (không reset nếu đang mờ dần, để tránh giật hình).
+            Connections {
+                target: root
+                function onActiveChanged() {
+                    if (root.active) {
+                        revealAnim.stop();
+                        win.exiting = false;
+                        win.reveal = 0;
+                        if (fade.opacity < 0.01) rain.time = 0;
+                    } else if (win.visible && fade.opacity > 0.3) {
+                        // thoát: zoom vào ma trận rồi mờ dần để vào màn hình chính
+                        win.exiting = true;
+                        revealAnim.restart();
+                    }
+                }
+            }
         }
     }
 }

@@ -14,13 +14,10 @@ import "modules/controlcenter"
 import "modules/wallpapers"
 import "modules/notifications"
 import "modules/personalize"
-import "modules/assistant"
 import "modules/osd"
 import "modules/screenshot"
 import "modules/session"
-import "modules/welcome"
 import "modules/lock"
-import "modules/serpantium"
 import "modules/updates"
 import "modules/screensaver"
 import "modules/overview"
@@ -40,8 +37,6 @@ ShellRoot {
         desktopReady: desktop.item !== null
         onSessionStarted: {
             Sounds.play("startup");
-            // apps de inicio que no deben competir con la carga del escritorio
-            Quickshell.execDetached(["quantum-center", "--autostart"]);
             // Ajustes → General → Elementos de inicio («Abrir al iniciar sesión» de macOS)
             for (const id of Settings.apps.login ?? [])
                 Apps.entry(id)?.execute();
@@ -55,33 +50,21 @@ ShellRoot {
             Background {}
             // efecto genie curvo al ocultar/mostrar ventanas por el dock (minimize.lua)
             GenieFx {}
-            // La forma del shell: Caelestial (barra + dock) o Serpantium (píldoras arriba)
-            LazyLoader {
-                active: !Serp.on
-                Scope { Bar {} DockHost {} }
-            }
-            LazyLoader {
-                active: Serp.on
-                Scope {
-                    SerpBar {} SerpPanels {} SerpLauncher {}
-                    // «Dock abajo»: el mismo dock de Caelestial, con los colores de Serpantium
-                    LazyLoader { active: Settings.ui.serpApps === "dock"; DockHost {} }
-                }
-            }
+            // Barra de menús (estilo macOS) + dock
+            Bar {}
+            DockHost {}
             Lock {}
             Popups {}
             Osd {}
             Screenshot {}
-            Launcher {}
+            ClipboardHistory {}
             Spotlight {}
             ControlCenter {}
             WallpaperPicker {}
             Personalize {}
             ActivityMonitor {}
             About {}
-            Assistant {}
             SessionMenu {}
-            Welcome {}
             RebootPrompt {}
             Screensaver {}
             Overview {}

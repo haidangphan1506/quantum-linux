@@ -37,6 +37,7 @@ Scope {
             readonly property var pages: [
                 { id: "wifi", g: 1, t: "Wi-Fi", h: I18n.t("Redes inalámbricas, contraseña y detalles de la conexión."), i: "wifi", k: "#007AFF", c: wifiPage },
                 { id: "bluetooth", g: 1, t: "Bluetooth", h: I18n.t("Empareja auriculares, teclados y otros dispositivos."), i: "bluetooth", k: "#007AFF", c: bluetoothPage },
+                { id: "bandwidth", g: 1, t: I18n.t("Ancho de banda"), h: I18n.t("Velocidad de la red, prioridad y límite de cada app."), i: "speed", k: "#34C759", c: bandwidthPage },
                 { id: "notifications", g: 2, t: I18n.t("Notifications"), h: I18n.t("Vistas previas, No molestar y avisos de cada app."), i: "notifications", k: "#FF3B30", c: notificationsPage },
                 { id: "sounds", g: 2, t: I18n.t("Sound"), h: I18n.t("Efectos de sonido, salida y entrada."), i: "volume_up", k: "#FF2D55", c: soundsPage },
                 { id: "general", g: 3, t: I18n.t("General"), ht: I18n.t("Appearance"), h: I18n.t("Apariencia, color de acento y barras de desplazamiento."), i: "settings", k: "#8E8E93", c: generalPage },
@@ -101,6 +102,7 @@ Scope {
             Component { id: appsPage; AppsPage {} }
             Component { id: wifiPage; WifiPage {} }
             Component { id: bluetoothPage; BluetoothPage {} }
+            Component { id: bandwidthPage; BandwidthPage {} }
             Component { id: batteryPage; BatteryPage {} }
             Component { id: appearancePage; AppearancePage {} }
             Component { id: desktopPage; DesktopDockPage {} }

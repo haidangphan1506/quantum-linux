@@ -13,9 +13,8 @@ PanelWindow {
 
     readonly property bool open: Updates.rebootAsk && Updates.rebootNeeded
     property real k: 0
-    readonly property bool serp: Serp.on
-    readonly property color accent: serp ? Serp.pink : Theme.primary
-    readonly property color accentFg: serp ? Serp.pinkFg : Theme.primaryFg
+    readonly property color accent: Theme.primary
+    readonly property color accentFg: Theme.primaryFg
 
     visible: open || k > 0.001
     screen: Wm.screen
@@ -41,18 +40,18 @@ PanelWindow {
         id: card
         anchors.centerIn: parent
         width: 560; height: col.implicitHeight + 64
-        radius: win.serp ? 18 : 28
-        color: win.serp ? Serp.bg : Theme.surfaceContainer
-        border.width: 1; border.color: win.serp ? Qt.rgba(0.96, 0.65, 0.79, 0.25) : Theme.alpha(Theme.fg, 0.08)
+        radius: 28
+        color: Theme.surfaceContainer
+        border.width: 1; border.color: Theme.alpha(Theme.fg, 0.08)
         opacity: Math.min(1, win.k * 1.4)
         scale: 0.9 + 0.1 * win.k
         clip: true
 
-        // halo, como los paneles de Serpantium / brillo del degradado de Quantum
+        // halo / brillo del degradado
         Rectangle {
             width: 520; height: 520; radius: 260; x: card.width - 260; y: -300
-            color: win.serp ? Qt.rgba(1, 1, 1, 0.02) : Theme.alpha(Theme.primary, 0.08)
-            border.width: 1; border.color: win.serp ? Qt.rgba(0.96, 0.65, 0.79, 0.06) : "transparent"
+            color: Theme.alpha(Theme.primary, 0.08)
+            border.width: 1; border.color: "transparent"
         }
 
         Column {
@@ -64,12 +63,12 @@ PanelWindow {
                 width: 72; height: 72; radius: 36
                 gradient: Gradient {
                     orientation: Gradient.Horizontal
-                    GradientStop { position: 0; color: win.serp ? "#F4A7C9" : Theme.brandCyan }
-                    GradientStop { position: 1; color: win.serp ? "#E07BAA" : Theme.brandViolet }
+                    GradientStop { position: 0; color: Theme.brandCyan }
+                    GradientStop { position: 1; color: Theme.brandViolet }
                 }
                 Icon {
                     anchors.centerIn: parent; text: "restart_alt"; size: 38; fill: 1
-                    color: win.serp ? Serp.pinkFg : "white"
+                    color: "white"
                     RotationAnimation on rotation { running: win.open; from: 0; to: -360; duration: 3200; loops: Animation.Infinite }
                 }
             }
@@ -77,7 +76,7 @@ PanelWindow {
                 width: parent.width; wrapMode: Text.WordWrap; elide: Text.ElideNone
                 text: I18n.t("Reinicia para terminar de actualizar")
                 font.pixelSize: 24; font.weight: Font.Bold
-                color: win.serp ? Serp.fg : Theme.fg
+                color: Theme.fg
             }
             Txt {
                 width: parent.width; wrapMode: Text.WordWrap; elide: Text.ElideNone
@@ -85,12 +84,12 @@ PanelWindow {
                 text: I18n.t("Quantum se actualizó") + (what ? " (" + what + ")" : "") +
                       I18n.t(". Los cambios se aplican al reiniciar. Guarda lo que estés haciendo antes.")
                 font.pixelSize: 15; lineHeight: 1.15
-                color: win.serp ? Serp.muted : Theme.fgMuted
+                color: Theme.fgMuted
             }
             Txt {
                 text: Updates.rebootPackages.length === 1 ? I18n.t("1 paquete actualizado") : Updates.rebootPackages.length + I18n.t(" paquetes actualizados")
                 font.pixelSize: 12
-                color: win.serp ? Serp.muted : Theme.fgMuted
+                color: Theme.fgMuted
                 opacity: 0.8
             }
             Item { width: 1; height: 4 }
@@ -103,15 +102,15 @@ PanelWindow {
                     property string icon: ""
                     property bool primary: false
                     signal clicked()
-                    width: row.implicitWidth + 44; height: 48; radius: win.serp ? 12 : 24
-                    color: primary ? win.accent : ma.containsMouse ? Theme.alpha(win.serp ? Serp.fg : Theme.fg, 0.08) : "transparent"
-                    border.width: primary ? 0 : 1; border.color: Theme.alpha(win.serp ? Serp.fg : Theme.fg, 0.18)
+                    width: row.implicitWidth + 44; height: 48; radius: 24
+                    color: primary ? win.accent : ma.containsMouse ? Theme.alpha(Theme.fg, 0.08) : "transparent"
+                    border.width: primary ? 0 : 1; border.color: Theme.alpha(Theme.fg, 0.18)
                     scale: ma.pressed ? 0.94 : 1
                     Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutBack } }
                     Row {
                         id: row; anchors.centerIn: parent; spacing: 8
-                        Icon { anchors.verticalCenter: parent.verticalCenter; visible: b.icon !== ""; text: b.icon; size: 20; color: b.primary ? win.accentFg : (win.serp ? Serp.fg : Theme.fg) }
-                        Txt { anchors.verticalCenter: parent.verticalCenter; text: b.label; font.pixelSize: 15; font.weight: Font.DemiBold; color: b.primary ? win.accentFg : (win.serp ? Serp.fg : Theme.fg) }
+                        Icon { anchors.verticalCenter: parent.verticalCenter; visible: b.icon !== ""; text: b.icon; size: 20; color: b.primary ? win.accentFg : (Theme.fg) }
+                        Txt { anchors.verticalCenter: parent.verticalCenter; text: b.label; font.pixelSize: 15; font.weight: Font.DemiBold; color: b.primary ? win.accentFg : (Theme.fg) }
                     }
                     MouseArea { id: ma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: b.clicked() }
                 }

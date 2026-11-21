@@ -18,7 +18,7 @@ ColumnLayout {
                  : Updates.count > 0 ? Updates.count + " " + I18n.t("actualizaciones disponibles")
                  : I18n.t("El sistema está al día")
             help: Updates.count > 0 ? I18n.t("Se abre una terminal que instala todo de una vez (pacman / paru).")
-                                    : I18n.t("Se revisa sola cada 3 horas.")
+                                    : I18n.t("Se revisa sola cada 3 días.")
             icon: Updates.count > 0 ? "system_update_alt" : "verified"
             iconColor: Updates.count > 0 ? "#FF9500" : "#34C759"
             RowLayout {

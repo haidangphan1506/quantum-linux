@@ -1,5 +1,5 @@
 #version 440
-// Mưa ký tự kiểu Matrix: 3 lớp độ sâu (xa mờ/nhỏ/chậm, gần sáng/to/nhanh),
+// Mưa ký tự kiểu Matrix: một cỡ chữ duy nhất,
 // đầu giọt trắng xanh, đuôi mờ dần, vệt sáng dọc cột và ký tự đổi ngẫu nhiên.
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
@@ -10,6 +10,7 @@ layout(std140, binding = 0) uniform buf {
     float time;
     vec2 res;
     float cscale;
+    float reveal;   // 0: bình thường; 0→1: zoom vào tâm rồi mờ dần để lộ màn hình chính (lúc thoát)
 };
 layout(binding = 1) uniform sampler2D atlas;   // 8x8 ký tự trắng trên nền trong suốt
 
@@ -63,10 +64,6 @@ vec3 rainLayer(vec2 px, float cw, float speedMul, float seed, float dim, float d
             vec3 green = vec3(0.08, 1.0, 0.32);
             vec3 white = vec3(0.78, 1.0, 0.86);
             c += gl * mix(green * tail, white, isHead) * (d < 0.0 ? 0.0 : 1.0);
-            // vệt sáng mờ phía sau ký tự (giống phim): mạnh gần đầu giọt
-            float xw = 1.0 - abs(uv.x - 0.5) * 2.0;
-            float streak = pow(max(d, 0.0) < len ? tail : 0.0, 2.5) * xw * xw;
-            c += green * streak * 0.45;
         }
         // quầng sáng quanh đầu giọt
         float hx = 1.0 - abs(uv.x - 0.5) * 2.0;
@@ -78,14 +75,23 @@ vec3 rainLayer(vec2 px, float cw, float speedMul, float seed, float dim, float d
 void main() {
     vec2 px = qt_TexCoord0 * res;
     float s = cscale;
+
+    // ---- hiệu ứng thoát: phóng to (zoom) vào tâm ma trận rồi mờ dần để lộ màn hình chính
+    vec2 org = res * 0.5;
+    float ease = reveal * reveal * (3.0 - 2.0 * reveal);        // êm hai đầu
+    float zoom = 1.0 + ease * ease * 9.0;                      // 1 → 10 lần, tăng tốc về cuối
+    px = org + (px - org) / zoom;
+    float fadeOut = 1.0 - smoothstep(0.45, 1.0, reveal);       // trong suốt dần về cuối
+
     vec3 c = vec3(0.0);
-    c += rainLayer(px, 15.0 * s, 0.45, 1.0, 0.28, 0.8);   // xa
-    c += rainLayer(px + vec2(5.0, 0.0), 23.0 * s, 0.7, 2.0, 0.6, 0.7);   // giữa
-    c += rainLayer(px + vec2(9.0, 0.0), 33.0 * s, 1.0, 3.0, 1.15, 0.65);    // gần
+    // một cỡ chữ duy nhất (vừa)
+    c += rainLayer(px, 20.0 * s, 0.8, 2.0, 1.0, 0.8);
     // nền đen hơi xanh, tối dần ở mép
     vec2 q = qt_TexCoord0 - 0.5;
     float vig = 1.0 - dot(q, q) * 0.9;
     c = c * vig + vec3(0.0, 0.012, 0.004);
+    c *= 1.0 + ease * 0.8;                                      // sáng lên khi lao vào
     c = 1.0 - exp(-c * 1.8);   // tone map nhẹ để glow không cháy
-    fragColor = vec4(c, 1.0) * qt_Opacity;
+
+    fragColor = vec4(c, 1.0) * (fadeOut * qt_Opacity);
 }

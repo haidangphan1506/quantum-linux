@@ -7,7 +7,7 @@ import qs.services
 
 // Paquetes de íconos (bienvenida y Personalizar → Colores y fondo). Vienen del repo
 // [quantum]: el que no está instalado se descarga al elegirlo (pide la contraseña).
-// quantum-theme elige la variante (carpetas violetas en Caelestial, rosadas en Serpantium;
+// quantum-theme elige la variante (carpetas violetas;
 // oscura o clara) y recarga el escritorio, porque el shell toma sus íconos al arrancar.
 Singleton {
     id: root
@@ -26,7 +26,7 @@ Singleton {
     property string installing: ""
 
     function preview(id: string): string {
-        return Quickshell.shellDir + "/assets/icon-previews/" + id + "-" + (Serp.on ? "pink" : "purple") + ".png";
+        return Quickshell.shellDir + "/assets/icon-previews/" + id + "-" + "purple" + ".png";
     }
     function refresh(): void { check.running = true; }
     function choose(id: string): void {

@@ -152,7 +152,7 @@ Singleton {
         }
     }
 
-    // Red: suma de las interfaces reales (sin lo/veth/docker), bytes/s desde la última lectura
+    // Red: suma de las interfaces reales (sin lo, ifb de netprio ni puentes/veth de contenedores), bytes/s desde la última lectura
     FileView {
         id: net
         path: "/proc/net/dev"
@@ -160,7 +160,7 @@ Singleton {
             let rx = 0, tx = 0;
             for (const l of text().split("\n").slice(2)) {
                 const m = l.trim().match(/^([^:]+):\s*(.*)$/);
-                if (!m || m[1] === "lo" || m[1].startsWith("veth") || m[1].startsWith("docker")) continue;
+                if (!m || m[1] === "lo" || /^(veth|docker|br-|virbr|ifb|kiri|kv)/.test(m[1])) continue;
                 const n = m[2].split(/\s+/).map(Number);
                 rx += n[0]; tx += n[8];
             }

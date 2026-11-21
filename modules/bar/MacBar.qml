@@ -191,7 +191,7 @@ Item {
             { separator: true },
             root.shortcut(I18n.t("Buscar") + "…", "CTRL", "f", true),
             { separator: true },
-            { text: I18n.t("Historial del portapapeles"), action: () => Shell.toggleLauncher(true) }
+            { text: I18n.t("Historial del portapapeles"), action: () => Shell.toggleClipboard() }
         ]
     }
 
@@ -228,7 +228,7 @@ Item {
         id: helpMenu
         anchorItem: helpBtn
         items: [
-            { text: I18n.t("Buscar apps") + "…", action: () => Shell.toggleLauncher(false) },
+            { text: I18n.t("Buscar apps") + "…", action: () => Shell.toggleSpotlight() },
             { text: I18n.t("Asistente de Quantum"), action: () => Shell.toggleAi() },
             { separator: true },
             { text: I18n.t("Atajos de teclado"), action: () => Quickshell.execDetached(["kitty", "--title", I18n.t("Atajos de teclado"), "--hold", Quickshell.shellDir + "/scripts/keybinds.sh"]) }
@@ -259,10 +259,18 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 2
 
+        // Chấm đỏ mientras se graba la pantalla (clic: detener)
+        RecordIndicator {}
         Tray { window: root.window; visible: Settings.dock.showTray && items.length > 0 }
         // Uso de Claude Code: contexto del chat y lo que queda de 5 h y de la semana (clic: detalle)
         ClaudeMeter { window: root.window; visible: Settings.layout.topBar.showClaude }
 
+        // Velocidad de la red ↑/↓ (clic: Ajustes → Ancho de banda)
+        Loader {
+            active: Settings.layout.topBar.showNetSpeed
+            visible: active
+            sourceComponent: NetSpeed {}
+        }
         // Temperatura, CPU y RAM en tiempo real (clic: panel con el detalle)
         Loader {
             active: Settings.layout.topBar.showSysMon
@@ -270,14 +278,6 @@ Item {
             sourceComponent: SysMonitor { barWindow: root.window; compact: root.compact }
         }
         Status { implicitHeight: 24; radius: 5 }
-        // Spotlight
-        BarIcon { visible: Settings.layout.topBar.showSpotlight; icon: "search"; onClicked: { root.closeMenus(); Shell.toggleSpotlight(); } }
-        // Centro de control (interruptores) / notificaciones pendientes
-        BarIcon {
-            icon: Notifs.count > 0 ? "notifications_unread" : "toggle_on"
-            active: Shell.controlCenterOpen
-            onClicked: { root.closeMenus(); Shell.toggleControlCenter(); }
-        }
         // Fecha y hora en una sola línea, peso normal: «T7 31 thg 10  16:15»
         // Solo informativo: clic no abre el panel (dashboard)
         Item {

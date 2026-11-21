@@ -63,9 +63,7 @@ Singleton {
     readonly property color brandViolet: "#B14DFF"
 
     // Tipografía
-    // Serpantium usa letra monoespaciada en todo el escritorio
-    readonly property bool serp: Settings.ui.shell === "serpantium"
-    readonly property string font: serp ? "JetBrains Mono" : "Inter"
+    readonly property string font: "Inter"
     readonly property string iconFont: "Material Symbols Rounded"
     readonly property real textScale: Settings.appearance?.textScale ?? 1.0
     readonly property int textSmall: Math.round(12 * textScale)

@@ -17,13 +17,16 @@ PanelWindow {
     readonly property bool open: Shell.controlCenterOpen
     property real progress: 0
     visible: open || progress > 0.001
+    // Abrir: desaceleración suave (sin rebote); cerrar: más rápido y sin sorpresas.
+    // Si se cambia de idea a mitad de camino, parte desde el valor actual (sin saltos).
     onOpenChanged: {
+        anim.stop();
         anim.to = open ? 1 : 0;
-        anim.duration = open ? 380 : 180;
-        anim.easing.type = open ? Easing.OutBack : Easing.InCubic;
+        anim.duration = open ? 360 : 190;
+        anim.easing.type = open ? Easing.OutQuint : Easing.InOutCubic;
         anim.restart();
     }
-    NumberAnimation { id: anim; target: win; property: "progress"; easing.overshoot: 1.1 }
+    NumberAnimation { id: anim; target: win; property: "progress" }
     screen: Wm.screen
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "quantum-panel"
@@ -78,10 +81,14 @@ PanelWindow {
                 Shell.controlCenterOpen = false;
         }
 
-        opacity: Math.min(1, win.progress * 1.4)
-        scale: 0.95 + 0.05 * win.progress
+        // Nace desde la esquina de arriba a la derecha (donde está el grupo de iconos de la barra):
+        // se agranda un poco, baja unos píxeles y aparece con un fundido más rápido que el movimiento.
+        opacity: Math.max(0, Math.min(1, win.progress * 1.8))
+        scale: 0.9 + 0.1 * win.progress
         transformOrigin: Item.TopRight
-        transform: Translate { x: (1 - win.progress) * 40 }
+        transform: Translate { y: (1 - win.progress) * -10 }
+        layer.enabled: win.progress > 0.001 && win.progress < 0.999   // anima como una sola capa: sin parpadeos entre módulos
+        layer.smooth: true
 
         // fondo de vidrio solo para las páginas de Wi-Fi / Bluetooth
         Card {
