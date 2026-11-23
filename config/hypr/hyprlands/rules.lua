@@ -130,8 +130,16 @@ hl.window_rule({
     match = { class = "^(brave-browser)$", title = "negative:Picture(-| )in(-| )[Pp]icture" },
 
     float  = true,
-    size   = FULL_SIZE,
-    move   = "12 72",   -- ver size-3-4-all
+    size   = "(monitor_w-24) (monitor_h-54)",   -- Brave tu ve header: khong chua 30px thanh tieu de
+    move   = "12 42",
+})
+
+-- App co header rieng (CAEL_OWN_HEADER_LIST, titlebar.lua): khong co thanh hyprbars -> 12 42, khong chua 30px
+hl.window_rule({
+    name  = "own-header-open-size",
+    match = { class = "^(brave-browser|chromium|google-chrome|vivaldi-stable|herdr-app|xfce4-about|org\\.gnome\\..+)$", modal = false, title = "negative:Picture(-| )in(-| )[Pp]icture" },
+    size  = "(monitor_w-24) (monitor_h-54)",
+    move  = "12 42",
 })
 
 -- Browser Picture-in-Picture (Firefox, Chrome/Brave/Chromium all use this title)

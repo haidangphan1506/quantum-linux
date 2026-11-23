@@ -22,6 +22,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
 import { pathToFileURL } from "node:url";
+import * as real from "./real/realterm.mjs";
 
 const HOME = homedir();
 const STATE = join(process.env.XDG_STATE_HOME || join(HOME, ".local/state"), "quantum", "learn.json");
@@ -320,12 +321,59 @@ function restore({ path, data }) {
   return { data: merge(data, readBackup(path)) };
 }
 
+
+/** Chấm lại theo trạng thái hiện tại của shell (mô phỏng hoặc đã đồng bộ từ container thật). */
+function gradeNow(s, passed) {
+  const res = {};
+  if (s.debug) {
+    let ok = false;
+    try { ok = !!s.debug.check(s.sh); } catch {}
+    res.solved = ok;
+  } else {
+    const budget = { t0: Date.now(), ms: 1500 };
+    res.newly = [];
+    s.lesson.lab.items.forEach((it, i) => {
+      if (passed[i]) return;
+      let ok = false;
+      try { ok = !!it.check(s.sh); } catch {}
+      if (!ok && engine.equiv) { try { ok = !!engine.equiv(s.lesson, s.sh, it, budget); } catch {} }
+      if (ok) res.newly.push(i);
+    });
+  }
+  return res;
+}
+
+// ---- Terminal thật (container docker/kiri): ver real/realterm.mjs
+const cleaned = real.cleanupStale().catch(() => {});   // borra contenedores huérfanos de ejecuciones anteriores, antes de crear el primero
+async function ropen({ key, lesson, debug, passed = [], rows, cols }) {
+  await cleaned;
+  if (!(await real.available())) throw new Error("Không kết nối được docker/kiri. Hãy chạy `kiri daemon` (hoặc dockerd) rồi bấm «Đặt lại».");
+  shells.delete(key);
+  open({ key, lesson, debug });
+  const s = shells.get(key);
+  s.passed = passed.slice();
+  const user = s.sh.user, host = s.sh.hostName;
+  await real.start({ key, simSh: s.sh, host, user, rows, cols, emit: send });
+  real.onState(key, async () => {
+    const r = gradeNow(s, s.passed);
+    for (const i of r.newly ?? []) s.passed[i] = true;
+    send({ ev: "grade", key, ...r });
+  });
+  return {};
+}
+
 const ops = {
   catalog,
   open,
   run,
   complete,
-  reset: ({ key }) => (shells.delete(key), {}),
+  reset: ({ key }) => (shells.delete(key), real.stop(key).then(() => ({}))),
+  ropen,
+  rinput: ({ key, text }) => (real.input(key, Buffer.from(String(text), "utf8").toString("base64")), {}),
+  rresize: ({ key, rows, cols }) => (real.resize(key, rows, cols), {}),
+  rscroll: ({ key, delta }) => (real.scroll(key, delta), {}),
+  rrepaint: ({ key }) => (real.repaint(key), {}),
+  rstop: ({ key }) => real.stop(key).then(() => ({})),
   load,
   save,
   export: exportReport,
@@ -346,8 +394,18 @@ createInterface({ input: process.stdin }).on("line", (line) => {
   try {
     if (!fn) throw new Error(`op không hỗ trợ: ${msg.op}`);
     if (needsEngine.has(msg.op) && !engine) throw new Error(loadError ?? "Engine chưa nạp");
-    send({ id: msg.id, ok: true, ...fn(msg) });
+    Promise.resolve(fn(msg)).then(
+      (r) => send({ id: msg.id, ok: true, ...r }),
+      (e) => send({ id: msg.id, ok: false, error: String(e?.message ?? e) }),
+    );
   } catch (e) {
     send({ id: msg.id, ok: false, error: String(e?.message ?? e) });
   }
 });
+
+// al salir (stdin cerrado o señal) se borran los contenedores de lab
+const bye = () => real.stopAll().finally(() => process.exit(0));
+process.stdin.on("end", bye);
+process.on("SIGTERM", bye);
+process.on("SIGINT", bye);
+

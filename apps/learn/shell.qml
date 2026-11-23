@@ -193,6 +193,7 @@ ShellRoot {
     function onMessage(data: string): void {
         let m;
         try { m = JSON.parse(data); } catch (e) { console.warn("learn: JSON lỗi từ backend"); return; }
+        if (m.ev) { onEvent(m); return; }
         const cb = pending[m.id];
         delete pending[m.id];
         if (cb) cb(m);
@@ -272,7 +273,7 @@ ShellRoot {
             return { kind: "theory", card: i, label: head.length > 18 ? head.slice(0, 17).trim() + "…" : head, title: t };
         });
         if (l.quiz.length) st.push({ kind: "quiz", card: -1, label: "Quiz", title: "Kiểm tra nhanh" });
-        if (l.lab.items.length) st.push({ kind: "lab", card: -1, label: "Thực hành", title: "Thực hành trên VPS giả lập" });
+        if (l.lab.items.length) st.push({ kind: "lab", card: -1, label: "Thực hành", title: "Thực hành trên container Linux thật" });
         if (l.debugs.length) st.push({ kind: "debug", card: -1, label: "Fix lỗi", title: "Tìm và sửa sự cố" });
         return st;
     }
@@ -318,64 +319,65 @@ ShellRoot {
     }
     function resetQuiz(l: var): void { prog.quiz[l.id] = {}; touch(); }
 
-    // ------------------------------------------------------------------ terminal (shell mô phỏng ở backend)
+    // ------------------------------------------------------------------ terminal THẬT (container docker/kiri, ở backend)
     property string activeTerm: ""      // terminal đang hiện (để IPC run gửi lệnh vào)
-    property var terms: ({})            // key → { lines: [{k, t, p}], hist: [], buf, prompt, opts }
+    property var terms: ({})            // key → { status, error, note, snap, opts, rows, cols }
     property int termRev: 0
-    function openTerm(key: string, opts: var): void {
-        if (terms[key]) return;
-        const where = opts.host === "vps" ? `Đang ở VPS ${ip} với user ${opts.user}.` : `Đang ở laptop của bạn (${opts.user}).`;
-        terms[key] = {
-            lines: [{ k: "dim", t: where + " Tab: gợi ý · ↑ ↓: lệnh cũ · Ctrl+L: xoá màn hình" + (opts.extra ? "\n" + opts.extra : "") }],
-            hist: [], buf: "", prompt: "", opts: opts
-        };
+    function openTerm(key: string, opts: var, rows: int, cols: int): void {
+        const old = terms[key];
+        if (old && old.status !== "error" && old.status !== "exit") return;
+        terms[key] = { status: "starting", error: "", note: "", snap: null, opts: opts, rows: rows, cols: cols };
         termRev++;
-        call("open", { key: key, lesson: opts.lesson, debug: opts.debug || "" }, r => {
+        call("ropen", { key: key, lesson: opts.lesson, debug: opts.debug || "", passed: prog.labs[opts.lesson] || [], rows: rows, cols: cols }, r => {
             const s = terms[key];
             if (!s) return;
-            if (r.ok) s.prompt = r.prompt;
-            else s.lines.push({ k: "err", t: r.error });
+            if (r.ok) { if (s.status === "starting") s.status = "run"; s.note = ""; }
+            else { s.status = "error"; s.error = r.error; }
             termRev++;
         });
     }
-    function termPush(s: var, k: string, t: string, p: var): void {
-        s.lines.push({ k: k, t: t, p: p || "" });
-        if (s.lines.length > 400) s.lines = s.lines.slice(-400);
-    }
-    function termRun(key: string, line: string): void {
+    function termInput(key: string, text: string): void { if (text) call("rinput", { key: key, text: text }); }
+    function termResize(key: string, rows: int, cols: int): void {
         const s = terms[key];
-        if (!s) return;
-        termPush(s, "cmd", line, s.buf ? "> " : s.prompt);
-        if (line.trim()) s.hist.push(line);
-        const text = s.buf ? s.buf + "\n" + line : line;
-        termRev++;
-        if (!text.trim()) { s.buf = ""; return; }
-        const o = s.opts;
-        call("run", { key: key, text: text, passed: prog.labs[o.lesson] || [] }, r => {
-            if (!r.ok) { termPush(s, "err", r.error); termRev++; return; }
-            if (r.needMore) { s.buf = text; termRev++; return; }
-            s.buf = "";
-            if (r.clear) s.lines = [];
-            if (r.out) termPush(s, r.code ? "err" : "out", r.out.replace(/\n$/, ""));
-            s.prompt = r.prompt;
-            termRev++;
-            if (r.newly && r.newly.length) {
-                const a = prog.labs[o.lesson] = prog.labs[o.lesson] || [];
-                for (const i of r.newly) a[i] = true;
-                touch();
-            }
-            if (r.solved && o.debug && !prog.debugs[o.debug]) { prog.debugs[o.debug] = true; touch(); }
-        });
-    }
-    function termComplete(key: string, line: string, cb: var): void {
-        call("complete", { key: key, line: line }, r => cb(r.ok ? r : null));
+        if (!s || (s.rows === rows && s.cols === cols)) return;
+        s.rows = rows; s.cols = cols;
+        call("rresize", { key: key, rows: rows, cols: cols });
     }
     function termReset(key: string): void {
         const s = terms[key];
+        if (!s) return;
+        const o = s.opts, rows = s.rows, cols = s.cols;
         delete terms[key];
-        call("reset", { key: key });
-        if (s) openTerm(key, s.opts);
         termRev++;
+        call("reset", { key: key }, () => openTerm(key, o, rows, cols));
+    }
+    function onEvent(m: var): void {
+        const s = terms[m.key];
+        if (!s) return;
+        if (m.ev === "screen") { s.snap = m; if (s.status === "starting") s.status = "run"; }
+        else if (m.ev === "note") s.note = m.text;
+        else if (m.ev === "exit") { s.status = "exit"; s.exitCode = m.code; }
+        else if (m.ev === "grade") {
+            const o = s.opts;
+            if (m.newly && m.newly.length) {
+                const a = prog.labs[o.lesson] = prog.labs[o.lesson] || [];
+                for (const i of m.newly) a[i] = true;
+                touch();
+            }
+            if (m.solved && o.debug && !prog.debugs[o.debug]) { prog.debugs[o.debug] = true; touch(); }
+        }
+        termRev++;
+    }
+    // Ảnh màn hình → HTML cho Text (mỗi đoạn cùng màu là một span)
+    function rowHtml(segs: var): string {
+        let h = "";
+        for (const g of segs) {
+            const t = g.t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/ /g, "&nbsp;");
+            const st = (g.f ? "color:" + g.f + ";" : "") + (g.b ? "background-color:" + g.b + ";" : "")
+                + (g.a & 1 ? "font-weight:bold;" : "") + (g.a & 4 ? "text-decoration:underline;" : "");
+            h += st ? `<span style="${st}">${t}</span>` : t;
+        }
+        return h;
     }
 
     // ------------------------------------------------------------------ IPC
@@ -386,10 +388,11 @@ ShellRoot {
         function view(v: string): void { app.view = v === "results" ? "results" : "learn"; }
         function theme(): void { app.toggleTheme(); }
         // chạy một lệnh trong terminal của bước đang mở (lab hoặc sự cố đang chọn), để thử tự động
-        function run(text: string): void { if (app.terms[app.activeTerm]) app.termRun(app.activeTerm, text); }
+        function run(text: string): void { if (app.terms[app.activeTerm]) app.termInput(app.activeTerm, text + "\r"); }
         function lines(): string {
             const s = app.terms[app.activeTerm];
-            return s ? s.lines.slice(-6).map(l => (l.p || "") + l.t).join("\n") : "-";
+            if (!s || !s.snap) return "-";
+            return s.snap.rows.map(r => r.map(g => g.t).join("").replace(/\s+$/, "")).filter(x => x).slice(-8).join("\n");
         }
         function results(): void { app.view = "results"; }
         function answer(qi: int, oi: int): void { app.answer(app.lesson, qi, oi); }
@@ -1726,25 +1729,40 @@ ShellRoot {
         }
     }
 
-    // ---------------------------------------------------------------- terminal
+    // ---------------------------------------------------------------- terminal (kiểu herdr: panel tối, tab tiêu đề, PTY thật)
     component Terminal: Rectangle {
         id: term
         property string key
         property var opts
-        readonly property var sess: { void app.termRev; return app.terms[key] ?? null; }
-        property int histAt: -1
-        onKeyChanged: if (key && opts) { app.openTerm(key, opts); app.activeTerm = key; }
-        Component.onCompleted: if (key && opts) { app.openTerm(key, opts); app.activeTerm = key; }
-        radius: 10
-        color: "#141310"
-        border.color: "#1d1b18"
-        TapHandler { onTapped: input.forceActiveFocus() }
+        // copia superficial: así cada cambio (termRev) notifica a todos los bindings que dependen de sess
+        readonly property var sess: { void app.termRev; const t = app.terms[key]; return t ? Object.assign({}, t) : null; }
+        readonly property var snap: sess ? sess.snap : null
+        readonly property real cellW: tm.advanceWidth
+        readonly property real cellH: Math.ceil(tm.height * 1.18)
+        readonly property int wantCols: Math.max(20, Math.floor(grid.width / Math.max(1, cellW)))
+        readonly property int wantRows: Math.max(4, Math.floor(grid.height / Math.max(1, cellH)))
+        function begin(): void {
+            if (!key || !opts) return;
+            app.openTerm(key, opts, wantRows, wantCols);
+            app.activeTerm = key;
+        }
+        onKeyChanged: Qt.callLater(begin)
+        Component.onCompleted: Qt.callLater(begin)
+        onWantColsChanged: sizeTimer.restart()
+        onWantRowsChanged: sizeTimer.restart()
+        Timer { id: sizeTimer; interval: 120; onTriggered: if (term.sess) app.termResize(term.key, term.wantRows, term.wantCols) }
+        TextMetrics { id: tm; font.family: app.mono; font.pixelSize: 13; text: "M" }
 
+        radius: 10
+        color: "#161513"
+        border.color: "#2a2723"
         Rectangle { x: 1.5; y: 2.5; z: -1; width: parent.width; height: parent.height; radius: 10; color: app.drop }
+        TapHandler { onTapped: input.forceActiveFocus() }
 
         ColumnLayout {
             anchors.fill: parent
             spacing: 0
+            // thanh tab giống herdr: chấm trạng thái + tên phiên + nút
             Rectangle {
                 Layout.fillWidth: true
                 implicitHeight: 34
@@ -1753,14 +1771,27 @@ ShellRoot {
                 Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 10; color: parent.color }
                 Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: "#2e2a24" }
                 RowLayout {
-                    anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 8; spacing: 6
-                    Repeater {
-                        model: ["#ff5f57", "#febc2e", "#28c840"]
-                        Rectangle { required property var modelData; implicitWidth: 10; implicitHeight: 10; radius: 5; color: modelData }
+                    anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 8; spacing: 8
+                    Rectangle {
+                        implicitHeight: 24; implicitWidth: tabRow.implicitWidth + 20; radius: 6
+                        color: "#2a2722"
+                        RowLayout {
+                            id: tabRow
+                            anchors.centerIn: parent; spacing: 7
+                            Rectangle {
+                                implicitWidth: 8; implicitHeight: 8; radius: 4
+                                color: !term.sess ? "#6b645a" : term.sess.status === "run" ? "#8fc27a" : term.sess.status === "starting" ? "#e5c07b" : "#e06c60"
+                            }
+                            Text {
+                                text: term.opts ? term.opts.user + "@" + term.opts.host + (term.opts.debug ? " · sự cố" : " · lab") : ""
+                                font.family: app.mono; font.pixelSize: 11; font.weight: Font.DemiBold; color: "#ddd3c2"
+                            }
+                        }
                     }
                     Text {
-                        Layout.fillWidth: true; Layout.leftMargin: 6
-                        text: term.opts ? term.opts.user + "@" + term.opts.host + (term.opts.debug ? " · sự cố" : "") : ""
+                        Layout.fillWidth: true
+                        text: !term.sess ? "" : term.sess.status === "starting" ? (term.sess.note || "Đang khởi động container Linux…")
+                              : term.sess.status === "run" ? "container Linux thật · docker/kiri" : term.sess.status === "exit" ? "phiên đã kết thúc" : "lỗi"
                         font.family: app.mono; font.pixelSize: 11; color: "#8a8174"; elide: Text.ElideRight
                     }
                     Rectangle {
@@ -1772,92 +1803,109 @@ ShellRoot {
                     }
                 }
             }
-            ListView {
-                id: out
+            Item {
+                id: grid
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.leftMargin: 12; Layout.rightMargin: 8; Layout.topMargin: 8
+                Layout.leftMargin: 12; Layout.rightMargin: 8; Layout.topMargin: 6; Layout.bottomMargin: 8
                 clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                model: { void app.termRev; return term.sess ? term.sess.lines.length : 0; }
-                onCountChanged: Qt.callLater(positionViewAtEnd)
-                Connections {
-                    target: app
-                    function onTermRevChanged(): void { Qt.callLater(out.positionViewAtEnd); }
-                }
-                delegate: Text {
-                    required property int index
-                    readonly property var ln: { void app.termRev; return term.sess ? term.sess.lines[index] : null; }
-                    width: out.width
-                    font.family: app.mono; font.pixelSize: 12
-                    lineHeight: 1.3
-                    wrapMode: Text.WrapAnywhere
-                    textFormat: ln && ln.k === "cmd" ? Text.StyledText : Text.PlainText
-                    color: !ln ? "#efe6d6" : ln.k === "err" ? "#ff9b85" : ln.k === "dim" ? "#8a8174" : "#e9e1d3"
-                    text: !ln ? "" : ln.k === "cmd" ? `<font color="#9fd38f">${app.esc(ln.p)}</font>${app.esc(ln.t).replace(/ /g, "&nbsp;")}` : ln.t
-                }
-            }
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.leftMargin: 12; Layout.rightMargin: 12; Layout.bottomMargin: 10; Layout.topMargin: 2
-                spacing: 0
-                Text {
-                    text: { void app.termRev; return term.sess ? (term.sess.buf ? "> " : term.sess.prompt) : ""; }
-                    font.family: app.mono; font.pixelSize: 12; color: "#9fd38f"
-                    Layout.maximumWidth: term.width * 0.6; elide: Text.ElideLeft
-                }
-                TextInput {
-                    id: input
-                    Layout.fillWidth: true
-                    font.family: app.mono; font.pixelSize: 12
-                    color: "#efe6d6"
-                    selectionColor: "#4a5a36"
-                    cursorDelegate: Rectangle { width: 8; color: "#9fd38f"; opacity: input.activeFocus ? 0.75 : 0.3 }
-                    focus: true
-                    Keys.onPressed: event => {
-                        const s = term.sess;
-                        if (!s) return;
-                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                            const line = text + preeditText;
-                            Qt.inputMethod.commit();
-                            text = "";
-                            term.histAt = -1;
-                            app.termRun(term.key, line);
-                            event.accepted = true;
-                        } else if (event.key === Qt.Key_Up && s.hist.length) {
-                            term.histAt = term.histAt < 0 ? s.hist.length - 1 : Math.max(0, term.histAt - 1);
-                            text = s.hist[term.histAt];
-                            event.accepted = true;
-                        } else if (event.key === Qt.Key_Down && term.histAt >= 0) {
-                            term.histAt++;
-                            if (term.histAt >= s.hist.length) { term.histAt = -1; text = ""; }
-                            else text = s.hist[term.histAt];
-                            event.accepted = true;
-                        } else if (event.key === Qt.Key_Tab) {
-                            const typed = text;
-                            app.termComplete(term.key, typed, c => {
-                                if (!c || !c.matches || !c.matches.length || input.text !== typed) return;
-                                const m = c.matches;
-                                let pre = m[0];
-                                for (const x of m) while (!x.startsWith(pre)) pre = pre.slice(0, -1);
-                                const base = typed.slice(0, typed.length - c.word.length);
-                                if (m.length === 1) input.text = base + m[0] + (m[0].endsWith("/") ? "" : " ");
-                                else if (pre.length > c.word.length) input.text = base + pre;
-                                else { app.termPush(s, "cmd", typed, s.buf ? "> " : s.prompt); app.termPush(s, "out", m.join("   ")); app.termRev++; }
-                            });
-                            event.accepted = true;
-                        } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_L) {
-                            s.lines = [];
-                            app.termRev++;
-                            event.accepted = true;
-                        } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_C && selectedText === "") {
-                            app.termPush(s, "cmd", text + "^C", s.buf ? "> " : s.prompt);
-                            s.buf = "";
-                            text = "";
-                            app.termRev++;
-                            event.accepted = true;
+
+                Column {
+                    Repeater {
+                        model: { void app.termRev; return term.snap ? term.snap.rows.length : 0; }
+                        Text {
+                            required property int index
+                            width: grid.width; height: term.cellH
+                            font.family: app.mono; font.pixelSize: 13
+                            verticalAlignment: Text.AlignVCenter
+                            color: "#e9e1d3"
+                            textFormat: Text.RichText
+                            wrapMode: Text.NoWrap
+                            text: { void app.termRev; return term.snap && term.snap.rows[index] ? app.rowHtml(term.snap.rows[index]) : ""; }
                         }
                     }
+                }
+                // con trỏ
+                Rectangle {
+                    visible: !!term.snap && term.snap.cursor && !term.snap.dead && input.activeFocus
+                    x: term.snap ? term.snap.cx * term.cellW : 0
+                    y: term.snap ? term.snap.cy * term.cellH : 0
+                    width: term.cellW; height: term.cellH
+                    color: "#9fd38f"; opacity: 0.7
+                    SequentialAnimation on opacity { loops: Animation.Infinite; running: input.activeFocus; NumberAnimation { to: 0.25; duration: 550 } NumberAnimation { to: 0.7; duration: 550 } }
+                }
+                // trạng thái / lỗi
+                Text {
+                    anchors.centerIn: parent
+                    width: Math.min(parent.width - 40, 520)
+                    visible: !term.snap || (!!term.sess && term.sess.status === "error")
+                    wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter
+                    font.family: app.mono; font.pixelSize: 12
+                    color: term.sess && term.sess.status === "error" ? "#ff9b85" : "#8a8174"
+                    text: !term.sess ? "" : term.sess.status === "error" ? term.sess.error : (term.sess.note || "Đang dựng container Linux cho bài này…\n(lần đầu có thể mất 1–2 phút để dựng image)")
+                }
+                // bản nháp của bộ gõ (Unikey/fcitx gửi từng ký tự ở dạng preedit tới khi bấm Space): vẽ ngay tại con trỏ
+                Rectangle {
+                    visible: input.preeditText !== ""
+                    x: term.snap ? term.snap.cx * term.cellW : 0
+                    y: term.snap ? term.snap.cy * term.cellH : 0
+                    width: preeditLbl.implicitWidth; height: term.cellH
+                    color: "#161513"
+                    Text {
+                        id: preeditLbl
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: input.preeditText
+                        font.family: app.mono; font.pixelSize: 13; font.underline: true
+                        color: "#e9e1d3"
+                    }
+                }
+                // nhập chữ: TextInput ẩn (hỗ trợ bộ gõ tiếng Việt); phím đặc biệt xử lý ở Keys.onPressed
+                TextInput {
+                    id: input
+                    x: term.snap ? term.snap.cx * term.cellW : 0
+                    y: term.snap ? term.snap.cy * term.cellH : 0
+                    width: 2; height: term.cellH
+                    opacity: 0
+                    focus: true
+                    font.family: app.mono; font.pixelSize: 13
+                    inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
+                    onTextChanged: if (text !== "" && preeditText === "") { app.termInput(term.key, text); text = ""; }
+                    Keys.onPressed: event => {
+                        const ctrl = (event.modifiers & Qt.ControlModifier) !== 0;
+                        const shift = (event.modifiers & Qt.ShiftModifier) !== 0;
+                        const alt = (event.modifiers & Qt.AltModifier) !== 0;
+                        const send = t => { app.termInput(term.key, t); event.accepted = true; };
+                        const k = event.key;
+                        const page = Math.max(1, (term.snap ? term.snap.rows.length : 20) - 2);
+                        if (ctrl && shift && k === Qt.Key_V) { input.paste(); event.accepted = true; return; }
+                        if (shift && k === Qt.Key_PageUp) { app.call("rscroll", { key: term.key, delta: page }); event.accepted = true; return; }
+                        if (shift && k === Qt.Key_PageDown) { app.call("rscroll", { key: term.key, delta: -page }); event.accepted = true; return; }
+                        if (k === Qt.Key_Return || k === Qt.Key_Enter) return send("\r");
+                        if (k === Qt.Key_Backspace) return send(ctrl ? "\x17" : "\x7f");
+                        if (k === Qt.Key_Tab) return send("\t");
+                        if (k === Qt.Key_Backtab) return send("\x1b[Z");
+                        if (k === Qt.Key_Escape) return send("\x1b");
+                        if (k === Qt.Key_Up) return send(ctrl ? "\x1b[1;5A" : "\x1b[A");
+                        if (k === Qt.Key_Down) return send(ctrl ? "\x1b[1;5B" : "\x1b[B");
+                        if (k === Qt.Key_Right) return send(ctrl ? "\x1b[1;5C" : "\x1b[C");
+                        if (k === Qt.Key_Left) return send(ctrl ? "\x1b[1;5D" : "\x1b[D");
+                        if (k === Qt.Key_Home) return send("\x1b[H");
+                        if (k === Qt.Key_End) return send("\x1b[F");
+                        if (k === Qt.Key_PageUp) return send("\x1b[5~");
+                        if (k === Qt.Key_PageDown) return send("\x1b[6~");
+                        if (k === Qt.Key_Delete) return send("\x1b[3~");
+                        if (k === Qt.Key_Insert) return send("\x1b[2~");
+                        if (k >= Qt.Key_F1 && k <= Qt.Key_F12) return send(["\x1bOP", "\x1bOQ", "\x1bOR", "\x1bOS", "\x1b[15~", "\x1b[17~", "\x1b[18~", "\x1b[19~", "\x1b[20~", "\x1b[21~", "\x1b[23~", "\x1b[24~"][k - Qt.Key_F1]);
+                        if (ctrl && !alt && k >= Qt.Key_A && k <= Qt.Key_Z) return send(String.fromCharCode(k - Qt.Key_A + 1));
+                        if (ctrl && k === Qt.Key_BracketLeft) return send("\x1b");
+                        if (ctrl && k === Qt.Key_Backslash) return send("\x1c");
+                        if (ctrl && k === Qt.Key_Space) return send("\x00");
+                        if (alt && !ctrl && event.text.length) return send("\x1b" + event.text);
+                    }
+                }
+                WheelHandler {
+                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                    onWheel: event => app.call("rscroll", { key: term.key, delta: event.angleDelta.y > 0 ? 3 : -3 })
                 }
             }
         }

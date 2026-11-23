@@ -1,0 +1,17 @@
+# Quantum Learn: prompt kiểu VPS + ghi lại lệnh/mã thoát để chấm bài, báo "đã xong lệnh" cho app.
+[ -f /etc/bash.bashrc ] && . /etc/bash.bashrc
+export TERM=${TERM:-xterm-256color} LANG=C.UTF-8
+PS1='\[\e[1;32m\]\u@\h\[\e[0m\]:\[\e[1;34m\]\w\[\e[0m\]\$ '
+alias ls='ls --color=auto' ll='ls -alF' grep='grep --color=auto'
+HISTCONTROL= HISTSIZE=5000
+__ql_last=
+__ql_prompt() {
+  local rc=$?
+  if [ "$HISTCMD" != "$__ql_last" ]; then
+    __ql_last=$HISTCMD
+    local c; c=$(HISTTIMEFORMAT= history 1 | sed 's/^ *[0-9]* *//')
+    [ -n "$c" ] && printf '%s\t%s\n' "$rc" "$c" >> /var/tmp/.qlhist
+  fi
+  printf '\033]777;ql;%s;%s\007' "$rc" "$PWD"
+}
+PROMPT_COMMAND=__ql_prompt

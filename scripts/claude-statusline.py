@@ -26,6 +26,36 @@ def lang():
         return "vi"
 
 
+GATE_LOG = os.path.expanduser("~/.local/state/jev-router/gate.jsonl")
+
+
+def jev_last_turn(sid):
+    """Tóm tắt lượt prompt gần nhất của phiên: model Jev gợi ý + số lần gọi Jev (theo gate.jsonl)."""
+    try:
+        with open(GATE_LOG, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - 262144))  # chỉ đọc ~256 KB cuối cho nhẹ
+            lines = f.read().decode("utf-8", "ignore").splitlines()
+        rows = []
+        for ln in lines:
+            try:
+                r = json.loads(ln)
+            except ValueError:
+                continue
+            if r.get("session") == sid and r.get("turn"):
+                rows.append(r)
+        if not rows:
+            return ""
+        turn = max(r["turn"] for r in rows)
+        g = [r for r in rows if r["turn"] == turn]
+        calls = sum(1 for r in g if r.get("jev"))
+        picked = [r.get("model") for r in g if r.get("mode") == "prompt" and r.get("model")]
+        out = f"gợi ý {picked[-1]}, " if picked else ""
+        return out + f"{calls} lần gọi"
+    except Exception:
+        return ""
+
+
 def pct(v):
     return round(v, 1) if isinstance(v, (int, float)) else None
 
@@ -83,6 +113,27 @@ def main():
 
     L = LABELS[lang()]
     parts = []
+    # Thư mục đang làm việc, model và mức effort
+    if rec["cwd"]:
+        parts.append("📁 " + (os.path.basename(rec["cwd"].rstrip("/")) or "/"))
+    if rec["model"]:
+        parts.append(rec["model"])
+    eff = d.get("effort")
+    if isinstance(eff, dict):
+        eff = eff.get("level")
+    if not eff:
+        eff = d.get("effort_level") or d.get("effortLevel")
+    if not eff:
+        try:
+            with open(os.path.expanduser("~/.claude/settings.json"), encoding="utf-8") as f:
+                st = json.load(f)
+            mid = (d.get("model") or {}).get("id") or ""
+            eff = (st.get("modelSettings", {}).get(mid, {}).get("effortLevel")
+                   or st.get("effortLevel"))
+        except (OSError, ValueError, AttributeError):
+            pass
+    if eff:
+        parts.append(f"effort: {eff}")
     if used is not None:
         parts.append(f"{L['ctx']} {used:.0f}%")
     lim = rec["limits"] or {}
@@ -95,9 +146,15 @@ def main():
     # Jev: lần gọi tới API TypeSafe, do skill jev-router ghi vào count.json
     try:
         with open(os.path.expanduser("~/.local/state/jev-router/count.json"), encoding="utf-8") as f:
-            parts.append(f"Jev {int(json.load(f).get('calls', 0))}")
+            jev = f"Jev {int(json.load(f).get('calls', 0))}"
     except (OSError, ValueError, TypeError):
-        pass
+        jev = None
+    # Lượt (prompt) gần nhất của phiên này: Jev gợi ý model nào + gọi bao nhiêu lần
+    last = jev_last_turn(sid)
+    if jev and last:
+        jev += f" (lượt vừa rồi: {last})"
+    if jev:
+        parts.append(jev)
     print("  ·  ".join(parts))
 
 

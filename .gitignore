@@ -1,2 +1,4 @@
 __pycache__/
 *.pyc
+# Jev router skill dependencies
+.claude/skills/*/node_modules/

@@ -139,6 +139,23 @@ Variants {
         implicitWidth: vertical ? 360 : 0
         implicitHeight: vertical ? 0 : 360
         exclusiveZone: shown && !autohide ? barH + gap + (floating ? 4 : 0) : 0
+        // Al activar / desactivar «Ocultar automáticamente» cambia la zona de trabajo: las ventanas
+        // que estaban a pantalla completa se ajustan a la nueva (minimize.lua: cael_refit).
+        property int lastZone: exclusiveZone
+        onExclusiveZoneChanged: {
+            if (modelData !== Quickshell.screens[0]) { lastZone = exclusiveZone; return; }
+            refitTimer.delta = exclusiveZone - lastZone;
+            refitTimer.side = pos;
+            lastZone = exclusiveZone;
+            if (refitTimer.delta !== 0) refitTimer.restart();
+        }
+        Timer {
+            id: refitTimer
+            property int delta: 0
+            property string side: "bottom"
+            interval: 350
+            onTriggered: Quickshell.execDetached(["hyprctl", "eval", "cael_refit('" + side + "', " + delta + ")"])
+        }
         color: "transparent"
         mask: Region {
             item: dock.menuGroup !== null ? catcher : dock.revealed ? cardArea : peek

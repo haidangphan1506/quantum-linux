@@ -26,6 +26,7 @@ CAEL_OWN_HEADER_LIST = {
     { name = "chrome",      re = "google-chrome",   lua = "^google%-chrome$",  kind = "gtk3" },
     { name = "vivaldi",     re = "vivaldi-stable",  lua = "^vivaldi%-stable$", kind = "own"  },
     { name = "gnome",       re = "org\\.gnome\\..+", lua = "^org%.gnome%.",  kind = "adw"  },
+    { name = "herdr",       re = "herdr-app",       lua = "^herdr%-app$",      kind = "own"  },  -- layout my-layout: titlebar none, nut do/vang/xanh ve trong brand block
     { name = "xfce4-about", re = "xfce4-about",     lua = "^xfce4%-about$",    kind = "gtk3" },
 }
 -- Muc trong danh sach cho class nay (nil = cua so co thanh hyprbars)
@@ -114,6 +115,15 @@ hl.window_rule({
     name  = "own-header-quantum-learn",
     match = { class = "^org\\.quickshell$", title = "^Quantum Learn$" },
     ["hyprbars:no_bar"] = true,
+})
+
+-- Ajustes del Sistema (modules/personalize) ve nut do/vang/xanh trong barra lateral -> sin hyprbars.
+-- Titulo segun idioma (es/en/vi). Sin barra: y sube 15px para seguir centrada (rules.lua: quickshell-3-4).
+hl.window_rule({
+    name  = "own-header-settings",
+    match = { class = "^org\\.quickshell$", title = "^(Ajustes del Sistema|System Settings|Cài đặt hệ thống)$" },
+    ["hyprbars:no_bar"] = true,
+    move  = "(monitor_w*0.125) (monitor_h*0.125+15)",
 })
 
 -- Rule: app co header rieng -> khong co thanh hyprbars, mo full vung lam viec

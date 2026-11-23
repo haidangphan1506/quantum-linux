@@ -37,6 +37,14 @@ Rectangle {
             width: parent.width
             spacing: 1
 
+            // botones de ventana (rojo / amarillo / verde)
+            WinButtons {
+                Layout.leftMargin: 6
+                Layout.topMargin: 2
+                Layout.bottomMargin: 14
+                onCloseRequested: Shell.personalizeOpen = false
+            }
+
             // buscador
             Rectangle {
                 Layout.fillWidth: true

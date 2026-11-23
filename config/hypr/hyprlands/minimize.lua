@@ -262,6 +262,7 @@ end
 local function deco_top(w)
     if not (hl.plugin and hl.plugin.hyprbars) or not CAEL_BAR_HEIGHT then return 0 end
     if cael_own_header and cael_own_header(w.class) then return 0 end   -- titlebar.lua
+    if (w.title or "") == "Quantum Learn" then return 0 end            -- apps/learn: header propio, sin hyprbars
     return CAEL_BAR_HEIGHT
 end
 
@@ -359,6 +360,28 @@ local function set_full(w)
     local top = deco_top(w)
     maxed[w.address] = nil
     set_geom(sel, x, y + top, ww, hh - top)
+end
+
+-- Dock bat/tat "Tu dong an": vung lam viec (monitor.reserved) doi di `delta` px o canh `side`.
+-- Cua so dang full theo vung CU thi co / gian ra theo vung MOI (Dock.qml goi qua hyprctl eval).
+function cael_refit(side, delta)
+    delta = tonumber(delta) or 0
+    if delta == 0 then return end
+    for _, w in ipairs(hl.get_windows()) do
+        if w and w.floating and w.mapped ~= false and not in_min(w) then
+            local x, y, ww, hh = work_area(w)
+            local ox, oy, ow, oh = x, y, ww, hh
+            if side == "top" then oy, oh = y - delta, hh + delta
+            elseif side == "bottom" then oh = hh + delta
+            elseif side == "left" then ox, ow = x - delta, ww + delta
+            elseif side == "right" then ow = ww + delta end
+            local top = deco_top(w)
+            local function near(a, b) return math.abs(a - b) <= 6 end
+            if near(w.at.x, ox) and near(w.at.y, oy + top) and near(w.size.x, ow) and near(w.size.y, oh - top) then
+                set_geom("address:" .. w.address, x, y + top, ww, hh - top)
+            end
+        end
+    end
 end
 
 -- Phim Esc (bind non_consuming trong variable.lua, app van nhan Esc):
@@ -485,11 +508,17 @@ local OPEN_FULL = true  -- true: app mo full vung lam viec; cua so Quantum Shell
 
 hl.on("window.open", function(w)
     -- Quantum Shell (Tuy chinh, Acerca de...) se queda en 3/4 al abrir: no se phong to
-    if not OPEN_FULL or not w or not w.address or (w.class or "") == "" or w.class == "org.quickshell" then return end
+    if not OPEN_FULL or not w or not w.address or (w.class or "") == "" or (w.class == "org.quickshell" and (w.title or "") ~= "Quantum Learn") then return end
     local addr = w.address
     hl.timer(function()
         local win = find_window(addr)
         if not win or not win.floating or in_min(win) then return end
+        if (win.title or "") == "Quantum Learn" then   -- header propio: siempre al area de trabajo, como Brave
+            local x, y, ww, hh = work_area(win)
+            maxed[addr] = nil
+            set_geom("address:" .. addr, x, y, ww, hh)
+            return
+        end
         local m = win.monitor
         if type(m) ~= "table" and type(m) ~= "userdata" then return end
         local scale = (m.scale and m.scale > 0) and m.scale or 1
