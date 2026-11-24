@@ -191,6 +191,8 @@ export async function start({ key, simSh, host, user, emit, rows = 28, cols = 10
     "docker", "exec", "-it", "-u", user, "-w", cwd, "-e", "TERM=xterm-256color", name, "bash", "--rcfile", "/opt/ql/bashrc", "-i"],
     { stdio: ["pipe", "pipe", "inherit"] });
   s.pty = pty;
+  // ptyhost khởi động với 28x100: đồng bộ ngay kích thước thật (nếu lệch, bash sẽ lùi dòng sai khi xoá ở đầu dòng 2)
+  if (rows !== 28 || cols !== 100) pty.stdin.write(JSON.stringify({ r: [rows, cols] }) + "\n");
   vt.reply = (t) => write(s, Buffer.from(t));
   vt.onOsc = (o) => {
     const m = /^777;ql;(-?\d+);(.*)$/.exec(o);

@@ -77,11 +77,17 @@ vars.keybinds = {
     { key = mainMod .. " + I",         action = quantum("shell personalize") },    -- Personalizar
     { key = mainMod .. " + SHIFT + V", action = quantum("shell clipboard") },      -- Lich su clipboard
 
-    -- Move focus with mainMod + arrow keys
-    { key = mainMod .. " + left",  action = hl.dsp.focus({ direction = "left" }) },
-    { key = mainMod .. " + right", action = hl.dsp.focus({ direction = "right" }) },
-    { key = mainMod .. " + up",    action = hl.dsp.focus({ direction = "up" }) },
-    { key = mainMod .. " + down",  action = hl.dsp.focus({ direction = "down" }) },
+    -- SUPER + mui ten: chia doi cua so (trai/phai/tren/duoi; bam 2 phim -> goc 1/4), xem hyprlands/snap.lua.
+    -- SUPER + SHIFT + mui ten: doi cho cua so hien tai voi cua so o huong do (hyprlands/snap.lua)
+    { key = mainMod .. " + SHIFT + left",  action = function() cael_swap("left") end },
+    { key = mainMod .. " + SHIFT + right", action = function() cael_swap("right") end },
+    { key = mainMod .. " + SHIFT + up",    action = function() cael_swap("up") end },
+    { key = mainMod .. " + SHIFT + down",  action = function() cael_swap("down") end },
+    -- (Chuyen focus giua cac cua so dung ALT + A/S/D/W ben duoi.)
+    { key = mainMod .. " + left",  action = function() cael_snap("left") end },
+    { key = mainMod .. " + right", action = function() cael_snap("right") end },
+    { key = mainMod .. " + up",    action = function() cael_snap("up") end },
+    { key = mainMod .. " + down",  action = function() cael_snap("down") end },
 
     -- ALT + A/S/D/W: focus window left/down/right/up
     { key = "ALT + A", action = hl.dsp.focus({ direction = "left" }) },
@@ -109,6 +115,10 @@ vars.keybinds = {
     -- Move/resize windows with mainMod + LMB/RMB and dragging
     { key = mainMod .. " + mouse:272", action = hl.dsp.window.drag(),   opts = { mouse = true } },
     { key = mainMod .. " + mouse:273", action = hl.dsp.window.resize(), opts = { mouse = true } },
+    -- Keo cua so toi sat canh/goc man hinh roi tha -> tu chia doi / 1/4 (hyprlands/snap.lua).
+    -- Khong dung phim phu de bat ca keo thanh tieu de; non_consuming de chuot van den app.
+    { key = "mouse:272", action = function() cael_snap_press() end,   opts = { non_consuming = true } },
+    { key = "mouse:272", action = function() cael_snap_release() end, opts = { release = true, non_consuming = true } },
 
     -- Screenshot (popup thong bao Open/Save sau khi chup, xem README caelestia-cli)
     { key = "Print",         action = hl.dsp.exec_cmd("~/.config/hypr/scripts/screenshot-region.sh --full") },

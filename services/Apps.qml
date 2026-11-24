@@ -33,8 +33,20 @@ Singleton {
         return out.sort((a, b) => a.name.localeCompare(b.name, I18n.lang));
     }
 
-    // Las que aparecen en el menú de apps.
-    readonly property var all: everything.filter(a => root.isVisible(a))
+    // Las que aparecen en el menú de apps, en el orden que eligió el usuario.
+    readonly property var all: sortByOrder(everything.filter(a => root.isVisible(a)))
+
+    // Orden guardado (ids). Lo que no está en la lista va al final, en el orden de partida (A→Z).
+    function sortByOrder(list: var): var {
+        const o = Settings.apps.order ?? [];
+        const rank = {};
+        o.forEach((id, i) => { if (!(id in rank)) rank[id] = i; });
+        return list.slice().sort((a, b) => (rank[a.id] ?? o.length) - (rank[b.id] ?? o.length));
+    }
+
+    function setOrder(ids: var): void {
+        Settings.set("apps", "order", ids);
+    }
 
     // Visible = lo que eligió el usuario; si no eligió nada, lo que dice el .desktop.
     function isVisible(app: var): bool {

@@ -320,6 +320,7 @@ Singleton {
                 // veces que se abrió cada app: { "<id>": { n: veces, t: última vez (ms) } } → «Más usadas»
                 property var usage: ({})
                 property var login: []                   // apps que se abren al iniciar sesión (General → Elementos de inicio)
+                property var order: []                   // orden de las apps en el launchpad (ids); lo que no está aquí va al final, A→Z
             }
             property JsonObject notifications: JsonObject {
                 property bool dnd: false

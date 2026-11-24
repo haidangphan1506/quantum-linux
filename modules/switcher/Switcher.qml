@@ -22,6 +22,12 @@ Scope {
     property var wins: []          // HyprlandToplevel, más reciente primero
     property int index: 0
 
+    // Modo "elegir pareja": tras ajustar una ventana a media pantalla (hyprlands/snap.lua) y haber 2+ ventanas más,
+    // se elige cuál ocupa la otra mitad. side = mitad que ocupará la elegida (left|right|top|bottom).
+    property bool pickMode: false
+    property string pickAnchor: ""
+    property string pickSide: ""
+
     function addr(t: var): string {
         const a = t?.address ?? "";
         return a === "" ? "" : (a.startsWith("0x") ? a : "0x" + a);
@@ -34,7 +40,7 @@ Scope {
         const act = Hyprland.activeToplevel;
         const rank = t => t === act ? -1 : (t.lastIpcObject?.focusHistoryID ?? 99);
         return Hyprland.toplevels.values
-            .filter(t => t.wayland && t.workspace && t.workspace.id === id)
+            .filter(t => t.wayland && t.workspace && t.workspace.id === id && !(pickMode && addr(t) === pickAnchor))
             .slice()
             .sort((a, b) => rank(a) - rank(b));
     }
@@ -56,11 +62,34 @@ Scope {
         stepped = true;
         if (wins.length > 0) index = (index + step + wins.length) % wins.length;
     }
+    function pick(anchor: string, side: string): void {
+        if (open) return;
+        pickAnchor = anchor;
+        pickSide = side;
+        pickMode = true;
+        Hyprland.refreshToplevels();
+        const list = collect();
+        if (list.length === 0) { pickMode = false; return; }
+        wins = list;
+        index = 0;
+        Shell.closeAll();
+        stepped = false;
+        openedAt = Date.now();
+        open = true;
+        resort.restart();
+    }
     function commit(): void {
         if (!open) return;
         const t = wins[index];
         open = false;
         gActive = false;
+        if (pickMode) {
+            pickMode = false;
+            const p = addr(t);
+            if (p !== "" && /^0x[0-9a-fA-F]+$/.test(pickAnchor) && /^(left|right|top|bottom)$/.test(pickSide))
+                Quickshell.execDetached(["hyprctl", "eval", `cael_snap_pair('${pickAnchor}','${p}','${pickSide}')`]);
+            return;
+        }
         // Al cerrarse la capa (teclado Exclusive) Hyprland devuelve el foco a la ventana anterior:
         // enfocar DESPUÉS, si no la elegida pierde el foco y hay que pulsar Tab otra vez.
         pending = t?.wayland ?? null;
@@ -76,7 +105,7 @@ Scope {
             root.pending = null;
         }
     }
-    function cancel(): void { open = false; gActive = false; }
+    function cancel(): void { open = false; gActive = false; pickMode = false; }
     property double openedAt: 0
 
     // ---------------------------------------------------------------- gesto de 3 dedos
@@ -126,7 +155,7 @@ Scope {
             if (list.length > 0) {
                 root.wins = list;
                 if (root.gActive) root.applySteps();
-                else root.index = list.length > 1 ? 1 : 0;
+                else root.index = (list.length > 1 && !root.pickMode) ? 1 : 0;
             }
             if (root.gPendingEnd !== 0) {
                 const go = root.gPendingEnd > 0;
@@ -143,6 +172,7 @@ Scope {
         function prev(): void { root.next(-1); }
         function commit(): void { root.commit(); }
         function cancel(): void { root.cancel(); }
+        function pick(anchor: string, side: string): void { root.pick(anchor, side); }
         function swipe(gid: string, seq: int, steps: int): void { root.swipe(gid, seq, steps); }
         function swipeEnd(gid: string, seq: int, steps: int, go: bool): void { root.swipeEnd(gid, seq, steps, go); }
         function status(): string {
@@ -293,7 +323,7 @@ Scope {
                     font.pixelSize: 13
                     font.weight: Font.DemiBold
                     readonly property var t: root.wins[root.index]
-                    text: t ? (t.title || Wm.nameFor(t.wayland?.appId ?? "", t.wayland?.title ?? "")) : ""
+                    text: (root.pickMode ? "Chọn cửa sổ ghép cùng · " : "") + (t ? (t.title || Wm.nameFor(t.wayland?.appId ?? "", t.wayland?.title ?? "")) : "")
                 }
             }
         }
