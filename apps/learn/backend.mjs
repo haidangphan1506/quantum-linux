@@ -23,6 +23,7 @@ import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
 import { pathToFileURL } from "node:url";
 import * as real from "./real/realterm.mjs";
+import { feedShadow, lenientEquiv } from "./lenient.mjs";
 
 const HOME = homedir();
 const STATE = join(process.env.XDG_STATE_HOME || join(HOME, ".local/state"), "quantum", "learn.json");
@@ -80,8 +81,8 @@ function catalog() {
       theory: l.theory,
       quiz: l.quiz.map(({ q, opts, ans, why }) => ({ q, opts, ans, why })),
       lab: { host: l.lab.host, user: l.lab.user, items: l.lab.items.map(({ text, hint }) => ({ text, hint })) },
-      debugs: l.debugs.map(({ id, title, hard, host, user, symptom, story, goal, hints, fix, cause }) => ({
-        id, title, hard: !!hard, host, user, symptom, story, goal, hints, fix, cause,
+      debugs: l.debugs.map(({ id, title, hard, host, user, symptom, story, goal, hints, fix, cause, fig }) => ({
+        id, title, hard: !!hard, host, user, symptom, story, goal, hints, fix, cause, fig,
       })),
     })),
   };
@@ -99,6 +100,33 @@ function open({ key, lesson, debug }) {
     shells.set(key, s);
   }
   return { prompt: s.sh.prompt() };
+}
+
+/**
+ * Chấm lab theo thứ tự (dễ → khó): chỉ câu đầu tiên chưa pass được xét; đạt thì xét tiếp câu sau,
+ * gặp câu chưa đạt thì dừng. Việc làm trước cho câu còn khoá vẫn được tính khi câu trước đó pass.
+ */
+function gradeLab(s, passed) {
+  const budget = { t0: Date.now(), ms: 1500 };
+  const newly = [];
+  const items = s.lesson.lab.items;
+  let shadow = null;
+  try {
+    shadow = s.sh.histLines ? feedShadow(engine, s.lesson, s, s.sh.histLines) : (s.sh.cmdLog?.length ? s.sh : null);
+  } catch {}
+  for (let i = 0; i < items.length; i++) {
+    if (passed[i]) continue;
+    let ok = false;
+    try { ok = !!items[i].check(s.sh); } catch {}
+    if (!ok && shadow) {
+      // chấm theo kết quả: engine.equiv rồi bản nới lỏng (khác cờ/khác lệnh nhưng cùng kết quả vẫn đạt)
+      if (engine.equiv) { try { ok = !!engine.equiv(s.lesson, shadow, items[i], budget); } catch {} }
+      if (!ok) { try { ok = lenientEquiv(engine, s.lesson, shadow, items[i], { t0: Date.now(), ms: 2000 }); } catch {} }
+    }
+    if (!ok) break;
+    newly.push(i);
+  }
+  return newly;
 }
 
 /** Chạy lệnh rồi chấm: lab → các câu chưa pass vừa đạt; sự cố → đã sửa xong chưa. */
@@ -122,21 +150,7 @@ function run({ key, text, passed = [] }) {
     } catch {}
     res.solved = ok;
   } else {
-    const budget = { t0: Date.now(), ms: 1500 };
-    res.newly = [];
-    s.lesson.lab.items.forEach((it, i) => {
-      if (passed[i]) return;
-      let ok = false;
-      try {
-        ok = !!it.check(s.sh);
-      } catch {}
-      if (!ok && engine.equiv) {
-        try {
-          ok = !!engine.equiv(s.lesson, s.sh, it, budget);
-        } catch {}
-      }
-      if (ok) res.newly.push(i);
-    });
+    res.newly = gradeLab(s, passed);
   }
   return res;
 }
@@ -190,7 +204,7 @@ function save({ data }) {
 
 /** Gộp hai bản tiến độ, không làm mất dữ liệu (giống mergeProgress của bản web). */
 function merge(a, b) {
-  const o = { labs: {}, quiz: {}, debugs: {}, wrong: {}, flag: {}, hist: [], qord: {}, labOrd: {} };
+  const o = { labs: {}, quiz: {}, debugs: {}, wrong: {}, flag: {}, theory: {}, hist: [], qord: {}, labOrd: {} };
   const seen = new Set();
   for (const src of [a, b]) {
     if (!src || typeof src !== "object") continue;
@@ -204,6 +218,10 @@ function merge(a, b) {
       for (const [q, v] of Object.entries(m ?? {})) if (o.quiz[k][q] == null) o.quiz[k][q] = v;
     }
     for (const [k, v] of Object.entries(src.debugs ?? {})) if (v) o.debugs[k] = true;
+    for (const [k, m] of Object.entries(src.theory ?? {})) {
+      o.theory[k] ??= {};
+      for (const [i, v] of Object.entries(m ?? {})) if (v) o.theory[k][i] = true;
+    }
     for (const [k, m] of Object.entries(src.wrong ?? {})) {
       o.wrong[k] ??= {};
       for (const [q, v] of Object.entries(m ?? {})) o.wrong[k][q] = Math.max(o.wrong[k][q] ?? 0, v ?? 0);
@@ -330,15 +348,7 @@ function gradeNow(s, passed) {
     try { ok = !!s.debug.check(s.sh); } catch {}
     res.solved = ok;
   } else {
-    const budget = { t0: Date.now(), ms: 1500 };
-    res.newly = [];
-    s.lesson.lab.items.forEach((it, i) => {
-      if (passed[i]) return;
-      let ok = false;
-      try { ok = !!it.check(s.sh); } catch {}
-      if (!ok && engine.equiv) { try { ok = !!engine.equiv(s.lesson, s.sh, it, budget); } catch {} }
-      if (ok) res.newly.push(i);
-    });
+    res.newly = gradeLab(s, passed);
   }
   return res;
 }

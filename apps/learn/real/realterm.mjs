@@ -285,7 +285,7 @@ async function runGrade(s) {
   try {
     const raw = await sh("docker", ["exec", s.name, "/opt/ql/dump.sh"], { timeout: 30000 });
     const nodes = { "/": { t: "d", mode: 0o755, owner: "root" } };
-    const hist = [], procs = [], units = [], listens = [], extraFiles = {}, ufw = { rules: [] };
+    const hist = [], histLines = [], procs = [], units = [], listens = [], extraFiles = {}, ufw = { rules: [] };
     let sshSig = "";
     for (const line of raw.split("\n")) {
       if (line.startsWith("N\t")) {
@@ -322,6 +322,7 @@ async function runGrade(s) {
         const [, rc, ...c] = line.split("\t");
         const cmd = c.join("\t").trim();
         if (!cmd) continue;
+        histLines.push({ cmd, code: parseInt(rc, 10) || 0 });
         // cada comando simple de la línea es una entrada (como en el shell simulado)
         for (const part of cmd.split(/\s*(?:\|\||&&|\||;)\s*/).filter(Boolean)) {
           hist.push({ cmd: part.replace(/^sudo\s+/, "sudo "), code: parseInt(rc, 10) || 0, sudo: /^sudo\b/.test(part), out: "" });
@@ -335,6 +336,7 @@ async function runGrade(s) {
     bridgeSecurity(s.simSh, procs, units, ufw, sshSig, nodes);
     await bridgeDocker(s.simSh, s.proxy, nodes, s.user).catch(() => {});
     s.simSh.hist = hist;
+    s.simSh.histLines = histLines;
     if (s.pwd) s.simSh.cwd = s.pwd;
     s.cmds = hist.length;
     await s.onState?.(s);

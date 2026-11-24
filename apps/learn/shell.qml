@@ -70,6 +70,7 @@ ShellRoot {
     readonly property color codeBg: dark ? "#15130f" : "#1d1b18"
     readonly property color codeInk: "#efe6d6"
     readonly property color drop: dark ? "#050403" : "#1d1b18"
+    readonly property real fs: 1.1   // hệ số cỡ chữ toàn app
     readonly property string mono: "JetBrains Mono"
     readonly property string iconFont: "Material Symbols Rounded"
     readonly property var groupColors: ["#d9b98f", "#7fc278", "#9b7fd1", "#e08a4f", "#4f8fd6", "#2a9d8f", "#d9576b", "#9aa64a", "#6b7a8f"]
@@ -110,8 +111,10 @@ ShellRoot {
         return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
     }
     function normalize(d: var): var {
-        for (const k of ["labs", "quiz", "debugs", "wrong", "flag"]) d[k] = d[k] || {};
+        for (const k of ["labs", "quiz", "debugs", "wrong", "flag", "theory"]) d[k] = d[k] || {};
         d.hist = d.hist || [];
+        d.qord = d.qord || {};
+        d.oord = d.oord || {};
         d.ui = d.ui || {};
         return d;
     }
@@ -175,7 +178,32 @@ ShellRoot {
         view = "learn";
         prog.cur = lessons[i].id;
         prog.step = step;
+        markTheory();
         saveTimer.restart();
+    }
+    // Ghi nhận thẻ lý thuyết đã xem (bước hiện tại là thẻ lý thuyết).
+    function markTheory(): void {
+        const l = lessons[cur], s = l ? stepsOf(l)[step] : null;
+        if (!s || s.kind !== "theory") return;
+        const t = prog.theory = prog.theory || {};
+        const a = t[l.id] = t[l.id] || {};
+        if (!a[s.card]) { a[s.card] = true; rev++; }
+    }
+    function theorySeen(l: var): int { void rev; const a = (prog.theory || {})[l.id] || {}; return l.theory.filter((x, i) => a[i]).length; }
+    // Xem hết thẻ, hoặc đã pass hết bài tập (tiến độ cũ chưa có dữ liệu thẻ đã xem) thì lý thuyết tính là xong.
+    function theoryDone(l: var): bool {
+        void rev;
+        if (l.theory.length === 0 || theorySeen(l) >= l.theory.length) return true;
+        return l.lab.items.length > 0 && labDone(l) === l.lab.items.length;
+    }
+    // Pass hết bài tập của bài thì tự đánh dấu đã xem mọi thẻ lý thuyết (giữ nguyên cả khi bấm «Làm lại» lab).
+    function autoTheory(l: var): void {
+        if (!l || l.lab.items.length === 0 || labDone(l) !== l.lab.items.length) return;
+        const t = prog.theory = prog.theory || {};
+        const a = t[l.id] = t[l.id] || {};
+        let changed = false;
+        l.theory.forEach((x, i) => { if (!a[i]) { a[i] = true; changed = true; } });
+        if (changed) touch();
     }
     function goId(id: string, s: int): void {
         const i = lessons.findIndex(l => l.id === id);
@@ -222,6 +250,8 @@ ShellRoot {
                     const i = Math.max(0, c.lessons.findIndex(l => l.id === app.prog.cur));
                     app.cur = i;
                     app.step = Math.max(0, Math.min(app.prog.step || 0, app.stepsOf(c.lessons[i]).length - 1));
+                    Qt.callLater(app.markTheory);
+                    Qt.callLater(() => app.lessons.forEach(l => app.autoTheory(l)));
                     const open = Quickshell.env("QS_LEARN_OPEN") ?? "";
                     if (open) app.goId(open, 0);
                 });
@@ -295,7 +325,7 @@ ShellRoot {
     function done(l: var): int { return labDone(l) + quizDone(l) + debugDone(l); }
     function stepDone(s: var, i: int): bool {
         if (!lesson) return false;
-        if (s.kind === "theory") return i < step;
+        if (s.kind === "theory") return i < step || theoryDone(lesson) || !!((prog.theory || {})[lesson.id] || {})[s.card];
         if (s.kind === "quiz") return quizDone(lesson) === lesson.quiz.length;
         if (s.kind === "lab") return labDone(lesson) === lesson.lab.items.length;
         return debugDone(lesson) === lesson.debugs.length;
@@ -317,7 +347,48 @@ ShellRoot {
         }
         touch();
     }
-    function resetQuiz(l: var): void { prog.quiz[l.id] = {}; touch(); }
+    // Thứ tự câu hỏi + đáp án được xáo ngẫu nhiên mỗi lần mở quiz mới / làm lại (lưu để không đổi giữa chừng).
+    function shuffled(n: int): var {
+        const a = Array.from({ length: n }, (_, i) => i);
+        for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+        return a;
+    }
+    function shuffleQuiz(l: var): void {
+        prog.qord = prog.qord || {};
+        prog.oord = prog.oord || {};
+        prog.qord[l.id] = shuffled(l.quiz.length);
+        prog.oord[l.id] = l.quiz.map(q => shuffled(q.opts.length));
+        touch();
+    }
+    function quizOrder(l: var): var {
+        const o = prog.qord && prog.qord[l.id];
+        return o && o.length === l.quiz.length ? o : l.quiz.map((_, i) => i);
+    }
+    function optOrder(l: var, qi: int): var {
+        const o = prog.oord && prog.oord[l.id] && prog.oord[l.id][qi];
+        return o && o.length === l.quiz[qi].opts.length ? o : l.quiz[qi].opts.map((_, i) => i);
+    }
+    // Mở quiz chưa làm câu nào → xáo mới.
+    function openQuiz(l: var): void { if (Object.keys(prog.quiz[l.id] || {}).length === 0) shuffleQuiz(l); }
+    function resetQuiz(l: var): void { prog.quiz[l.id] = {}; shuffleQuiz(l); }
+
+    // Thực hành: câu xếp từ dễ → trung bình → khó (chia ba theo thứ tự trong bài), phải pass câu trước mới mở câu sau.
+    readonly property var tierNames: ["Dễ", "Trung bình", "Khó"]
+    readonly property var tierTones: ["green", "orange", "red"]
+    function labTier(i: int, n: int): int { return Math.min(2, Math.floor(i * 3 / Math.max(1, n))); }
+    function labTierStart(i: int, n: int): bool { return i === 0 || labTier(i, n) !== labTier(i - 1, n); }
+    function labTierCount(l: var, t: int): var {
+        const n = l.lab.items.length, a = prog.labs[l.id] || [];
+        let tot = 0, ok = 0;
+        for (let i = 0; i < n; i++) if (labTier(i, n) === t) { tot++; if (a[i]) ok++; }
+        return { tot: tot, ok: ok };
+    }
+    function labCur(l: var): int {
+        const a = prog.labs[l.id] || [];
+        const n = l.lab.items.length;
+        for (let i = 0; i < n; i++) if (!a[i]) return i;
+        return n;
+    }
 
     // ------------------------------------------------------------------ terminal THẬT (container docker/kiri, ở backend)
     property string activeTerm: ""      // terminal đang hiện (để IPC run gửi lệnh vào)
@@ -363,6 +434,8 @@ ShellRoot {
                 const a = prog.labs[o.lesson] = prog.labs[o.lesson] || [];
                 for (const i of m.newly) a[i] = true;
                 touch();
+                const ls = lessons.find(x => x.id === o.lesson);
+                if (ls) autoTheory(ls);
             }
             if (m.solved && o.debug && !prog.debugs[o.debug]) { prog.debugs[o.debug] = true; touch(); }
         }
@@ -480,13 +553,13 @@ ShellRoot {
                             Rectangle {
                                 implicitWidth: 28; implicitHeight: 28; radius: 7; color: app.ink
                                 Pop { target: parent; radius: 7 }
-                                Label { anchors.centerIn: parent; text: "$_"; color: app.paper; font.pixelSize: 12; font.weight: Font.Bold }
+                                Label { anchors.centerIn: parent; text: "$_"; color: app.paper; font.pixelSize: Math.round(12 * app.fs); font.weight: Font.Bold }
                             }
-                            Label { text: "Khoá học"; font.pixelSize: 16; font.weight: Font.ExtraBold }
+                            Label { text: "Khoá học"; font.pixelSize: Math.round(16 * app.fs); font.weight: Font.ExtraBold }
                             Item {
                                 implicitWidth: brand2.implicitWidth + 4; implicitHeight: brand2.implicitHeight
                                 Rectangle { x: 0; y: parent.height * 0.55; width: parent.width; height: parent.height * 0.42; color: app.green }
-                                Label { id: brand2; x: 2; text: "VPS Linux"; font.pixelSize: 16; font.weight: Font.ExtraBold }
+                                Label { id: brand2; x: 2; text: "VPS Linux"; font.pixelSize: Math.round(16 * app.fs); font.weight: Font.ExtraBold }
                             }
                         }
 
@@ -512,7 +585,7 @@ ShellRoot {
                                 TextInput {
                                     id: searchInput
                                     Layout.fillWidth: true
-                                    font.family: app.mono; font.pixelSize: 12
+                                    font.family: app.mono; font.pixelSize: Math.round(12 * app.fs)
                                     color: app.ink; clip: true
                                     selectionColor: app.green; selectedTextColor: app.ink
                                     readonly property string typed: text + preeditText
@@ -525,7 +598,7 @@ ShellRoot {
                                     Label {
                                         anchors.verticalCenter: parent.verticalCenter
                                         visible: !searchInput.typed
-                                        text: "Tìm bài học, lệnh…"; color: app.muted2; font.pixelSize: 12
+                                        text: "Tìm bài học, lệnh…"; color: app.muted2; font.pixelSize: Math.round(12 * app.fs)
                                     }
                                 }
                                 Kbd { text: "Ctrl K" }
@@ -548,8 +621,8 @@ ShellRoot {
                                 }
                                 ColumnLayout {
                                     spacing: 0
-                                    Label { text: "VPS lab"; font.pixelSize: 10; color: app.muted }
-                                    Label { text: app.ip; font.pixelSize: 11; font.weight: Font.Bold }
+                                    Label { text: "VPS lab"; font.pixelSize: Math.round(10 * app.fs); color: app.muted }
+                                    Label { text: app.ip; font.pixelSize: Math.round(11 * app.fs); font.weight: Font.Bold }
                                 }
                             }
                         }
@@ -656,7 +729,7 @@ ShellRoot {
                             anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; spacing: 9
                             Rectangle { implicitWidth: 8; implicitHeight: 8; radius: 2; color: app.groupOf(parent.parent.l).color }
                             Label { Layout.fillWidth: true; text: parent.parent.l.short; elide: Text.ElideRight }
-                            Label { text: parent.parent.l.group; color: app.muted; font.pixelSize: 11 }
+                            Label { text: parent.parent.l.group; color: app.muted; font.pixelSize: Math.round(11 * app.fs) }
                         }
                         HoverHandler { onHoveredChanged: if (hovered) searchInput.hi = parent.index }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: searchResults.pick(parent.modelData) }
@@ -690,12 +763,12 @@ ShellRoot {
 
     component Label: Text {
         font.family: app.mono
-        font.pixelSize: 13
+        font.pixelSize: Math.round(13 * app.fs)
         color: app.ink
     }
     component Rich: Text {
         font.family: app.mono
-        font.pixelSize: 13
+        font.pixelSize: Math.round(13 * app.fs)
         color: app.ink
         textFormat: Text.RichText
         wrapMode: Text.Wrap
@@ -704,13 +777,13 @@ ShellRoot {
     component Sym: Text {
         property int size: 18
         font.family: app.iconFont
-        font.pixelSize: size
+        font.pixelSize: Math.round(size * app.fs)
         color: app.ink
         verticalAlignment: Text.AlignVCenter
         horizontalAlignment: Text.AlignHCenter
     }
     component Caps: Label {
-        font.pixelSize: 11
+        font.pixelSize: Math.round(11 * app.fs)
         font.weight: Font.Bold
         font.letterSpacing: 0.6
         font.capitalization: Font.AllUppercase
@@ -720,7 +793,7 @@ ShellRoot {
         property alias text: kt.text
         implicitWidth: kt.implicitWidth + 10; implicitHeight: 18; radius: 5
         color: app.cardHi; border.color: app.lineStrong
-        Label { id: kt; anchors.centerIn: parent; font.pixelSize: 11; color: app.muted }
+        Label { id: kt; anchors.centerIn: parent; font.pixelSize: Math.round(11 * app.fs); color: app.muted }
     }
     // nút cửa sổ kiểu macOS: đỏ đóng, vàng thu xuống dock, xanh phóng to / trả về 3/4
     // (cùng màu và cách hiện ký hiệu khi rê chuột như quantum-window-buttons.css của app GTK)
@@ -746,7 +819,7 @@ ShellRoot {
                     anchors.verticalCenterOffset: -0.5
                     visible: wbHover.hovered
                     text: wbtn.modelData.g
-                    font.pixelSize: 12; font.weight: Font.Black
+                    font.pixelSize: Math.round(12 * app.fs); font.weight: Font.Black
                     color: wbtn.modelData.f
                 }
                 MouseArea {
@@ -793,7 +866,7 @@ ShellRoot {
             id: nbRow
             anchors.centerIn: parent; spacing: 8
             Sym { text: nb.icon; size: 16; color: nb.active ? app.ink : app.ink2 }
-            Label { text: nb.label; font.pixelSize: 14; font.weight: Font.DemiBold; color: nb.active ? app.ink : app.ink2 }
+            Label { text: nb.label; font.pixelSize: Math.round(14 * app.fs); font.weight: Font.DemiBold; color: nb.active ? app.ink : app.ink2 }
         }
         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: nb.clicked() }
     }
@@ -845,7 +918,7 @@ ShellRoot {
                     Layout.fillWidth: bt.trailing !== ""
                     text: bt.text
                     elide: Text.ElideRight
-                    font.pixelSize: bt.small ? 12 : 13
+                    font.pixelSize: Math.round((bt.small ? 12 : 13) * app.fs)
                     font.weight: bt.primary ? Font.Bold : Font.DemiBold
                 }
                 Sym { visible: bt.trailing !== ""; text: bt.trailing; size: 17 }
@@ -863,7 +936,7 @@ ShellRoot {
             id: plRow
             anchors.centerIn: parent; spacing: 6
             Sym { text: parent.parent.icon; size: 13 }
-            Label { text: parent.parent.text; font.pixelSize: 11; font.weight: Font.DemiBold }
+            Label { text: parent.parent.text; font.pixelSize: Math.round(11 * app.fs); font.weight: Font.DemiBold }
         }
     }
     component Tag: Rectangle {
@@ -900,29 +973,44 @@ ShellRoot {
                 Layout.fillWidth: true
                 spacing: 3
                 Caps { text: nt.label || ({ tip: "Mẹo", warn: "Lưu ý", err: "Lỗi hay gặp" })[nt.kind] || "Ghi chú" }
-                Rich { Layout.fillWidth: true; text: app.md(nt.note ? nt.note.note : ""); font.pixelSize: 12 }
+                Rich { Layout.fillWidth: true; text: app.md(nt.note ? nt.note.note : ""); font.pixelSize: Math.round(12 * app.fs) }
             }
         }
     }
 
     // ---------------------------------------------------------------- khối nội dung lý thuyết
+    component FigBlock: Rectangle {
+        id: fb
+        property string fig
+        property string caption
+        implicitHeight: figItem.implicitHeight + 16
+        radius: 10
+        color: app.paper2
+        border.color: app.lineStrong
+        Fig { id: figItem; x: 8; y: 8; width: parent.width - 16; kind: fb.fig; dark: app.dark; ink: app.ink; muted: app.muted; line: app.lineStrong }
+    }
+
     component BlockView: Item {
         id: bv
         property var b
-        readonly property string kind: typeof b === "string" ? "p" : !b ? "" : b.pre ? "pre" : b.tbl ? "tbl" : b.ul ? "ul" : "note"
+        readonly property string kind: typeof b === "string" ? "p" : !b ? "" : b.pre ? "pre" : b.tbl ? "tbl" : b.ul ? "ul" : b.fig ? "fig" : "note"
         implicitHeight: bvLoader.item ? bvLoader.item.implicitHeight + 14 : 0
         Loader {
             id: bvLoader
             width: parent.width
-            sourceComponent: bv.kind === "p" ? paraC : bv.kind === "pre" ? preC : bv.kind === "tbl" ? tblC : bv.kind === "ul" ? ulC : bv.kind === "note" ? noteC : null
+            sourceComponent: bv.kind === "p" ? paraC : bv.kind === "pre" ? preC : bv.kind === "tbl" ? tblC : bv.kind === "ul" ? ulC : bv.kind === "note" ? noteC : bv.kind === "fig" ? figC : null
         }
         Component {
             id: paraC
-            Rich { text: app.md(bv.b); lineHeight: 1.45; font.pixelSize: 14 }
+            Rich { text: app.md(bv.b); lineHeight: 1.45; font.pixelSize: Math.round(14 * app.fs) }
         }
         Component {
             id: noteC
             Note { note: bv.b }
+        }
+        Component {
+            id: figC
+            FigBlock { fig: bv.b.fig; caption: bv.b.cap || "" }
         }
         Component {
             id: ulC
@@ -964,7 +1052,7 @@ ShellRoot {
                         Text {
                             id: preText
                             text: pre.code
-                            font.family: app.mono; font.pixelSize: 12
+                            font.family: app.mono; font.pixelSize: Math.round(12 * app.fs)
                             color: app.codeInk
                             lineHeight: 1.35
                             textFormat: Text.PlainText
@@ -978,7 +1066,7 @@ ShellRoot {
                         color: "#34302b"; border.color: "#4f473d"
                         opacity: cpHover.hovered ? 1 : 0.8
                         HoverHandler { id: cpHover }
-                        Label { id: cpl; anchors.centerIn: parent; text: copyBtn.copied ? "Đã chép" : "Chép"; font.pixelSize: 11; color: "#ddd3c2" }
+                        Label { id: cpl; anchors.centerIn: parent; text: copyBtn.copied ? "Đã chép" : "Chép"; font.pixelSize: Math.round(11 * app.fs); color: "#ddd3c2" }
                         Timer { id: cpTimer; interval: 1200; onTriggered: copyBtn.copied = false }
                         MouseArea {
                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -990,7 +1078,7 @@ ShellRoot {
                     id: preCap
                     visible: !!bv.b.cap
                     y: preBox.height + 8; width: parent.width
-                    text: app.md(bv.b.cap || ""); color: app.muted; font.pixelSize: 11
+                    text: app.md(bv.b.cap || ""); color: app.muted; font.pixelSize: Math.round(11 * app.fs)
                 }
             }
         }
@@ -1035,7 +1123,7 @@ ShellRoot {
                                     width: tblCol.width * tbl.widths[index]
                                     leftPadding: 10; rightPadding: 10
                                     text: app.md(app.plain(modelData).toUpperCase())
-                                    font.pixelSize: 11; font.weight: Font.Bold; color: app.muted
+                                    font.pixelSize: Math.round(11 * app.fs); font.weight: Font.Bold; color: app.muted
                                 }
                             }
                         }
@@ -1061,7 +1149,7 @@ ShellRoot {
                                         width: tblCol.width * tbl.widths[index]
                                         leftPadding: 10; rightPadding: 10
                                         text: app.md(modelData)
-                                        font.pixelSize: 12
+                                        font.pixelSize: Math.round(12 * app.fs)
                                     }
                                 }
                             }
@@ -1088,8 +1176,8 @@ ShellRoot {
             Layout.leftMargin: 6; Layout.rightMargin: 6
             spacing: 9
             Sym { text: "folder"; size: 18 }
-            Label { text: "Khoá học"; font.pixelSize: 14; font.weight: Font.Bold; Layout.fillWidth: true }
-            Label { text: app.lessons.length + " bài"; color: app.muted; font.pixelSize: 11 }
+            Label { text: "Khoá học"; font.pixelSize: Math.round(14 * app.fs); font.weight: Font.Bold; Layout.fillWidth: true }
+            Label { text: app.lessons.length + " bài"; color: app.muted; font.pixelSize: Math.round(11 * app.fs) }
         }
 
         Flickable {
@@ -1119,7 +1207,7 @@ ShellRoot {
                                 Label { Layout.fillWidth: true; text: grp.modelData.num + ". " + grp.modelData.name; font.weight: Font.Bold; elide: Text.ElideRight }
                                 Label {
                                     text: { void app.rev; return grp.modelData.idx.filter(i => app.done(app.lessons[i]) === app.total(app.lessons[i])).length + "/" + grp.modelData.idx.length; }
-                                    color: app.muted; font.pixelSize: 11
+                                    color: app.muted; font.pixelSize: Math.round(11 * app.fs)
                                 }
                             }
                             MouseArea {
@@ -1201,10 +1289,10 @@ ShellRoot {
                     Label {
                         visible: app.savedAt > 0
                         text: "· đã lưu " + app.clock(app.savedAt)
-                        font.pixelSize: 10; color: app.muted2
+                        font.pixelSize: Math.round(10 * app.fs); color: app.muted2
                     }
                     Item { Layout.fillWidth: true }
-                    Label { text: progCard.sums.n + " / " + app.lessons.length + " bài · " + progCard.sums.pct + "%"; color: app.muted; font.pixelSize: 11 }
+                    Label { text: progCard.sums.n + " / " + app.lessons.length + " bài · " + progCard.sums.pct + "%"; color: app.muted; font.pixelSize: Math.round(11 * app.fs) }
                     Sym { text: "chevron_right"; size: 15; color: app.muted }
                 }
                 Rectangle {
@@ -1226,19 +1314,19 @@ ShellRoot {
             spacing: 4
             Label {
                 text: parent.parent.g ? `${parent.parent.g.num}. ${parent.parent.g.name}  /  Bài ${parent.parent.g.idx.indexOf(app.cur) + 1} / ${parent.parent.g.idx.length}` : ""
-                font.pixelSize: 12; color: app.ink2
+                font.pixelSize: Math.round(12 * app.fs); color: app.ink2
             }
             Label {
                 Layout.fillWidth: true
                 text: app.lesson ? app.lesson.title : ""
-                font.pixelSize: 26; font.weight: Font.ExtraBold; font.letterSpacing: -0.45
+                font.pixelSize: Math.round(26 * app.fs); font.weight: Font.ExtraBold; font.letterSpacing: -0.45
                 wrapMode: Text.Wrap
             }
             Label {
                 Layout.fillWidth: true
                 Layout.maximumWidth: 760
                 text: app.lesson ? app.plain(app.lesson.dek) : ""
-                color: app.muted; font.pixelSize: 12; wrapMode: Text.Wrap
+                color: app.muted; font.pixelSize: Math.round(12 * app.fs); wrapMode: Text.Wrap
             }
         }
         Flow {
@@ -1293,7 +1381,11 @@ ShellRoot {
                 Layout.margins: 10
                 spacing: 6
                 readonly property var l: app.lesson
-                Metric { icon: "menu_book"; label: "Lý thuyết"; value: app.lesson ? app.lesson.theory.length + " thẻ" : "" }
+                Metric {
+                    icon: "menu_book"; label: "Lý thuyết"
+                    value: { void app.rev; return app.lesson ? (app.theoryDone(app.lesson) ? app.lesson.theory.length : app.theorySeen(app.lesson)) + "/" + app.lesson.theory.length + " thẻ" : ""; }
+                    ok: { void app.rev; return !!app.lesson && app.theoryDone(app.lesson); }
+                }
                 Metric { icon: "help"; label: "Quiz"; value: { void app.rev; return app.lesson ? app.quizDone(app.lesson) + "/" + app.lesson.quiz.length : ""; } ok: { void app.rev; return !!app.lesson && app.quizDone(app.lesson) === app.lesson.quiz.length; } }
                 Metric { icon: "terminal"; label: "Thực hành"; value: { void app.rev; return app.lesson ? app.labDone(app.lesson) + "/" + app.lesson.lab.items.length : ""; } ok: { void app.rev; return !!app.lesson && app.labDone(app.lesson) === app.lesson.lab.items.length; } }
                 Metric { icon: "bug_report"; label: "Fix lỗi"; value: { void app.rev; return app.lesson ? app.debugDone(app.lesson) + "/" + app.lesson.debugs.length : ""; } ok: { void app.rev; return !!app.lesson && app.debugDone(app.lesson) === app.lesson.debugs.length; } }
@@ -1338,7 +1430,7 @@ ShellRoot {
             RowLayout {
                 spacing: 5
                 Sym { text: parent.parent.parent.icon; size: 12; color: app.muted }
-                Caps { text: parent.parent.parent.label; font.pixelSize: 10; font.weight: Font.Normal }
+                Caps { text: parent.parent.parent.label; font.pixelSize: Math.round(10 * app.fs); font.weight: Font.Normal }
             }
             Label { text: parent.parent.value; font.weight: Font.Bold }
         }
@@ -1376,7 +1468,7 @@ ShellRoot {
                 x: 24; y: 20; width: parent.width - 48
                 spacing: 0
                 Caps { text: "Thẻ " + (app.curStep.card + 1) + " / " + app.lesson.theory.length }
-                Rich { Layout.fillWidth: true; Layout.topMargin: 4; text: app.md(ths.c.title); font.pixelSize: 18; font.weight: Font.ExtraBold }
+                Rich { Layout.fillWidth: true; Layout.topMargin: 4; text: app.md(ths.c.title); font.pixelSize: Math.round(18 * app.fs); font.weight: Font.ExtraBold }
                 Rectangle { Layout.fillWidth: true; Layout.topMargin: 12; Layout.bottomMargin: 14; implicitHeight: 1; color: app.lineStrong; opacity: 0.8 }
                 Repeater {
                     model: ths.parts.rest
@@ -1391,6 +1483,8 @@ ShellRoot {
         id: qs
         readonly property var l: app.lesson
         readonly property var ans: { void app.rev; return Object.assign({}, app.prog.quiz[l.id] || {}); }
+        readonly property var order: { void app.rev; return app.quizOrder(l); }
+        Component.onCompleted: app.openQuiz(l)
         RowLayout {
             Layout.fillWidth: true
             Label {
@@ -1398,15 +1492,18 @@ ShellRoot {
                 text: { void app.rev; return "Đúng " + app.quizDone(qs.l) + " / " + qs.l.quiz.length + " · đã trả lời " + Object.keys(qs.ans).length; }
                 font.weight: Font.Bold
             }
-            Btn { small: true; icon: "restart_alt"; text: "Làm lại quiz"; onClicked: app.resetQuiz(qs.l) }
+            Btn { small: true; icon: "shuffle"; text: "Làm lại (xáo ngẫu nhiên)"; onClicked: app.resetQuiz(qs.l) }
         }
         Repeater {
-            model: qs.l.quiz
+            model: qs.order
             Card {
                 id: qc
-                required property var modelData
+                required property int modelData
                 required property int index
-                readonly property var chosen: qs.ans[index]
+                readonly property int qi: modelData
+                readonly property var qd: qs.l.quiz[qi]
+                readonly property var oo: { void app.rev; return app.optOrder(qs.l, qi); }
+                readonly property var chosen: qs.ans[qi]
                 readonly property bool answered: chosen !== undefined
                 Layout.fillWidth: true
                 implicitHeight: qcCol.implicitHeight + 28
@@ -1420,19 +1517,19 @@ ShellRoot {
                         Caps { text: "Câu " + (qc.index + 1) + " / " + qs.l.quiz.length; Layout.fillWidth: true }
                         Caps {
                             visible: qc.answered
-                            text: qc.chosen === qc.modelData.ans ? "Đúng" : "Sai"
-                            color: qc.chosen === qc.modelData.ans ? app.greenInk : app.redInk
+                            text: qc.chosen === qc.qd.ans ? "Đúng" : "Sai"
+                            color: qc.chosen === qc.qd.ans ? app.greenInk : app.redInk
                         }
                     }
-                    Rich { Layout.fillWidth: true; text: app.md(qc.modelData.q); font.weight: Font.Bold; font.pixelSize: 14 }
+                    Rich { Layout.fillWidth: true; text: app.md(qc.qd.q); font.weight: Font.Bold; font.pixelSize: Math.round(14 * app.fs) }
                     Repeater {
-                        model: qc.modelData.opts
+                        model: qc.oo
                         Rectangle {
                             id: opt
-                            required property var modelData
+                            required property int modelData
                             required property int index
-                            readonly property bool isAns: index === qc.modelData.ans
-                            readonly property bool isChosen: index === qc.chosen
+                            readonly property bool isAns: modelData === qc.qd.ans
+                            readonly property bool isChosen: modelData === qc.chosen
                             Layout.fillWidth: true
                             implicitHeight: optRow.implicitHeight + 16
                             radius: 8
@@ -1446,9 +1543,9 @@ ShellRoot {
                                     Layout.alignment: Qt.AlignTop
                                     implicitWidth: 20; implicitHeight: 20; radius: 5
                                     color: app.cardHi; border.color: app.muted2
-                                    Label { anchors.centerIn: parent; text: "ABCDEFGH"[opt.index]; font.pixelSize: 11; font.weight: Font.Bold }
+                                    Label { anchors.centerIn: parent; text: "ABCDEFGH"[opt.index]; font.pixelSize: Math.round(11 * app.fs); font.weight: Font.Bold }
                                 }
-                                Rich { Layout.fillWidth: true; text: app.md(opt.modelData) }
+                                Rich { Layout.fillWidth: true; text: app.md(qc.qd.opts[opt.modelData]) }
                                 Sym {
                                     visible: qc.answered && (opt.isAns || opt.isChosen)
                                     text: opt.isAns ? "check_circle" : "cancel"
@@ -1459,14 +1556,14 @@ ShellRoot {
                                 anchors.fill: parent
                                 enabled: !qc.answered
                                 cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                onClicked: app.answer(qs.l, qc.index, opt.index)
+                                onClicked: app.answer(qs.l, qc.qi, opt.modelData)
                             }
                         }
                     }
                     Note {
                         visible: qc.answered
                         Layout.fillWidth: true
-                        note: ({ note: qc.modelData.why, kind: qc.chosen === qc.modelData.ans ? "tip" : "err" })
+                        note: ({ note: qc.qd.why, kind: qc.chosen === qc.qd.ans ? "tip" : "err" })
                         label: "Giải thích"
                     }
                 }
@@ -1480,6 +1577,7 @@ ShellRoot {
         readonly property var l: app.lesson
         readonly property var passed: { void app.rev; return (app.prog.labs[l.id] || []).slice(); }
         readonly property int nPass: l.lab.items.filter((x, i) => passed[i]).length
+        readonly property int curIdx: { void app.rev; return app.labCur(l); }
         property var openHints: ({})
         property int hintTick: 0
         spacing: 12
@@ -1516,53 +1614,117 @@ ShellRoot {
                     spacing: 6
                     Repeater {
                         model: lab.l.lab.items
-                        Rectangle {
+                        ColumnLayout {
                             id: it
                             required property var modelData
                             required property int index
+                            readonly property int n: lab.l.lab.items.length
+                            readonly property int tier: app.labTier(index, n)
                             readonly property bool ok: !!lab.passed[index]
+                            readonly property bool cur: index === lab.curIdx
+                            readonly property bool locked: !ok && !cur
                             readonly property bool showHint: { void lab.hintTick; return !!lab.openHints[index]; }
                             Layout.fillWidth: true
-                            implicitHeight: itCol.implicitHeight + 18
-                            radius: 9
-                            color: ok ? app.greenTile : app.cardHi
-                            border.color: ok ? app.greenTileLine : app.lineStrong
-                            ColumnLayout {
-                                id: itCol
-                                x: 10; y: 9; width: parent.width - 20
-                                spacing: 6
-                                RowLayout {
-                                    spacing: 9
-                                    Rectangle {
-                                        Layout.alignment: Qt.AlignTop
-                                        implicitWidth: 18; implicitHeight: 18; radius: 4
-                                        color: it.ok ? app.green3 : app.cardHi
-                                        border.color: it.ok ? app.greenInk : app.muted2
-                                        Sym { anchors.centerIn: parent; visible: it.ok; text: "check"; size: 14; color: "#10200c" }
-                                    }
-                                    Rich { Layout.fillWidth: true; text: app.md(it.modelData.text); font.pixelSize: 12 }
-                                }
+                            spacing: 6
+                            // tiêu đề nhóm độ khó
+                            RowLayout {
+                                visible: app.labTierStart(it.index, it.n)
+                                Layout.fillWidth: true
+                                Layout.topMargin: it.index === 0 ? 0 : 8
+                                spacing: 8
+                                Tag { text: app.tierNames[it.tier]; tone: app.tierTones[it.tier] }
                                 Label {
-                                    Layout.leftMargin: 27
-                                    visible: !!it.modelData.hint
-                                    text: (it.showHint ? "▾ " : "▸ ") + "Gợi ý"
-                                    font.pixelSize: 11; color: app.muted
-                                    MouseArea {
-                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                        onClicked: { lab.openHints[it.index] = !it.showHint; lab.hintTick++; }
-                                    }
+                                    Layout.fillWidth: true
+                                    text: { void app.rev; const c = app.labTierCount(lab.l, it.tier); return c.ok + " / " + c.tot + " câu"; }
+                                    font.pixelSize: Math.round(11 * app.fs); color: app.muted
                                 }
-                                Rectangle {
-                                    visible: it.showHint
-                                    Layout.fillWidth: true; Layout.leftMargin: 27
-                                    implicitHeight: hintText.implicitHeight + 14; radius: 7
-                                    color: app.codeBg
-                                    Text {
-                                        id: hintText
-                                        x: 9; y: 7; width: parent.width - 18
-                                        text: it.modelData.hint || ""
-                                        font.family: app.mono; font.pixelSize: 12; color: app.codeInk
-                                        wrapMode: Text.WrapAnywhere; textFormat: Text.PlainText
+                            }
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: itCol.implicitHeight + (it.cur ? 26 : 18)
+                                radius: 9
+                                opacity: it.locked ? 0.55 : 1
+                                color: it.ok ? app.greenTile : it.cur ? app.cardHi : app.paper2
+                                border.color: it.ok ? app.greenTileLine : it.cur ? app.ink : app.line
+                                border.width: it.cur ? 2 : 1
+                                ColumnLayout {
+                                    id: itCol
+                                    x: 10; y: it.cur ? 13 : 9; width: parent.width - 20
+                                    spacing: it.cur ? 9 : 6
+                                    RowLayout {
+                                        spacing: 9
+                                        Rectangle {
+                                            Layout.alignment: Qt.AlignTop
+                                            implicitWidth: 18; implicitHeight: 18; radius: 4
+                                            color: it.ok ? app.green3 : app.cardHi
+                                            border.color: it.ok ? app.greenInk : app.muted2
+                                            Sym { anchors.centerIn: parent; visible: it.ok; text: "check"; size: 14; color: "#10200c" }
+                                            Sym { anchors.centerIn: parent; visible: it.locked; text: "lock"; size: 12; color: app.muted2 }
+                                        }
+                                        Caps {
+                                            Layout.alignment: Qt.AlignTop
+                                            text: "Câu " + (it.index + 1) + " / " + it.n
+                                            color: it.ok ? app.greenInk : app.muted
+                                        }
+                                        Item { Layout.fillWidth: true }
+                                        Caps { visible: it.cur; text: "Đang làm"; color: app.rust }
+                                    }
+                                    // câu đã mở: đề bài đầy đủ; câu khoá: chỉ báo điều kiện mở
+                                    Rich {
+                                        visible: !it.locked
+                                        Layout.fillWidth: true
+                                        text: app.md(it.modelData.text)
+                                        font.pixelSize: Math.round((it.cur ? 14 : 12) * app.fs)
+                                        font.weight: it.cur ? Font.Bold : Font.Normal
+                                    }
+                                    Label {
+                                        visible: it.locked
+                                        Layout.fillWidth: true
+                                        text: "Pass câu " + it.index + " để mở khoá câu này."
+                                        font.pixelSize: Math.round(12 * app.fs); color: app.muted; wrapMode: Text.WordWrap
+                                    }
+                                    // hướng dẫn thao tác cho câu hiện tại
+                                    ColumnLayout {
+                                        visible: it.cur
+                                        Layout.fillWidth: true
+                                        spacing: 3
+                                        Label { text: "Cách làm"; font.pixelSize: Math.round(11 * app.fs); font.weight: Font.Bold; color: app.ink2 }
+                                        Label {
+                                            Layout.fillWidth: true
+                                            text: "1. Đọc đề, gõ lệnh vào terminal bên phải.\n2. Mỗi lệnh xong, hệ thống tự chấm câu này.\n3. Chỉ cần ra đúng KẾT QUẢ: dùng lệnh/cờ khác (đã học) mà cùng đầu ra hoặc cùng trạng thái hệ thống vẫn pass."
+                                            font.pixelSize: Math.round(11 * app.fs); color: app.muted; wrapMode: Text.WordWrap; lineHeight: 1.25
+                                        }
+                                    }
+                                    Label {
+                                        visible: it.cur && !!it.modelData.hint
+                                        text: (it.showHint ? "▾ " : "▸ ") + "Gợi ý / lệnh mẫu"
+                                        font.pixelSize: Math.round(11 * app.fs); color: app.muted
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: { lab.openHints[it.index] = !it.showHint; lab.hintTick++; }
+                                        }
+                                    }
+                                    Label {
+                                        visible: it.ok && !!it.modelData.hint
+                                        text: (it.showHint ? "▾ " : "▸ ") + "Xem lại lệnh mẫu"
+                                        font.pixelSize: Math.round(11 * app.fs); color: app.muted
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: { lab.openHints[it.index] = !it.showHint; lab.hintTick++; }
+                                        }
+                                    }
+                                    Rectangle {
+                                        visible: it.showHint && !it.locked
+                                        Layout.fillWidth: true
+                                        implicitHeight: hintText.implicitHeight + 14; radius: 7
+                                        color: app.codeBg
+                                        Text {
+                                            id: hintText
+                                            x: 9; y: 7; width: parent.width - 18
+                                            text: it.modelData.hint || ""
+                                            font.family: app.mono; font.pixelSize: Math.round(12 * app.fs); color: app.codeInk
+                                            wrapMode: Text.WrapAnywhere; textFormat: Text.PlainText
+                                        }
                                     }
                                 }
                             }
@@ -1631,10 +1793,10 @@ ShellRoot {
                             }
                             ColumnLayout {
                                 Layout.fillWidth: true; spacing: 1
-                                Rich { Layout.fillWidth: true; text: app.md(dc.modelData.title); font.weight: Font.Bold; font.pixelSize: 12 }
+                                Rich { Layout.fillWidth: true; text: app.md(dc.modelData.title); font.weight: Font.Bold; font.pixelSize: Math.round(12 * app.fs) }
                                 Label {
                                     text: dc.ok ? "Đã xử lý" : dc.modelData.hard ? "Nâng cao · không có lời giải" : "Sự cố " + (dc.index + 1) + "/" + dbg.l.debugs.length
-                                    font.pixelSize: 11; color: app.muted
+                                    font.pixelSize: Math.round(11 * app.fs); color: app.muted
                                 }
                             }
                         }
@@ -1652,12 +1814,13 @@ ShellRoot {
                         id: symText
                         x: 14; y: 10; width: parent.width - 24
                         text: dbg.d.symptom.join("\n")
-                        font.family: app.mono; font.pixelSize: 12; color: app.codeInk
+                        font.family: app.mono; font.pixelSize: Math.round(12 * app.fs); color: app.codeInk
                         wrapMode: Text.WrapAnywhere; textFormat: Text.PlainText; lineHeight: 1.3
                     }
                 }
                 Caps { text: "Bối cảnh" }
                 Rich { Layout.fillWidth: true; text: app.md(dbg.d.story); lineHeight: 1.4 }
+                FigBlock { visible: !!dbg.d.fig; Layout.fillWidth: true; fig: dbg.d.fig || ""; caption: "" }
                 Caps { text: "Mục tiêu" }
                 Rich { Layout.fillWidth: true; text: app.md(dbg.d.goal); lineHeight: 1.4 }
                 Caps { text: "Cần trợ giúp?" }
@@ -1705,7 +1868,7 @@ ShellRoot {
                                     id: fixText
                                     x: 9; y: 6; width: parent.width - 18
                                     text: parent.modelData
-                                    font.family: app.mono; font.pixelSize: 12; color: app.codeInk
+                                    font.family: app.mono; font.pixelSize: Math.round(12 * app.fs); color: app.codeInk
                                     wrapMode: Text.WrapAnywhere; textFormat: Text.PlainText
                                 }
                             }
@@ -1751,7 +1914,7 @@ ShellRoot {
         onWantColsChanged: sizeTimer.restart()
         onWantRowsChanged: sizeTimer.restart()
         Timer { id: sizeTimer; interval: 120; onTriggered: if (term.sess) app.termResize(term.key, term.wantRows, term.wantCols) }
-        TextMetrics { id: tm; font.family: app.mono; font.pixelSize: 13; text: "M" }
+        TextMetrics { id: tm; font.family: app.mono; font.pixelSize: Math.round(13 * app.fs); text: "M" }
 
         radius: 10
         color: "#161513"
@@ -1784,7 +1947,7 @@ ShellRoot {
                             }
                             Text {
                                 text: term.opts ? term.opts.user + "@" + term.opts.host + (term.opts.debug ? " · sự cố" : " · lab") : ""
-                                font.family: app.mono; font.pixelSize: 11; font.weight: Font.DemiBold; color: "#ddd3c2"
+                                font.family: app.mono; font.pixelSize: Math.round(11 * app.fs); font.weight: Font.DemiBold; color: "#ddd3c2"
                             }
                         }
                     }
@@ -1792,13 +1955,13 @@ ShellRoot {
                         Layout.fillWidth: true
                         text: !term.sess ? "" : term.sess.status === "starting" ? (term.sess.note || "Đang khởi động container Linux…")
                               : term.sess.status === "run" ? "container Linux thật · docker/kiri" : term.sess.status === "exit" ? "phiên đã kết thúc" : "lỗi"
-                        font.family: app.mono; font.pixelSize: 11; color: "#8a8174"; elide: Text.ElideRight
+                        font.family: app.mono; font.pixelSize: Math.round(11 * app.fs); color: "#8a8174"; elide: Text.ElideRight
                     }
                     Rectangle {
                         implicitWidth: rsl.implicitWidth + 16; implicitHeight: 22; radius: 6
                         color: rsHover.hovered ? "#3a342c" : "#2d2923"
                         HoverHandler { id: rsHover }
-                        Text { id: rsl; anchors.centerIn: parent; text: "Đặt lại"; font.family: app.mono; font.pixelSize: 11; color: "#ddd3c2" }
+                        Text { id: rsl; anchors.centerIn: parent; text: "Đặt lại"; font.family: app.mono; font.pixelSize: Math.round(11 * app.fs); color: "#ddd3c2" }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: app.termReset(term.key) }
                     }
                 }
@@ -1816,7 +1979,7 @@ ShellRoot {
                         Text {
                             required property int index
                             width: grid.width; height: term.cellH
-                            font.family: app.mono; font.pixelSize: 13
+                            font.family: app.mono; font.pixelSize: Math.round(13 * app.fs)
                             verticalAlignment: Text.AlignVCenter
                             color: "#e9e1d3"
                             textFormat: Text.RichText
@@ -1840,7 +2003,7 @@ ShellRoot {
                     width: Math.min(parent.width - 40, 520)
                     visible: !term.snap || (!!term.sess && term.sess.status === "error")
                     wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter
-                    font.family: app.mono; font.pixelSize: 12
+                    font.family: app.mono; font.pixelSize: Math.round(12 * app.fs)
                     color: term.sess && term.sess.status === "error" ? "#ff9b85" : "#8a8174"
                     text: !term.sess ? "" : term.sess.status === "error" ? term.sess.error : (term.sess.note || "Đang dựng container Linux cho bài này…\n(lần đầu có thể mất 1–2 phút để dựng image)")
                 }
@@ -1855,7 +2018,7 @@ ShellRoot {
                         id: preeditLbl
                         anchors.verticalCenter: parent.verticalCenter
                         text: input.preeditText
-                        font.family: app.mono; font.pixelSize: 13; font.underline: true
+                        font.family: app.mono; font.pixelSize: Math.round(13 * app.fs); font.underline: true
                         color: "#e9e1d3"
                     }
                 }
@@ -1867,7 +2030,7 @@ ShellRoot {
                     width: 2; height: term.cellH
                     opacity: 0
                     focus: true
-                    font.family: app.mono; font.pixelSize: 13
+                    font.family: app.mono; font.pixelSize: Math.round(13 * app.fs)
                     inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
                     onTextChanged: if (text !== "" && preeditText === "") { app.termInput(term.key, text); text = ""; }
                     Keys.onPressed: event => {
@@ -1923,7 +2086,7 @@ ShellRoot {
             spacing: 6
             RowLayout {
                 Caps { text: "Trong bài này"; color: app.ink; Layout.fillWidth: true }
-                Label { text: "Bước " + (app.step + 1) + " / " + app.steps.length; font.pixelSize: 11; color: app.muted }
+                Label { text: "Bước " + (app.step + 1) + " / " + app.steps.length; font.pixelSize: Math.round(11 * app.fs); color: app.muted }
             }
             Flickable {
                 Layout.fillWidth: true
@@ -1961,7 +2124,7 @@ ShellRoot {
                                 Label {
                                     anchors.centerIn: parent
                                     visible: ts.active || !ts.isDone
-                                    text: ts.index + 1; font.pixelSize: 11; font.weight: Font.Bold
+                                    text: ts.index + 1; font.pixelSize: Math.round(11 * app.fs); font.weight: Font.Bold
                                 }
                                 Sym { anchors.centerIn: parent; visible: !ts.active && ts.isDone; text: "check"; size: 14; color: app.greenInk }
                             }
@@ -1970,7 +2133,7 @@ ShellRoot {
                                 y: 34; width: parent.width - 6
                                 horizontalAlignment: Text.AlignHCenter
                                 text: ts.modelData.label; elide: Text.ElideRight
-                                font.pixelSize: 11; font.weight: ts.active ? Font.Bold : Font.Normal
+                                font.pixelSize: Math.round(11 * app.fs); font.weight: ts.active ? Font.Bold : Font.Normal
                                 color: ts.active ? app.ink : app.muted
                             }
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: app.go(app.cur, ts.index) }
@@ -2018,7 +2181,7 @@ ShellRoot {
                     Rich {
                         Layout.fillWidth: true
                         text: !sp.s ? "" : sp.card ? app.md(sp.card.title) : app.esc(sp.s.title)
-                        font.pixelSize: 17; font.weight: Font.ExtraBold; lineHeight: 1.2
+                        font.pixelSize: Math.round(17 * app.fs); font.weight: Font.ExtraBold; lineHeight: 1.2
                     }
                     Rich {
                         Layout.fillWidth: true
@@ -2030,7 +2193,7 @@ ShellRoot {
                             if (!s || !l) return "";
                             if (sp.parts) return sp.parts.lead ? app.md(sp.parts.lead) : "";
                             if (s.kind === "quiz") return app.md(`${l.quiz.length} câu trắc nghiệm về **${l.short}**. Câu trả lời sai được gắn cờ để bạn ôn lại.\n\nĐúng: **${app.quizDone(l)}** / ${l.quiz.length}`);
-                            if (s.kind === "lab") return app.md(`Gõ lệnh trong terminal \`${l.lab.user}@${l.lab.host}\`. Sau mỗi lệnh, hệ thống tự chấm các câu chưa pass.\n\nĐã pass: **${app.labDone(l)}** / ${l.lab.items.length}`);
+                            if (s.kind === "lab") return app.md(`Gõ lệnh trong terminal \`${l.lab.user}@${l.lab.host}\`. Câu xếp từ **dễ → trung bình → khó**; sau mỗi lệnh hệ thống tự chấm câu hiện tại, pass thì câu kế tiếp mới mở.\n\nĐã pass: **${app.labDone(l)}** / ${l.lab.items.length}`);
                             return app.md(`${l.debugs.length} sự cố mô phỏng: đọc triệu chứng, tìm nguyên nhân rồi sửa ngay trong terminal.\n\nĐã sửa: **${app.debugDone(l)}** / ${l.debugs.length}`);
                         }
                     }
@@ -2041,7 +2204,7 @@ ShellRoot {
                         note: !sp.s ? null
                             : sp.parts ? sp.parts.key
                             : sp.s.kind === "quiz" ? { note: "Trả lời hết các câu thì lượt làm được lưu vào trang **Kết quả** cùng điểm số.", kind: "tip" }
-                            : sp.s.kind === "lab" ? { note: "Bí thì mở **gợi ý** ở từng câu. Cách làm khác cho cùng kết quả vẫn được tính." }
+                            : sp.s.kind === "lab" ? { note: "Phải pass câu trước mới mở câu sau. Chấm theo **kết quả**, không cần gõ đúng từng ký tự lệnh mẫu." }
                             : { note: "Đọc log và thông báo lỗi trước khi sửa. Đoán mò thường làm sự cố tệ hơn.", kind: "warn" }
                     }
                 }
@@ -2065,9 +2228,9 @@ ShellRoot {
                 spacing: 4
                 Kbd { text: "←" }
                 Kbd { text: "→" }
-                Label { text: "chuyển bước ·"; font.pixelSize: 11; color: app.muted2 }
+                Label { text: "chuyển bước ·"; font.pixelSize: Math.round(11 * app.fs); color: app.muted2 }
                 Kbd { text: "Ctrl K" }
-                Label { text: "tìm bài"; font.pixelSize: 11; color: app.muted2 }
+                Label { text: "tìm bài"; font.pixelSize: Math.round(11 * app.fs); color: app.muted2 }
             }
         }
     }
@@ -2111,7 +2274,7 @@ ShellRoot {
                                 Layout.fillWidth: true
                                 text: lr.modelData.title
                                 wrapMode: Text.Wrap
-                                font.pixelSize: 12
+                                font.pixelSize: Math.round(12 * app.fs)
                                 font.weight: lr.index === app.step ? Font.Bold : Font.Normal
                                 color: lr.index === app.step ? app.ink : app.ink2
                             }
@@ -2149,8 +2312,8 @@ ShellRoot {
             anchors.topMargin: 18
             maxW: 1000
             Caps { text: "Khoá học VPS Linux" }
-            Label { text: "Kết quả của tôi"; font.pixelSize: 26; font.weight: Font.ExtraBold; font.letterSpacing: -0.45 }
-            Label { text: "Điểm quiz tốt nhất, lab và sự cố đã xử lý của từng bài. Bấm vào một bài để học tiếp."; color: app.muted; font.pixelSize: 12 }
+            Label { text: "Kết quả của tôi"; font.pixelSize: Math.round(26 * app.fs); font.weight: Font.ExtraBold; font.letterSpacing: -0.45 }
+            Label { text: "Điểm quiz tốt nhất, lab và sự cố đã xử lý của từng bài. Bấm vào một bài để học tiếp."; color: app.muted; font.pixelSize: Math.round(12 * app.fs) }
             Flow {
                 Layout.fillWidth: true
                 Layout.topMargin: 6
@@ -2180,7 +2343,7 @@ ShellRoot {
                         Caps { text: "Lưu kết quả học tập"; color: app.ink }
                         Rich {
                             Layout.fillWidth: true
-                            font.pixelSize: 12
+                            font.pixelSize: Math.round(12 * app.fs)
                             text: app.md("Tiến độ **tự động lưu** sau mỗi thao tác"
                                 + (app.savedAt ? " (lần cuối " + app.clock(app.savedAt) + ")" : "")
                                 + ", mỗi ngày giữ thêm một bản sao lưu tự động trong 30 ngày.\n**Xuất báo cáo** tạo file `.md` để đọc và file `.json` để khôi phục.")
@@ -2195,14 +2358,14 @@ ShellRoot {
                             visible: app.lastExport !== ""
                             Layout.fillWidth: true
                             text: "Vừa xuất: " + app.lastExport.replace(Quickshell.env("HOME"), "~")
-                            font.pixelSize: 11; color: app.greenInk; elide: Text.ElideMiddle
+                            font.pixelSize: Math.round(11 * app.fs); color: app.greenInk; elide: Text.ElideMiddle
                         }
                         Caps { Layout.topMargin: 6; text: "Khôi phục từ bản sao lưu" }
                         Label {
                             visible: app.backupList.length === 0
                             Layout.fillWidth: true
                             text: "Chưa có bản sao lưu nào."
-                            font.pixelSize: 12; color: app.muted
+                            font.pixelSize: Math.round(12 * app.fs); color: app.muted
                         }
                         Repeater {
                             model: app.backupList.slice(0, 6)
@@ -2215,10 +2378,10 @@ ShellRoot {
                                     implicitWidth: bkTag.implicitWidth + 12; implicitHeight: 20; radius: 10
                                     color: bk.modelData.kind === "auto" ? app.violet : app.mint
                                     border.color: app.ink2
-                                    Label { id: bkTag; anchors.centerIn: parent; text: bk.modelData.kind === "auto" ? "Tự động" : "Đã xuất"; font.pixelSize: 10; font.weight: Font.Bold }
+                                    Label { id: bkTag; anchors.centerIn: parent; text: bk.modelData.kind === "auto" ? "Tự động" : "Đã xuất"; font.pixelSize: Math.round(10 * app.fs); font.weight: Font.Bold }
                                 }
-                                Label { Layout.fillWidth: true; text: bk.modelData.name; elide: Text.ElideMiddle; font.pixelSize: 12 }
-                                Label { text: app.dateTime(bk.modelData.mtime); font.pixelSize: 11; color: app.muted }
+                                Label { Layout.fillWidth: true; text: bk.modelData.name; elide: Text.ElideMiddle; font.pixelSize: Math.round(12 * app.fs) }
+                                Label { text: app.dateTime(bk.modelData.mtime); font.pixelSize: Math.round(11 * app.fs); color: app.muted }
                                 Btn { small: true; text: "Khôi phục"; onClicked: app.restoreFrom(bk.modelData.path) }
                             }
                         }
@@ -2226,7 +2389,7 @@ ShellRoot {
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                             text: "Khôi phục sẽ gộp với tiến độ hiện tại, không làm mất gì. Bản sao lưu của bản web (JSON) đặt vào thư mục QuantumLearn cũng khôi phục được."
-                            font.pixelSize: 11; color: app.muted
+                            font.pixelSize: Math.round(11 * app.fs); color: app.muted
                         }
                     }
                 }
@@ -2249,7 +2412,7 @@ ShellRoot {
                         Label {
                             visible: histCard.items.length === 0
                             text: "Chưa có lượt làm quiz nào."
-                            font.pixelSize: 12; color: app.muted
+                            font.pixelSize: Math.round(12 * app.fs); color: app.muted
                         }
                         Repeater {
                             model: histCard.items
@@ -2260,13 +2423,13 @@ ShellRoot {
                                 readonly property bool full: modelData.s === modelData.n
                                 Layout.fillWidth: true
                                 spacing: 8
-                                Label { text: app.dateTime(hr.modelData.t); font.pixelSize: 11; color: app.muted }
-                                Label { Layout.fillWidth: true; text: hr.l ? hr.l.short : hr.modelData.l; elide: Text.ElideRight; font.pixelSize: 12 }
+                                Label { text: app.dateTime(hr.modelData.t); font.pixelSize: Math.round(11 * app.fs); color: app.muted }
+                                Label { Layout.fillWidth: true; text: hr.l ? hr.l.short : hr.modelData.l; elide: Text.ElideRight; font.pixelSize: Math.round(12 * app.fs) }
                                 Rectangle {
                                     implicitWidth: hsl.implicitWidth + 14; implicitHeight: 20; radius: 10
                                     color: hr.full ? app.green : hr.modelData.s * 2 >= hr.modelData.n ? app.orange : app.red
                                     border.color: app.ink2
-                                    Label { id: hsl; anchors.centerIn: parent; text: hr.modelData.s + "/" + hr.modelData.n; font.pixelSize: 11; font.weight: Font.Bold; color: hr.full || hr.modelData.s * 2 >= hr.modelData.n ? app.ink : app.redInk }
+                                    Label { id: hsl; anchors.centerIn: parent; text: hr.modelData.s + "/" + hr.modelData.n; font.pixelSize: Math.round(11 * app.fs); font.weight: Font.Bold; color: hr.full || hr.modelData.s * 2 >= hr.modelData.n ? app.ink : app.redInk }
                                 }
                             }
                         }
@@ -2336,7 +2499,7 @@ ShellRoot {
                 horizontalAlignment: index === 0 ? Text.AlignLeft : Text.AlignRight
                 text: modelData
                 elide: Text.ElideRight
-                font.pixelSize: rw.head ? 10.5 : 12.5
+                font.pixelSize: Math.round((rw.head ? 10.5 : 12.5) * app.fs)
                 font.weight: rw.head || (index === 4 && rw.done) ? Font.Bold : Font.Normal
                 font.capitalization: rw.head ? Font.AllUppercase : Font.MixedCase
                 color: rw.head ? app.muted : index === 4 && rw.done ? app.greenInk : app.ink
